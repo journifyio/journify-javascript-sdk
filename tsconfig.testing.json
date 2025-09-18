@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "es5",
+    "resolveJsonModule": true,
+    "lib": ["es2015", "dom"]
+  },
+  "include": ["src/**/*.test.ts"]
+}

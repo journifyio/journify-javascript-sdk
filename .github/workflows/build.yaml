@@ -1,0 +1,36 @@
+name: Lint & Build
+on:
+  push:
+    branches-ignore:
+      - main
+
+env:
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21
+
+      - name: Install modules
+        run: yarn install
+
+      - name: Lint
+        run: npm run lint
+        
+      - name: Build
+        run: npm run build
+
+    

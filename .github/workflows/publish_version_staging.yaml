@@ -1,0 +1,107 @@
+name: Publish version to staging CDN
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: version
+        required: true
+
+env:
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+jobs:
+  release:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21
+
+      - name: Install modules
+        run: yarn install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Slack notification - Publishing
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: Publishing version *${{ github.event.inputs.version }}* to *stage* ..."
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - id: auth
+        name: Login to GCloud
+        uses: google-github-actions/auth@v2
+        with:
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_STAGING }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_STAGING }}
+
+      - id: publish_latest_to_staging_cdn
+        name: Publish latest to staging CDN
+        uses: 'google-github-actions/upload-cloud-storage@v2'
+        with:
+          path: 'dist/_bundles/journifyio.min.js'
+          destination: 'static.journify.dev/@journifyio/js-sdk@latest'
+
+      - id: publish_current_version_to_staging_cdn
+        name: Publish current version to staging CDN
+        uses: 'google-github-actions/upload-cloud-storage@v2'
+        with:
+          path: 'dist/_bundles/journifyio.min.js'
+          destination: "static.journify.dev/@journifyio/js-sdk@${{ github.event.inputs.version }}"
+
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+              
+                
+      - name: Purge GCP CDN cache
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.GLB_STAGING }} \
+            --path "/@journifyio/js-sdk@latest/journifyio.min.js" \
+            --async
+            
+      - name: Slack notification - Published
+        if: success()
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: :rocket: Published version *${{ github.event.inputs.version }}* to *stage* :tada:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack notification - Publishing failed
+        uses: slackapi/slack-github-action@v1.23.0
+        if: failure()
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ github.event.inputs.version }}* to *stage* failed :cry:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

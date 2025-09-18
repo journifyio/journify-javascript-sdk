@@ -1,0 +1,26 @@
+version: 2
+updates:
+- package-ecosystem: "npm"
+  directory: "/"              # Only update the root package.json
+  schedule:
+    interval: "weekly"
+    day: "monday"
+    time: "10:00"
+    timezone: "Africa/Casablanca"
+  reviewers:
+    - "journifyio/backend"
+  target-branch: "main"
+  commit-message:
+    prefix: "chore(dependabot):"
+  labels:
+    - "npm dependencies"
+  groups:
+    production-version-dependencies:
+      applies-to: version-updates
+      dependency-type: "production"
+    production-security-dependencies:
+      applies-to: security-updates
+      dependency-type: "production"
+    development-security-dependencies:
+      applies-to: security-updates
+      dependency-type: "development"

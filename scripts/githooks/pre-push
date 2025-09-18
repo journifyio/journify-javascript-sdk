@@ -1,0 +1,19 @@
+if ! which npm > /dev/null; then
+  echo "Error: npm is not installed"
+  exit 1
+fi
+
+npm run lint
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi
+
+npm run build 
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi
+
+CI=1 npm run test 
+if [[ $? -ne 0 ]]; then
+  exit 1
+fi

@@ -1,0 +1,138 @@
+name: Merge to main
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [closed]
+
+env:
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+jobs:
+  release:
+    permissions:
+      contents: write
+      id-token: write
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 21
+
+      - name: Install modules
+        run: yarn install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure git
+        run: |
+          git config --global user.email "ci@journify.io"
+          git config --global user.name "Journify CI bot"
+
+      - name: Check for a potential new release
+        id: release_check
+        run: |
+          pull_request_title="${{ github.event.pull_request.title }}"
+          new_release_regex='(\[MAJOR\]|\[MINOR\]|\[PATCH\])\ .+'
+          
+          if [[ $pull_request_title =~ $new_release_regex ]]; then
+            current_version=$(node -p "require('./package.json').version")
+            tag_name="v$current_version"
+            git tag -a $tag_name -m "New version $tag_name"
+            git push origin $tag_name
+          
+            echo "new_release=true" >> $GITHUB_OUTPUT
+            echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
+            echo "current_version=$current_version" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Slack notification - Publishing
+        if: steps.release_check.outputs.new_release == 'true'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: Publishing version *${{ steps.release_check.outputs.tag_name }}* to *stage* ..."
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - id: auth
+        name: Login to GCloud
+        if: steps.release_check.outputs.new_release == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_STAGING }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER_STAGING }}
+          
+      - id: publish_latest_to_staging_cdn
+        name: Publish latest to staging CDN
+        if: steps.release_check.outputs.new_release == 'true'
+        uses: 'google-github-actions/upload-cloud-storage@v2'
+        with:
+          path: 'dist/_bundles/journifyio.min.js'
+          destination: 'static.journify.dev/@journifyio/js-sdk@latest'
+
+      - id: publish_current_version_to_staging_cdn
+        name: Publish current version to staging CDN
+        if: steps.release_check.outputs.new_release == 'true'
+        uses: 'google-github-actions/upload-cloud-storage@v2'
+        with:
+          path: 'dist/_bundles/journifyio.min.js'
+          destination: "static.journify.dev/@journifyio/js-sdk@${{ steps.release_check.outputs.current_version }}"
+
+      - name: Release to Github
+        if: steps.release_check.outputs.new_release == 'true'
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.release_check.outputs.tag_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 'Set up Cloud SDK'
+        if: steps.release_check.outputs.new_release == 'true'
+        uses: 'google-github-actions/setup-gcloud@v2'
+            
+              
+      - name: Purge GCP CDN cache
+        if: steps.release_check.outputs.new_release == 'true'  
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache ${{ secrets.GLB_STAGING }} \
+            --path "/@journifyio/js-sdk@latest/journifyio.min.js" \
+            --async
+
+      - name: Slack notification - Published
+        if: steps.release_check.outputs.new_release == 'true' && success()
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: :rocket: Published version *${{ steps.release_check.outputs.tag_name }}* to *stage* :tada:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack notification - Publishing failed
+        uses: slackapi/slack-github-action@v1.23.0
+        if: steps.release_check.outputs.new_release == 'true' && failure()
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ steps.release_check.outputs.tag_name }}* to *stage* failed :cry:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

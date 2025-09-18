@@ -1,0 +1,60 @@
+.App {
+    padding-top: 20px;
+    padding-left: 100px;
+    padding-bottom: 20px;
+}
+
+button{
+    width: 100px;
+    margin-right: 20px;
+}
+
+label {
+    font-weight: bold;
+    width: 100px;
+    display: inline-block;
+}
+
+label.error{
+    color: red;
+    display: inline;
+}
+
+label.success{
+    color: green;
+    display: inline;
+}
+
+.write-key-input{
+    margin-right: 10px;
+    width: 300px;
+    height: 30px;
+}
+
+.hash-pii-checkbox {
+    width: 300px;
+    height: 30px;
+}
+
+.operation{
+    border: 2px solid black;
+    padding: 10px;
+    width: 70%;
+}
+
+.operation-input{
+    width: 300px;
+    height: 30px;
+}
+
+textarea.operation-input{
+    height: 150px;
+    width: 302px;
+}
+
+.operation-input-container{
+    margin-bottom: 10px;
+    display: flex;
+    align-content: center;
+    align-items: center;
+}
