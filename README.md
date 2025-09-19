@@ -63,3 +63,6 @@ To publish a new version, you need to add a prefix to your pull request title fo
 * **[PATCH]** \{Pull request title\}
 
 Once your PR is merged and the CI pipeline is passed, your code will be published to npm.
+
+# License 
+This project is licensed under MIT license.
