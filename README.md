@@ -64,5 +64,24 @@ To publish a new version, you need to add a prefix to your pull request title fo
 
 Once your PR is merged and the CI pipeline is passed, your code will be published to npm.
 
-# License 
+## Test your changes using the playground in watch mode
+1. Install the dependencies (done once)
+    ```sh
+    yarn install
+    ```
+2. Install the playground dependencies (done once)
+    ```sh
+    cd examples/react-playground
+    yarn install
+    cd -
+    ```
+3. Build the package in watch mode
+    ```sh
+    yarn build-watch
+    ```
+4. In another terminal tab, start the playground
+    ```sh
+   yarn playground
+   ```
+# License
 This project is licensed under MIT license.
