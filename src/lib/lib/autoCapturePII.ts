@@ -73,6 +73,7 @@ export class AutoCapturePII {
           this.isValidEmail(value)
         ) {
           traits.email = value;
+          break;
         }
 
         if (this.checkInputBy(inputTarget, ["firstname"])) {
