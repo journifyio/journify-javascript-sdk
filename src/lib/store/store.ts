@@ -26,8 +26,8 @@ export class StoresGroup implements Store {
 
   public get<T>(key: string): T | null {
     return (
-      this.localStore.get<T>(key) ??
       this.cookiesStore.get<T>(key) ??
+      this.localStore.get<T>(key) ??
       this.memoryStore.get<T>(key) ??
       null
     );
