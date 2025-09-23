@@ -60,6 +60,22 @@ export class AutoCapturePII {
 
     switch (type) {
       case "text":
+        if (
+          this.checkInputBy(inputTarget, ["mobile", "tel"], this.phoneRegex) &&
+          this.isValidPhone(value)
+        ) {
+          traits.phone = value;
+          break;
+        }
+
+        if (
+          this.checkInputBy(inputTarget, ["email", "e-mail"], emailRegex) &&
+          this.isValidEmail(value)
+        ) {
+          traits.email = value;
+          break;
+        }
+
         if (this.checkInputBy(inputTarget, ["firstname"])) {
           traits.firstname = inputTarget.value.trim();
           break;
@@ -78,21 +94,6 @@ export class AutoCapturePII {
           }
 
           break;
-        }
-
-        if (
-          this.checkInputBy(inputTarget, ["mobile", "tel"], this.phoneRegex) &&
-          this.isValidPhone(value)
-        ) {
-          traits.phone = value;
-          break;
-        }
-
-        if (
-          this.checkInputBy(inputTarget, ["email", "e-mail"], emailRegex) &&
-          this.isValidEmail(value)
-        ) {
-          traits.email = value;
         }
         break;
       case "email":
