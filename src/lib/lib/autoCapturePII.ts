@@ -120,6 +120,7 @@ export class AutoCapturePII {
           traits.birthday = value;
         }
         break;
+
       case "select-one":
         this.getSelectValues(selectTarget).forEach((v) => {
           const g = this.getGender(v);
