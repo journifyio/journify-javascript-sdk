@@ -6,7 +6,7 @@ import {
 } from "../../../../../test/mocks/mapping";
 import { UserMock } from "../../../../../test/mocks/user";
 import { PluginDependencies } from "../../plugin";
-import { EventMapperFactoryImpl } from "../../lib/mapping";
+import { EventMapperFactoryImpl } from "../../lib/eventMapping";
 import { ContextFactoryImpl } from "../../../context";
 import { JournifyEventType } from "../../../../domain/event";
 import { randomUUID } from "crypto";

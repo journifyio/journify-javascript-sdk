@@ -16,7 +16,7 @@ import {
 import { XPixel } from "../xPixel";
 import { JournifyEvent, JournifyEventType } from "../../../../domain/event";
 import { ContextFactoryImpl } from "../../../context";
-import { EventMapperFactoryImpl } from "../../lib/mapping";
+import { EventMapperFactoryImpl } from "../../lib/eventMapping";
 
 const X_PIXEL_SRC_URL = "https://static.ads-twitter.com/uwt.js";
 describe("X plugin", () => {
