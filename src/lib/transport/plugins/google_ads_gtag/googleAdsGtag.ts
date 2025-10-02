@@ -2,13 +2,13 @@
 import { Logger, Plugin, PluginDependencies, Sync } from "../plugin";
 import { User } from "../../../domain/user";
 import { Browser } from "../../browser";
-import { EventMapper, FieldsMapper } from "../lib/mapping";
+import { EventMapper } from "../lib/eventMapping";
+import { FieldsMapper } from "../lib/fieldMapping";
 import { toSettingsObject } from "../lib/settings";
 import { getStoredIdentify } from "../lib/identify";
 import { JournifyEvent, JournifyEventType } from "../../../domain/event";
 import { toLowerCase, trim } from "../lib/tranformations";
 import { Context } from "../../context";
-import { matchFilters } from "../lib/filters";
 
 declare global {
   interface Window {
@@ -77,12 +77,12 @@ export class GoogleAdsGtag implements Plugin {
 
   private trackGtagEvent(ctx: Context): Promise<Context> | Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
     const { conversionID, conversionType } = this.parseMappedEventName(
-      eventMapping.pixelEventName
+        mappedEvent.pixelEventName
     );
     const mappedProperties = this.fieldsMapper.mapEvent(event);
     delete mappedProperties.conversionAction;

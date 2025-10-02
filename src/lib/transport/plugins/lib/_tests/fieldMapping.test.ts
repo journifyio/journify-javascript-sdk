@@ -1,13 +1,9 @@
-import { EventMapperFactoryImpl, FieldsMapperFactoryImpl } from "../mapping";
+import {  FieldsMapperFactoryImpl } from "../fieldMapping";
 import {
-  EventMapping,
   FieldMapping,
   FieldMappingSourceType,
-  TrackingEventType,
 } from "../../plugin";
 import { Transformation } from "../tranformations";
-import { JournifyEventType } from "../../../../domain/event";
-import { Context } from "../../../context";
 
 describe("Fields mapper", () => {
   it("should create a valid FieldsMapper", () => {
@@ -179,98 +175,5 @@ describe("Fields mapper", () => {
       "example_2@example2.com"
     );
     expect(firstnameTransformation).toHaveBeenCalledWith("Hello john");
-  });
-});
-
-describe("EventMapper", () => {
-  const eventMapperFactory = new EventMapperFactoryImpl();
-  const eventMappings: EventMapping[] = [
-    {
-      enabled: true,
-      event_type: TrackingEventType.TRACK_EVENT,
-      event_name: "test_event",
-      destination_event_key: "pixel_test_event",
-      filters: [],
-    },
-    {
-      enabled: true,
-      event_type: TrackingEventType.PAGE_EVENT,
-      event_name: "",
-      destination_event_key: "pixel_page_event",
-      filters: [],
-    },
-    {
-      enabled: true,
-      event_type: TrackingEventType.GROUP_EVENT,
-      event_name: "",
-      destination_event_key: "pixel_group_event",
-      filters: [],
-    },
-    {
-      enabled: true,
-      event_type: TrackingEventType.IDENTIFY_EVENT,
-      event_name: "",
-      destination_event_key: "pixel_identify_event",
-      filters: [],
-    },
-  ];
-
-  describe("getEventMapping", () => {
-    it("should return the correct mapping for a TRACK event", () => {
-      const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
-      const mapping = eventMapper.getEventMapping({
-        type: JournifyEventType.TRACK,
-        event: "test_event",
-      });
-      expect(mapping).toEqual({
-        pixelEventName: "pixel_test_event",
-        filters: [],
-      });
-    });
-
-    it("should return the correct mapping for a PAGE event", () => {
-      const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
-      const mapping = eventMapper.getEventMapping({
-        type: JournifyEventType.PAGE,
-        event: "",
-      });
-      expect(mapping).toEqual({
-        pixelEventName: "pixel_page_event",
-        filters: [],
-      });
-    });
-
-    it("should return the correct mapping for a GROUP event", () => {
-      const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
-      const mapping = eventMapper.getEventMapping({
-        type: JournifyEventType.GROUP,
-        event: "",
-      });
-      expect(mapping).toEqual({
-        pixelEventName: "pixel_group_event",
-        filters: [],
-      });
-    });
-
-    it("should return the correct mapping for an IDENTIFY event", () => {
-      const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
-      const mapping = eventMapper.getEventMapping({
-        type: JournifyEventType.IDENTIFY,
-        event: "",
-      });
-      expect(mapping).toEqual({
-        pixelEventName: "pixel_identify_event",
-        filters: [],
-      });
-    });
-
-    it("should return null for an unsupported event type", () => {
-      const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
-      const ctx = {
-        getEvent: () => ({ type: "UNSUPPORTED_EVENT_TYPE", event: "" }),
-      } as unknown as Context;
-      const mapping = eventMapper.getEventMapping(ctx.getEvent());
-      expect(mapping).toBeNull();
-    });
   });
 });

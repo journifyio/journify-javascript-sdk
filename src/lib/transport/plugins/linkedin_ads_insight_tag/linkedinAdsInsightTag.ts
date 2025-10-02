@@ -2,9 +2,9 @@
 import { Logger, Plugin, PluginDependencies, Sync } from "../plugin";
 import { Context } from "../../context";
 import { Browser } from "../../browser";
-import { EventMapper, FieldsMapper } from "../lib/mapping";
+import { FieldsMapper } from "../lib/fieldMapping";
+import { EventMapper } from "../lib/eventMapping";
 import { toSettingsObject } from "../lib/settings";
-import { matchFilters } from "../lib/filters";
 import { toInt } from "../lib/tranformations";
 import {getStoredIdentify} from "../lib/identify";
 import {JournifyEventType} from "../../../domain/event";
@@ -125,21 +125,21 @@ export class LinkedinAdsInsightTag implements Plugin {
 
   private trackInsightTagEvent(ctx: Context): Promise<Context> | Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
 
-    const mappedEvent = this.fieldsMapper.mapEvent(
+    const mappedFields = this.fieldsMapper.mapEvent(
       event,
       {},
       { ignoreUnmappedProperties: true }
     );
-    delete mappedEvent.email;
+    delete mappedFields.email;
 
     this.lintrk("track", {
-      conversion_id: toInt(eventMapping.pixelEventName),
-      ...mappedEvent,
+      conversion_id: toInt(mappedEvent.pixelEventName),
+      ...mappedFields,
     });
 
     return ctx;

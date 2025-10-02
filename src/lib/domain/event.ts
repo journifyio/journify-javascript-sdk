@@ -18,6 +18,10 @@ export interface JournifyEvent {
   };
 }
 
+export interface MappedEvent {
+  pixelEventName: string;
+}
+
 export enum JournifyEventType {
   TRACK = "track",
   PAGE = "page",

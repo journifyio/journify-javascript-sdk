@@ -25,10 +25,6 @@ import { GA4Pixel } from "../transport/plugins/ga4_pixel/ga4Pixel";
 import { TikTokPixel } from "../transport/plugins/tiktok/tiktokPixel";
 import { CleverTapPlugin } from "../transport/plugins/cleverTap/cleverTapPlugin";
 import { CleverTapWrapperImpl } from "../transport/plugins/cleverTap/cleverTapWrapper";
-import {
-  EventMapperFactoryImpl,
-  FieldsMapperFactoryImpl,
-} from "../transport/plugins/lib/mapping";
 import { SessionStore } from "../store/sessionStore";
 import { ExternalIdsSessionCacheImpl } from "../domain/externalId";
 import { AutoCapturePII } from "../lib/autoCapturePII";
@@ -40,6 +36,8 @@ import { SentryWrapper } from "../lib/sentry";
 import { BingAdsTag } from "../transport/plugins/bing_ads_tag/bing_ads_tag";
 import { GoogleAdsGtag } from "../transport/plugins/google_ads_gtag/googleAdsGtag";
 import { LinkedinAdsInsightTag } from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
+import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
+import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,

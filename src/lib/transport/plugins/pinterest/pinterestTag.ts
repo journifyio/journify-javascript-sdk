@@ -1,19 +1,14 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Logger, Plugin, PluginDependencies, Sync } from "../plugin";
 import { Context } from "../../context";
-import {
-  EventMapper,
-  EventMapperImpl,
-  FieldsMapper,
-  FieldsMapperFactory,
-} from "../lib/mapping";
 import { toSettingsObject } from "../lib/settings";
 import { getStoredIdentify } from "../lib/identify";
 import { Browser } from "../../browser";
 import { User } from "../../../domain/user";
 import { JournifyEvent, JournifyEventType } from "../../../domain/event";
 import { toLowerCase, trim } from "../lib/tranformations";
-import { matchFilters } from "../lib/filters";
+import {FieldsMapper, FieldsMapperFactory} from "../lib/fieldMapping";
+import {EventMapper, EventMapperFactory} from "../lib/eventMapping";
 
 declare global {
   interface Window {
@@ -29,6 +24,7 @@ export class PinterestTag implements Plugin {
   private readonly browser: Browser;
   private readonly user: User;
   private readonly fieldMapperFactory: FieldsMapperFactory;
+  private readonly eventMapperFactory: EventMapperFactory;
   private readonly testingMode: boolean;
   private readonly logger: Logger;
   private settings: Record<string, string>;
@@ -37,10 +33,8 @@ export class PinterestTag implements Plugin {
 
   public constructor(deps: PluginDependencies) {
     this.user = deps.user;
-    this.eventMapper = deps.eventMapperFactory.newEventMapper(
-      deps.sync.event_mappings
-    );
     this.browser = deps.browser;
+    this.eventMapperFactory = deps.eventMapperFactory;
     this.fieldMapperFactory = deps.fieldMapperFactory;
     this.testingMode = deps.testingWriteKey;
     this.logger = deps.logger;
@@ -85,7 +79,7 @@ export class PinterestTag implements Plugin {
     this.fieldsMapper = this.fieldMapperFactory.newFieldMapper(
       sync.field_mappings
     );
-    this.eventMapper = new EventMapperImpl(sync.event_mappings);
+    this.eventMapper = this.eventMapperFactory.newEventMapper(sync.event_mappings);
     this.settings = toSettingsObject(sync.settings);
 
     if (this.testingMode) {
@@ -147,8 +141,8 @@ export class PinterestTag implements Plugin {
 
   private trackTagEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
 
@@ -158,8 +152,8 @@ export class PinterestTag implements Plugin {
       { ignoreUnmappedProperties: true }
     );
 
-    const eventName = eventMapping?.pixelEventName || event.event;
-    if (!eventMapping) {
+    const eventName = mappedEvent?.pixelEventName || event.event;
+    if (!mappedEvent) {
       return ctx;
     }
 

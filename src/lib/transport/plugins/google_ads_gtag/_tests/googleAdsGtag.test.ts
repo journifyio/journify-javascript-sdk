@@ -15,7 +15,7 @@ import {
 import { JournifyEvent, JournifyEventType } from "../../../../domain/event";
 import { randomUUID } from "node:crypto";
 import { ContextFactoryImpl } from "../../../context";
-import { EventMapperFactoryImpl } from "../../lib/mapping";
+import { EventMapperFactoryImpl } from "../../lib/eventMapping";
 
 describe("Google Ads Gtag", () => {
   it("should inject gtag script on the page and initialize it with user data", () => {

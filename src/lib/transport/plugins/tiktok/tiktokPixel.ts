@@ -3,17 +3,12 @@ import { JournifyEvent, JournifyEventType } from "../../../domain/event";
 import { User } from "../../../domain/user";
 import { Browser } from "../../browser";
 import { Context } from "../../context";
-import { matchFilters } from "../lib/filters";
-import {
-  EventMapper,
-  EventMapperImpl,
-  FieldsMapper,
-  FieldsMapperFactory,
-} from "../lib/mapping";
 import { Logger, PluginDependencies, Sync, Plugin } from "../plugin";
 import { toLowerCase, trim, toE164 } from "../lib/tranformations";
 import { toSettingsObject } from "../lib/settings";
 import { getStoredIdentify } from "../lib/identify";
+import {FieldsMapper, FieldsMapperFactory} from "../lib/fieldMapping";
+import {EventMapper, EventMapperFactory} from "../lib/eventMapping";
 
 declare global {
   interface Window {
@@ -27,6 +22,7 @@ export class TikTokPixel implements Plugin {
   private readonly browser: Browser;
   private readonly user: User;
   private readonly fieldMapperFactory: FieldsMapperFactory;
+  private readonly eventMapperFactory: EventMapperFactory;
   private readonly testingMode: boolean;
   private readonly logger: Logger;
 
@@ -36,10 +32,8 @@ export class TikTokPixel implements Plugin {
 
   public constructor(deps: PluginDependencies) {
     this.user = deps.user;
-    this.eventMapper = deps.eventMapperFactory.newEventMapper(
-      deps.sync.event_mappings
-    );
     this.browser = deps.browser;
+    this.eventMapperFactory = deps.eventMapperFactory;
     this.fieldMapperFactory = deps.fieldMapperFactory;
     this.testingMode = deps.testingWriteKey;
     this.logger = deps.logger;
@@ -81,7 +75,7 @@ export class TikTokPixel implements Plugin {
       sync.field_mappings,
       () => new Date()
     );
-    this.eventMapper = new EventMapperImpl(sync.event_mappings);
+    this.eventMapper = this.eventMapperFactory.newEventMapper(sync.event_mappings);
     this.settings = toSettingsObject(sync.settings);
 
     if (this.testingMode) {
@@ -169,8 +163,8 @@ export class TikTokPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
     const mappedProperties = this.fieldsMapper.mapEvent(event);
@@ -178,7 +172,7 @@ export class TikTokPixel implements Plugin {
     delete mappedProperties.event_id;
 
     const traits = this.mapUserData(event);
-    const eventName = eventMapping?.pixelEventName || event.event;
+    const eventName = mappedEvent?.pixelEventName || event.event;
     this.callPixelHelper(
       event.type,
       {

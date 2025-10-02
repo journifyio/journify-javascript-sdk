@@ -17,7 +17,7 @@ import { randomUUID } from "node:crypto";
 import { User } from "../../../../domain/user";
 import { Context, ContextFactoryImpl } from "../../../context";
 import { JournifyEventType } from "../../../../domain/event";
-import { EventMapperFactoryImpl } from "../../lib/mapping";
+import { EventMapperFactoryImpl } from "../../lib/eventMapping";
 
 const TIKTOK_SCRIPT_URL = "https://analytics.tiktok.com/i18n/pixel/events.js";
 

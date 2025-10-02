@@ -1,7 +1,7 @@
 import {
   FieldsMapper,
   FieldsMapperFactory,
-} from "../../lib/transport/plugins/lib/mapping";
+} from "../../lib/transport/plugins/lib/fieldMapping";
 import { FieldMapping } from "../../lib/transport/plugins/plugin";
 import { JournifyEvent } from "../../lib/domain/event";
 import { Transformation } from "../../lib/transport/plugins/lib/tranformations";
