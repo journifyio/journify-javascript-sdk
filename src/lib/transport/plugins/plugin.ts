@@ -1,7 +1,8 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Context } from "../context";
 import { Browser } from "../browser";
-import { EventMapperFactory, FieldsMapperFactory } from "./lib/mapping";
+import { EventMapperFactory } from "./lib/eventMapping";
+import { FieldsMapperFactory } from "./lib/fieldMapping";
 import { HttpCookieOptions } from "../../lib/httpCookieService";
 import { User } from "../../domain/user";
 import { SentryWrapper } from "../../lib/sentry";

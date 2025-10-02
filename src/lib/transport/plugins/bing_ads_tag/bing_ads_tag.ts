@@ -5,8 +5,8 @@ import { Context } from "../../context";
 import { Browser, InjectScriptOptions } from "../../browser";
 import { getStoredIdentify } from "../lib/identify";
 import { hashPII } from "../lib/hashPII";
-import { EventMapper, FieldsMapper } from "../lib/mapping";
-import { matchFilters } from "../lib/filters";
+import { FieldsMapper } from "../lib/fieldMapping";
+import { EventMapper } from "../lib/eventMapping";
 import {JournifyEventType} from "../../../domain/event";
 
 declare global {
@@ -84,23 +84,23 @@ export class BingAdsTag implements Plugin {
   }
   public track(ctx: Context): Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
 
-    const mappedEvent = this.fieldsMapper.mapEvent(event);
+    const mappedFields = this.fieldsMapper.mapEvent(event);
     // remove pid (user info), we send it only on set calls
-    for (const key in mappedEvent) {
+    for (const key in mappedFields) {
       if (key === "pid") {
-        delete mappedEvent[key];
+        delete mappedFields[key];
         break;
       }
     }
 
     this.browser
       .window()
-      ?.uetq.push("event", eventMapping.pixelEventName, mappedEvent);
+      ?.uetq.push("event", mappedEvent.pixelEventName, mappedFields);
     return ctx;
   }
 

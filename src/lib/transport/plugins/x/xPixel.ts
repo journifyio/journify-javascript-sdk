@@ -2,14 +2,9 @@
 import { Sync, Plugin, PluginDependencies, Logger } from "../plugin";
 import { Browser } from "../../browser";
 import { Context } from "../../context";
-import { matchFilters } from "../lib/filters";
-import {
-  EventMapper,
-  EventMapperImpl,
-  FieldsMapper,
-  FieldsMapperFactory,
-} from "../lib/mapping";
 import { toSettingsObject } from "../lib/settings";
+import {FieldsMapper, FieldsMapperFactory} from "../lib/fieldMapping";
+import {EventMapper, EventMapperFactory} from "../lib/eventMapping";
 
 const X_PIXEL_SCRIPT_URL = "https://static.ads-twitter.com/uwt.js";
 
@@ -25,6 +20,7 @@ export class XPixel implements Plugin {
   public readonly name = "x_pixel";
   private readonly browser: Browser;
   private readonly fieldMapperFactory: FieldsMapperFactory;
+  private readonly eventMapperFactory: EventMapperFactory;
   private readonly testingMode: boolean;
   private readonly logger: Logger;
   private settings: Record<string, string>;
@@ -32,10 +28,8 @@ export class XPixel implements Plugin {
   private eventMapper: EventMapper;
 
   public constructor(deps: PluginDependencies) {
-    this.eventMapper = deps.eventMapperFactory.newEventMapper(
-      deps.sync.event_mappings
-    );
     this.browser = deps.browser;
+    this.eventMapperFactory = deps.eventMapperFactory;
     this.fieldMapperFactory = deps.fieldMapperFactory;
     this.testingMode = deps.testingWriteKey;
     this.logger = deps.logger;
@@ -64,8 +58,8 @@ export class XPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
 
@@ -76,7 +70,7 @@ export class XPixel implements Plugin {
     );
     this.callPixelHelper(
       "event",
-      `tw-${this.settings.x_pixel_id}-${eventMapping.pixelEventName}`,
+      `tw-${this.settings.x_pixel_id}-${mappedEvent.pixelEventName}`,
       mappedProperties
     );
 
@@ -87,7 +81,7 @@ export class XPixel implements Plugin {
     this.fieldsMapper = this.fieldMapperFactory.newFieldMapper(
       sync.field_mappings
     );
-    this.eventMapper = new EventMapperImpl(sync.event_mappings);
+    this.eventMapper = this.eventMapperFactory.newEventMapper(sync.event_mappings);
     this.settings = toSettingsObject(sync.settings);
 
     if (this.testingMode) {

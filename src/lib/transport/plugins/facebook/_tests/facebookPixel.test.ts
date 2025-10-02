@@ -26,10 +26,8 @@ import {
 import { randomUUID } from "node:crypto";
 import { User } from "../../../../domain/user";
 import { ContextFactoryImpl } from "../../../context";
-import {
-  EventMapperFactoryImpl,
-  FieldsMapperFactoryImpl,
-} from "../../lib/mapping";
+import {FieldsMapperFactoryImpl} from "../../lib/fieldMapping";
+import {EventMapperFactoryImpl} from "../../lib/eventMapping";
 
 const FACEBOOK_SCRIPT_URL = "https://connect.facebook.net/en_US/fbevents.js";
 describe("FacebookPixel plugin", () => {

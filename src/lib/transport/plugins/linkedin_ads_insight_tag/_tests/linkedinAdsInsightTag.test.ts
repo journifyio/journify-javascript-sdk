@@ -5,10 +5,8 @@ import {
   PluginDependencies,
   TrackingEventType,
 } from "../../plugin";
-import {
-  EventMapperFactoryImpl,
-  FieldsMapperFactoryImpl,
-} from "../../lib/mapping";
+import {FieldsMapperFactoryImpl} from "../../lib/fieldMapping";
+import {EventMapperFactoryImpl} from "../../lib/eventMapping";
 import {
   FieldsMapperFactoryMock,
   FieldsMapperMock,

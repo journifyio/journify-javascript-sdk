@@ -1,8 +1,8 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Sync, Plugin, PluginDependencies, Logger } from "../plugin";
 import { Context } from "../../context";
-import { matchFilters } from "../lib/filters";
-import { EventMapper, FieldsMapper } from "../lib/mapping";
+import { FieldsMapper } from "../lib/fieldMapping";
+import { EventMapper } from "../lib/eventMapping";
 import {
   facebookBirthday,
   oneLetterGender,
@@ -119,8 +119,8 @@ export class FacebookPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
 
@@ -128,7 +128,7 @@ export class FacebookPixel implements Plugin {
     const eventId = mappedProperties.event_id;
     delete mappedProperties.event_id;
 
-    const eventName = eventMapping?.pixelEventName || event.event;
+    const eventName = mappedEvent?.pixelEventName || event.event;
     const trackType = isStandardEvent(eventName)
       ? "trackSingle"
       : "trackSingleCustom";

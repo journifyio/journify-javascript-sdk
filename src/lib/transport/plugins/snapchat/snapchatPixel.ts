@@ -3,17 +3,12 @@ import { Sync, Plugin, PluginDependencies, Logger } from "../plugin";
 import { User } from "../../../domain/user";
 import { Browser } from "../../browser";
 import { Context } from "../../context";
-import { matchFilters } from "../lib/filters";
-import {
-  EventMapper,
-  EventMapperFactory,
-  FieldsMapper,
-  FieldsMapperFactory,
-} from "../lib/mapping";
 import { JournifyEvent, JournifyEventType } from "../../../domain/event";
 import { toLowerCase, trim } from "../lib/tranformations";
 import { getStoredIdentify } from "../lib/identify";
 import { toSettingsObject } from "../lib/settings";
+import {FieldsMapper, FieldsMapperFactory} from "../lib/fieldMapping";
+import {EventMapper, EventMapperFactory} from "../lib/eventMapping";
 
 const SNAPCHAT_PIXEL_SCRIPT_URL = "https://sc-static.net/scevent.min.js";
 
@@ -83,13 +78,13 @@ export class SnapchatPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const eventMapping = this.eventMapper.getEventMapping(event);
-    if (!eventMapping || !matchFilters(event, eventMapping?.filters)) {
+    const mappedEvent = this.eventMapper.applyEventMapping(event);
+    if (!mappedEvent) {
       return ctx;
     }
 
     const mappedProperties = this.fieldsMapper.mapEvent(event);
-    const eventName = eventMapping?.pixelEventName || event.event;
+    const eventName = mappedEvent?.pixelEventName || event.event;
     const properties = this.transformProperties(mappedProperties);
     this.callPixelHelper("track", eventName, properties);
 

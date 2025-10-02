@@ -19,7 +19,7 @@ import { JournifyEvent, JournifyEventType } from "../../../../domain/event";
 import { Transformation, toLowerCase, trim } from "../../lib/tranformations";
 import { User } from "../../../../domain/user";
 import { ContextFactoryImpl } from "../../../context";
-import { EventMapperFactoryImpl } from "../../lib/mapping";
+import { EventMapperFactoryImpl } from "../../lib/eventMapping";
 
 const SNAPCHAT_PIXEL = "https://sc-static.net/scevent.min.js";
 describe("SnapchatPixel plugin", () => {
