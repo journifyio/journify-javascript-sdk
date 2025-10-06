@@ -34,15 +34,15 @@
     "playground": "npm run --prefix examples/react-playground start"
   },
   "dependencies": {
-    "@sentry/browser": "8.33.0",
+    "@sentry/browser": "10.17.0",
     "@types/js-cookie": "^3.0.6",
     "@types/lodash": "^4.14.202",
-    "@types/node": "^18.6.1",
+    "@types/node": "^24.7.0",
     "@types/uuid": "^9.0.8",
     "js-cookie": "^3.0.5",
     "liquidjs": "^10.10.0",
     "lodash": "^4.17.21",
-    "uuid": "^9.0.1"
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.23.9",
