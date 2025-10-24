@@ -7,7 +7,7 @@ import { getStoredIdentify } from "../lib/identify";
 import { hashPII } from "../lib/hashPII";
 import { FieldsMapper } from "../lib/fieldMapping";
 import { EventMapper } from "../lib/eventMapping";
-import {JournifyEventType} from "../../../domain/event";
+import { JournifyEventType } from "../../../domain/event";
 
 declare global {
   interface Window {
@@ -83,6 +83,10 @@ export class BingAdsTag implements Plugin {
     return ctx;
   }
   public track(ctx: Context): Context {
+    if (this.browser.window()?.uetq === undefined) {
+      console.warn("Bing Ads Tag not initialized properly");
+      return ctx;
+    }
     const event = ctx.getEvent();
     const mappedEvent = this.eventMapper.applyEventMapping(event);
     if (!mappedEvent) {
@@ -100,7 +104,7 @@ export class BingAdsTag implements Plugin {
 
     this.browser
       .window()
-      ?.uetq.push("event", mappedEvent.pixelEventName, mappedFields);
+      .uetq.push("event", mappedEvent.pixelEventName, mappedFields);
     return ctx;
   }
 
