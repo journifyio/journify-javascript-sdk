@@ -82,7 +82,7 @@ export class EventFactoryImpl implements EventFactory {
       type: JournifyEventType.TRACK,
       event: eventName,
       properties,
-      userId: this.user?.getUserId() || (mergedTraits.userId as string) || null,
+      userId: this.getUserID(mergedTraits),
       anonymousId: this.user?.getAnonymousId(),
       traits: mergedTraits,
     };
@@ -106,7 +106,7 @@ export class EventFactoryImpl implements EventFactory {
       type: JournifyEventType.PAGE,
       name: pageName,
       properties,
-      userId: this.user?.getUserId() || (mergedTraits.userId as string) || null,
+      userId: this.getUserID(mergedTraits),
       anonymousId: this.user?.getAnonymousId(),
       traits: mergedTraits,
     };
@@ -200,8 +200,27 @@ export class EventFactoryImpl implements EventFactory {
     if (properties?.phone) {
       traits.phone = properties.phone as string;
     }
+
+    if (properties?.userId) {
+      traits.userId = properties.userId as string;
+    }
   }
 
+  private getUserID(mergedTraits: Traits = {}): string | null {
+    if (this.user?.getUserId()) {
+      return this.user.getUserId();
+    }
+
+    if (mergedTraits.userId) {
+      return mergedTraits.userId as string;
+    }
+
+    if (mergedTraits.id) {
+      return mergedTraits.id as string;
+    }
+
+    return null;
+  }
   private getExternalIDs(): ExternalIds {
     const potentialExternalIds = {
       facebook_click_id: this.cookiesStore.get("_fbc"),
