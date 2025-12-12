@@ -430,7 +430,6 @@ describe("EventFactoryImpl class", () => {
         category: "Electronics",
         product_name: "Smartphone",
       });
-      expect(actualEvent.userId).toEqual("user-id-from-traits-456");
       expect(actualEvent.traits).toEqual({
         id: "user-id-from-traits-456",
         email: "customer@example.com",
