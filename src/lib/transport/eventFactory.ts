@@ -183,7 +183,7 @@ export class EventFactoryImpl implements EventFactory {
     traits: Traits,
     properties?: JournifyEvent["properties"]
   ): Traits {
-    const mergedTraits = traits || {};
+    const mergedTraits = { ...(traits || {}) };
     if (properties?.hashed_email) {
       mergedTraits.hashed_email = properties.hashed_email as string;
     }
