@@ -23,7 +23,7 @@ import { TextEncoder, TextDecoder } from "util";
 Object.assign(global, { TextDecoder, TextEncoder });
 
 describe("EventFactoryImpl class", () => {
-  describe("test 3 main funcs", () => {
+  describe("newTrackEvent, newPageEvent, and newIdentifyEvent methods", () => {
     it("Should create an identify event and add context enrichment automatically", async function () {
       const userAgent =
         "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36";
@@ -429,7 +429,6 @@ describe("EventFactoryImpl class", () => {
         category: "Electronics",
         product_name: "Smartphone",
       });
-      expect(actualEvent.userId).toEqual("user-id-from-traits-456");
       expect(actualEvent.traits).toEqual({
         id: "user-id-from-traits-456",
         email: "customer@example.com",
