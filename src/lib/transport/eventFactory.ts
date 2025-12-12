@@ -207,8 +207,9 @@ export class EventFactoryImpl implements EventFactory {
   }
 
   private getUserID(mergedTraits: Traits = {}): string | null {
-    if (this.user?.getUserId()) {
-      return this.user.getUserId();
+    const userId = this.user?.getUserId();
+    if (userId) {
+      return userId;
     }
 
     if (mergedTraits.userId) {

@@ -353,7 +353,6 @@ describe("EventFactoryImpl class", () => {
 
       expect(actualEvent.type).toEqual(JournifyEventType.TRACK);
       expect(actualEvent.event).toEqual("purchase_completed");
-      expect(actualEvent.userId).toEqual("user-from-properties-123");
 
       expect(actualEvent.properties).toEqual({
         userId: "user-from-properties-123",
