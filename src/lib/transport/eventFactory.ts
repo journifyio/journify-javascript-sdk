@@ -71,9 +71,8 @@ export class EventFactoryImpl implements EventFactory {
     properties?: JournifyEvent["properties"],
     traits?: JournifyEvent["traits"]
   ): Promise<JournifyEvent> {
-    await this.appendTraitsFromProperties(traits, properties);
-
     const mergedTraits = {
+      ...this.appendTraitsFromProperties(traits, properties),
       ...(this.user?.getTraits() || {}),
       ...traits,
     };
@@ -95,9 +94,8 @@ export class EventFactoryImpl implements EventFactory {
     properties?: JournifyEvent["properties"],
     traits?: JournifyEvent["traits"]
   ): Promise<JournifyEvent> {
-    await this.appendTraitsFromProperties(traits, properties);
-
     const mergedTraits = {
+      ...this.appendTraitsFromProperties(traits, properties),
       ...(this.user?.getTraits() || {}),
       ...traits,
     };
@@ -181,29 +179,31 @@ export class EventFactoryImpl implements EventFactory {
     return normalizedEvent;
   }
 
-  private async appendTraitsFromProperties(
+  private appendTraitsFromProperties(
     traits: Traits,
     properties?: JournifyEvent["properties"]
-  ): Promise<void> {
+  ): Traits {
+    const mergedTraits = traits || {};
     if (properties?.hashed_email) {
-      traits.hashed_email = properties.hashed_email as string;
+      mergedTraits.hashed_email = properties.hashed_email as string;
     }
 
     if (properties?.email) {
-      traits.email = properties.email as string;
+      mergedTraits.email = properties.email as string;
     }
 
     if (properties?.hashed_phone) {
-      traits.hashed_phone = properties.hashed_phone as string;
+      mergedTraits.hashed_phone = properties.hashed_phone as string;
     }
 
     if (properties?.phone) {
-      traits.phone = properties.phone as string;
+      mergedTraits.phone = properties.phone as string;
     }
 
     if (properties?.userId) {
-      traits.userId = properties.userId as string;
+      mergedTraits.userId = properties.userId as string;
     }
+    return mergedTraits as Traits;
   }
 
   private getUserID(mergedTraits: Traits = {}): string | null {
