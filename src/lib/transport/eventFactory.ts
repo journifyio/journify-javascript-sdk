@@ -199,10 +199,6 @@ export class EventFactoryImpl implements EventFactory {
     if (properties?.phone) {
       mergedTraits.phone = properties.phone as string;
     }
-
-    if (properties?.userId) {
-      mergedTraits.userId = properties.userId as string;
-    }
     return mergedTraits as Traits;
   }
 
