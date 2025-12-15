@@ -26,16 +26,18 @@ export class EventFactoryMock implements EventFactory {
 
   public newTrackEvent(
     eventName: string,
-    properties?: JournifyEvent["properties"]
+    properties?: JournifyEvent["properties"],
+    traits?: JournifyEvent["traits"]
   ): Promise<JournifyEvent> {
-    return this.funcs?.newTrackEvent(eventName, properties);
+    return this.funcs?.newTrackEvent(eventName, properties, traits);
   }
 
   public newPageEvent(
     eventName: string,
-    properties?: JournifyEvent["properties"]
+    properties?: JournifyEvent["properties"],
+    traits?: JournifyEvent["traits"]
   ): Promise<JournifyEvent> {
-    return this.funcs?.newPageEvent(eventName, properties);
+    return this.funcs?.newPageEvent(eventName, properties, traits);
   }
 
   public newGroupEvent(): Promise<JournifyEvent> {

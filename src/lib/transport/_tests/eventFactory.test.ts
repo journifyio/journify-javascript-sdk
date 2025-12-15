@@ -23,7 +23,7 @@ import { TextEncoder, TextDecoder } from "util";
 Object.assign(global, { TextDecoder, TextEncoder });
 
 describe("EventFactoryImpl class", () => {
-  describe("newIdentifyEvent method", () => {
+  describe("newTrackEvent, newPageEvent, and newIdentifyEvent methods", () => {
     it("Should create an identify event and add context enrichment automatically", async function () {
       const userAgent =
         "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36";
@@ -298,6 +298,366 @@ describe("EventFactoryImpl class", () => {
           "afee1504ead390e0284d70240a2fa7b883ca96d74e7a7ea3bb38519995fda3d6",
         country: "United states",
         state: "California",
+      });
+    });
+
+    it("Should create a page event with userId from traits id field", async function () {
+      const browser = new BrowserMock();
+      browser.setOnline(true);
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({ ...global.location });
+      browser.setWindow({ ...window });
+
+      const externalIdsCache = new ExternalIdsSessionCacheImpl(
+        browser,
+        new SessionStore(browser)
+      );
+
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+
+      const sentryMock = {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      };
+      const user = new UserImpl(stores, sentryMock);
+
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        externalIdsCache
+      );
+      eventFactory.setUser(user);
+
+      const actualEvent = await eventFactory.newPageEvent(
+        "Product Details",
+        {
+          path: "/products/123",
+          category: "Electronics",
+          product_name: "Smartphone",
+        },
+        {
+          id: "user-id-from-traits-456", // userId should come from id field
+          email: "customer@example.com",
+          firstname: "Jane",
+          lastname: "Smith",
+          country: "Germany",
+        }
+      );
+
+      expect(actualEvent.type).toEqual(JournifyEventType.PAGE);
+      expect(actualEvent.userId).toEqual("user-id-from-traits-456");
+
+      expect(actualEvent.properties).toEqual({
+        path: "/products/123",
+        category: "Electronics",
+        product_name: "Smartphone",
+      });
+      expect(actualEvent.traits).toEqual({
+        id: "user-id-from-traits-456",
+        email: "customer@example.com",
+        firstname: "Jane",
+        lastname: "Smith",
+        country: "Germany",
+      });
+    });
+
+    it("Should create a track event with userId from traits", async function () {
+      const browser = new BrowserMock();
+      browser.setOnline(true);
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({ ...global.location });
+      browser.setWindow({ ...window });
+
+      const externalIdsCache = new ExternalIdsSessionCacheImpl(
+        browser,
+        new SessionStore(browser)
+      );
+
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      const sentryMock = {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      };
+      const user = new UserImpl(stores, sentryMock);
+
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        externalIdsCache
+      );
+      eventFactory.setUser(user);
+
+      const actualEvent = await eventFactory.newTrackEvent(
+        "subscription_started",
+        {
+          plan_type: "premium",
+          billing_cycle: "monthly",
+          amount: 19.99,
+          currency: "USD",
+        },
+        {
+          userId: "user-from-traits-789", // userId in traits
+          email: "subscriber@example.com",
+          firstname: "Mike",
+          lastname: "Johnson",
+          age: 32,
+          country: "Canada",
+        }
+      );
+
+      expect(actualEvent.type).toEqual(JournifyEventType.TRACK);
+      expect(actualEvent.event).toEqual("subscription_started");
+      expect(actualEvent.userId).toEqual("user-from-traits-789");
+
+      expect(actualEvent.properties).toEqual({
+        plan_type: "premium",
+        billing_cycle: "monthly",
+        amount: 19.99,
+        currency: "USD",
+      });
+      expect(actualEvent.userId).toEqual("user-from-traits-789");
+      expect(actualEvent.traits).toEqual({
+        userId: "user-from-traits-789",
+        email: "subscriber@example.com",
+        firstname: "Mike",
+        lastname: "Johnson",
+        age: 32,
+        country: "Canada",
+      });
+    });
+
+    it("Should prefer traits.userId when both properties.userId and traits.userId are provided", async function () {
+      const browser = new BrowserMock();
+      browser.setOnline(true);
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({ ...global.location });
+      browser.setWindow({ ...window });
+
+      const externalIdsCache = new ExternalIdsSessionCacheImpl(
+        browser,
+        new SessionStore(browser)
+      );
+
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      const sentryMock = {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      };
+      const user = new UserImpl(stores, sentryMock);
+      user.load();
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        externalIdsCache
+      );
+
+      const actualEvent = await eventFactory.newTrackEvent(
+        "test_event",
+        {
+          userId: "user-from-properties",
+          some_property: "value",
+        },
+        {
+          userId: "user-from-traits",
+          email: "test@example.com",
+        }
+      );
+
+      expect(actualEvent.userId).toEqual("user-from-traits");
+      expect(actualEvent.traits).toEqual({
+        userId: "user-from-traits",
+        email: "test@example.com",
+      });
+    });
+
+    it("Should use user.getUserId() when available (highest priority)", async function () {
+      const browser = new BrowserMock();
+      browser.setOnline(true);
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({ ...global.location });
+      browser.setWindow({ ...window });
+
+      const externalIdsCache = new ExternalIdsSessionCacheImpl(
+        browser,
+        new SessionStore(browser)
+      );
+
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      const sentryMock = {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      };
+      const user = new UserImpl(stores, sentryMock);
+      user.load();
+
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        externalIdsCache
+      );
+
+      const actualEvent = await eventFactory.newTrackEvent(
+        "test_event",
+        {
+          userId: "user-from-properties",
+          some_property: "value",
+        },
+        {
+          userId: "user-from-traits",
+          id: "user-from-id",
+          email: "test@example.com",
+        }
+      );
+
+      expect(actualEvent.userId).toEqual("user-from-traits");
+      expect(actualEvent.traits).toEqual({
+        userId: "user-from-traits",
+        id: "user-from-id",
+        email: "test@example.com",
+      });
+    });
+
+    it("Should prefer traits.userId over traits.id when both are provided", async function () {
+      const browser = new BrowserMock();
+      browser.setOnline(true);
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({ ...global.location });
+      browser.setWindow({ ...window });
+
+      const externalIdsCache = new ExternalIdsSessionCacheImpl(
+        browser,
+        new SessionStore(browser)
+      );
+
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      const sentryMock = {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      };
+      const user = new UserImpl(stores, sentryMock);
+      user.load();
+
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        externalIdsCache
+      );
+
+      const actualEvent = await eventFactory.newPageEvent(
+        "test_page",
+        {
+          path: "/test",
+        },
+        {
+          userId: "user-from-userId-field",
+          id: "user-from-id-field",
+          email: "test@example.com",
+        }
+      );
+
+      expect(actualEvent.userId).toEqual("user-from-userId-field");
+      expect(actualEvent.traits).toEqual({
+        userId: "user-from-userId-field",
+        id: "user-from-id-field",
+        email: "test@example.com",
+      });
+    });
+
+    it("Should fallback to traits.id when traits.userId is not provided", async function () {
+      const browser = new BrowserMock();
+      browser.setOnline(true);
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({ ...global.location });
+      browser.setWindow({ ...window });
+
+      const externalIdsCache = new ExternalIdsSessionCacheImpl(
+        browser,
+        new SessionStore(browser)
+      );
+
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      const sentryMock = {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      };
+      const user = new UserImpl(stores, sentryMock);
+      user.load();
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        externalIdsCache
+      );
+      eventFactory.setUser(user);
+
+      const actualEvent = await eventFactory.newPageEvent(
+        "test_page",
+        {
+          path: "/test",
+        },
+        {
+          id: "user-from-id-only",
+          email: "test@example.com",
+        }
+      );
+
+      expect(actualEvent.userId).toEqual("user-from-id-only");
+      expect(actualEvent.traits).toEqual({
+        id: "user-from-id-only",
+        email: "test@example.com",
       });
     });
   });
