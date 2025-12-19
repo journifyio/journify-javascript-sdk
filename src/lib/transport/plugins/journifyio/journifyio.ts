@@ -52,9 +52,10 @@ export class JournifyioPlugin implements Plugin {
     const requestBodyStr = JSON.stringify(requestBody);
     const requestBodyBytes = new TextEncoder().encode(requestBodyStr).length;
     if (requestBodyBytes > MAX_REQUEST_BODY_SIZE_KB * 1024) {
-      throw new Error(
-        `Your event is ignored because the request body exceeds ${MAX_REQUEST_BODY_SIZE_KB}Kb limit.`
+      console.warn(
+        `Journify: Your event is ignored because the request body exceeds ${MAX_REQUEST_BODY_SIZE_KB}Kb limit.`
       );
+      return;
     }
 
     this.sentry.setTag("eventUrl", eventUrl);
