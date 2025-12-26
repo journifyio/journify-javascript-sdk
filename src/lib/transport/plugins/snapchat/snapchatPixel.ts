@@ -86,7 +86,7 @@ export class SnapchatPixel implements Plugin {
     const mappedProperties = this.fieldsMapper.mapEvent(event);
     const eventName = mappedEvent?.pixelEventName || event.event;
     const properties = this.transformProperties(mappedProperties);
-    this.callPixelHelper("track", eventName, properties);
+    this.callPixelHelper("track", this.settings.pixel_id, eventName, properties);
 
     return ctx;
   }

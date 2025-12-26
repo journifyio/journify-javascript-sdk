@@ -96,11 +96,13 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
 
     await new Promise((resolve, reject) => {
       setTimeout(() => {
-        const plugin = this.plugins.find((p) =>
-          ctxToDeliver.getId().includes(p.name)
-        );
-        if (plugin) {
-          this.attempt(plugin, ctxToDeliver).then(resolve).catch(reject);
+          const plugin = this.plugins.filter((p) =>
+              ctxToDeliver.getId().includes(p.name)
+          );
+          if (plugin.length > 0) {
+              for (const p of plugin) {
+                  this.attempt(p, ctxToDeliver).then(resolve).catch(reject);
+              }
         } else {
           this.sentry.captureMessage(
             "unable to find a plugin for given event",
