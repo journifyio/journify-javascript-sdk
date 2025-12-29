@@ -93,7 +93,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
       return;
     }
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       setTimeout(() => {
           const eventPlugins = this.plugins.filter((p) =>
               ctxToDeliver.getPluginName() == p.name
@@ -108,6 +108,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
                       },
                   }
               );
+              resolve();
               return;
           }
           for (const p of eventPlugins) {
