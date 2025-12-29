@@ -111,6 +111,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
               resolve();
               return;
           }
+
           for (const p of eventPlugins) {
               this.attempt(p, ctxToDeliver).then(resolve).catch(reject);
           }
