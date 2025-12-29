@@ -117,7 +117,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
             attempts.push(this.attempt(p, ctxToDeliver))
           }
 
-          Promise.all(attempts).then(() => resolve).catch(reject);
+          Promise.all(attempts).then(() => resolve()).catch(reject);
       }, 0);
     });
   }
