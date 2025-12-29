@@ -4,29 +4,32 @@ import { WithId } from "../lib/priorityQueue";
 
 export interface Context extends WithId {
   getEvent(): JournifyEvent;
+  getPluginId(): string;
   isSame(other: Context): boolean;
   setFailedDelivery(failedDelivery: ContextFailedDelivery): void;
   getFailedDelivery(): ContextFailedDelivery | null;
 }
 
 export interface ContextFactory {
-  newContext(event: JournifyEvent, id?: string): Context;
+  newContext(event: JournifyEvent, id?: string, pluginID?: string): Context;
 }
 
 export class ContextFactoryImpl implements ContextFactory {
-  newContext(event: JournifyEvent, id?: string): Context {
-    return new ContextImpl(event, id);
+  newContext(event: JournifyEvent, id?: string, pluginId?: string): Context {
+    return new ContextImpl(event, id, pluginId);
   }
 }
 
 class ContextImpl implements Context {
   private readonly event: JournifyEvent;
   private readonly id: string;
+  private readonly pluginId: string;
   private failedDelivery?: ContextFailedDelivery;
 
-  public constructor(event: JournifyEvent, id?: string) {
+  public constructor(event: JournifyEvent, id?: string, pluginId?: string) {
     this.event = event;
     this.id = id ?? uuid();
+    this.pluginId = pluginId;
   }
 
   public getEvent(): JournifyEvent {
@@ -35,6 +38,10 @@ class ContextImpl implements Context {
 
   public getId(): string {
     return this.id;
+  }
+
+  public getPluginId(): string {
+    return this.pluginId;
   }
 
   public isSame(other: Context): boolean {

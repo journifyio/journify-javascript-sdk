@@ -47,9 +47,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
 
   private push(ctx: Context): Context[] {
     const updatedContextEvents = this.plugins.map((p) => {
-      const newId = generateNewIDWithPlugin(ctx.getId(), p.name);
-      const newCtx = this.contextFactory.newContext(ctx.getEvent(), newId);
-      return newCtx;
+      return this.contextFactory.newContext(ctx.getEvent(), ctx.getId(), p.name);
     });
     this.pQueue.push(...updatedContextEvents);
     return updatedContextEvents;
@@ -149,8 +147,4 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
       this.emit(FLUSH_EVENT_NAME, ctxToDeliver, false);
     }
   }
-}
-
-function generateNewIDWithPlugin(id: string, plugin: string): string {
-  return `${id}/${plugin}`;
 }
