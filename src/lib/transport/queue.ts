@@ -99,21 +99,21 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
           const plugin = this.plugins.filter((p) =>
               ctxToDeliver.getId().includes(p.name)
           );
-          if (plugin.length > 0) {
-              for (const p of plugin) {
-                  this.attempt(p, ctxToDeliver).then(resolve).catch(reject);
-              }
-        } else {
-          this.sentry.captureMessage(
-            "unable to find a plugin for given event",
-            null,
-            {
-              data: {
-                event: ctxToDeliver,
-              },
-            }
-          );
-        }
+          if (plugin.length === 0) {
+              this.sentry.captureMessage(
+                  "unable to find a plugin for given event",
+                  null,
+                  {
+                      data: {
+                          event: ctxToDeliver,
+                      },
+                  }
+              );
+              return;
+          }
+          for (const p of plugin) {
+              this.attempt(p, ctxToDeliver).then(resolve).catch(reject);
+          }
       }, 0);
     });
   }

@@ -150,14 +150,14 @@ export class SnapchatPixel implements Plugin {
     const userData = this.mapUserData(identifyEvent);
     this.callPixelHelper("init", this.settings.pixel_id, userData);
   }
-  private callPixelHelper(trackingType: TRACKING_TYPE, ...args: any[]) {
+  private callPixelHelper(trackingType: TRACKING_TYPE, pixelId: string, ...args: any[]) {
     if (this.testingMode) {
       this.logger.log(
         "Will call window.snaptr with the following params in order:",
-        [trackingType, ...args]
+        [trackingType, pixelId, ...args]
       );
     } else {
-      this.browser.window().snaptr(trackingType, ...args);
+      this.browser.window().snaptr(trackingType, pixelId, ...args);
     }
   }
   private mapUserData(event: JournifyEvent): object {
