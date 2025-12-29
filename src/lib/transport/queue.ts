@@ -112,9 +112,13 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
               return;
           }
 
+          const attempts: Promise<void>[] = [];
           for (const p of eventPlugins) {
-              this.attempt(p, ctxToDeliver).then(resolve).catch(reject);
+            attempts.push(this.attempt(p, ctxToDeliver))
+
           }
+
+          Promise.all(attempts).then(() => resolve).catch(reject);
       }, 0);
     });
   }
