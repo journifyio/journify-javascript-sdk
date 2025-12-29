@@ -4,32 +4,32 @@ import { WithId } from "../lib/priorityQueue";
 
 export interface Context extends WithId {
   getEvent(): JournifyEvent;
-  getPluginId(): string;
+  getPluginName(): string;
   isSame(other: Context): boolean;
   setFailedDelivery(failedDelivery: ContextFailedDelivery): void;
   getFailedDelivery(): ContextFailedDelivery | null;
 }
 
 export interface ContextFactory {
-  newContext(event: JournifyEvent, id?: string, pluginID?: string): Context;
+  newContext(event: JournifyEvent, id?: string, pluginName?: string): Context;
 }
 
 export class ContextFactoryImpl implements ContextFactory {
-  newContext(event: JournifyEvent, id?: string, pluginId?: string): Context {
-    return new ContextImpl(event, id, pluginId);
+  newContext(event: JournifyEvent, id?: string, pluginName?: string): Context {
+    return new ContextImpl(event, id, pluginName);
   }
 }
 
 class ContextImpl implements Context {
   private readonly event: JournifyEvent;
   private readonly id: string;
-  private readonly pluginId: string;
+  private readonly pluginName: string;
   private failedDelivery?: ContextFailedDelivery;
 
-  public constructor(event: JournifyEvent, id?: string, pluginId?: string) {
+  public constructor(event: JournifyEvent, id?: string, pluginName?: string) {
     this.event = event;
     this.id = id ?? uuid();
-    this.pluginId = pluginId;
+    this.pluginName = pluginName;
   }
 
   public getEvent(): JournifyEvent {
@@ -40,8 +40,8 @@ class ContextImpl implements Context {
     return this.id;
   }
 
-  public getPluginId(): string {
-    return this.pluginId;
+  public getPluginName(): string {
+    return this.pluginName;
   }
 
   public isSame(other: Context): boolean {
