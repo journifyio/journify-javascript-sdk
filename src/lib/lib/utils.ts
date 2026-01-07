@@ -32,13 +32,13 @@ export function normalizePhone(
 }
 
 // Cleans the traits object by removing keys with empty string values
-export function cleanTraits(obj: any): Record<string, any> {
+export function cleanTraits(obj: unknown): Record<string, unknown> {
   // Handle null, undefined, or non-object inputs
   if (!obj || typeof obj !== "object") {
     return {};
   }
 
-  const cleanedObj: Record<string, any> = {};
+  const cleanedObj: Record<string, unknown> = {};
 
   // Use Object.keys to avoid prototype pollution and only iterate over own properties
   for (const key of Object.keys(obj)) {
