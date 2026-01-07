@@ -31,12 +31,29 @@ export function normalizePhone(
   return cleanedPhone;
 }
 
-export function removeEmptyStrings(obj: object): object {
-  const cleanedObj = {};
-  for (const key in obj) {
-    if (typeof obj[key] === "string" && obj[key].trim().length > 0) {
-      cleanedObj[key] = obj[key];
+// Cleans the traits object by removing keys with empty string values
+export function cleanTraits(obj: any): Record<string, any> {
+  // Handle null, undefined, or non-object inputs
+  if (!obj || typeof obj !== "object") {
+    return {};
+  }
+
+  const cleanedObj: Record<string, any> = {};
+
+  // Use Object.keys to avoid prototype pollution and only iterate over own properties
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    // Only keep strings and numbers
+    if (typeof value === "string") {
+      if (value.trim().length > 0) {
+        cleanedObj[key] = value;
+      }
+      // Skip empty strings
+    } else if (typeof value === "number" && !isNaN(value) && isFinite(value)) {
+      // Keep valid numbers
+      cleanedObj[key] = value;
     }
+    // Skip all other types (booleans, objects, arrays, etc.)
   }
 
   return cleanedObj;

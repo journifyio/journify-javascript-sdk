@@ -5,7 +5,7 @@ import { Context } from "./transport/context";
 import { ExternalIds } from "./domain/externalId";
 import { WriteKeySettings, SdkSettings } from "./transport/plugins/plugin";
 import { SentryWrapperImpl } from "./lib/sentry";
-import { removeEmptyStrings } from "./lib/utils";
+import { cleanTraits } from "./lib/utils";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 
@@ -107,7 +107,7 @@ async function identify(
       throw new Error("the user id is required when calling identify");
     }
 
-    traits = removeEmptyStrings(traits) as Traits;
+    traits = cleanTraits(traits) as Traits;
     loader.startNewSession();
     return sdk.identify(userId, traits, externalIds);
   } catch (error) {
@@ -126,8 +126,7 @@ async function track(
       recordCallBeforeLoad(() => track(eventName, properties, traits));
       return null;
     }
-
-    traits = removeEmptyStrings(traits);
+    traits = cleanTraits(traits);
     return sdk.track(eventName, properties, traits);
   } catch (error) {
     sentryWrapper.captureException(error);
@@ -163,7 +162,7 @@ async function page(
       traits = param3 || {};
     }
 
-    traits = removeEmptyStrings(traits as Traits);
+    traits = cleanTraits(traits as Traits);
     return sdk.page(pageName, properties, traits);
   } catch (error) {
     sentryWrapper.captureException(error);
@@ -185,7 +184,7 @@ async function group(
       throw new Error("the group id is required when calling group");
     }
 
-    traits = removeEmptyStrings(traits) as Traits;
+    traits = cleanTraits(traits) as Traits;
     return sdk.group(groupId, traits);
   } catch (error) {
     sentryWrapper.captureException(error);
