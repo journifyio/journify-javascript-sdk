@@ -1,4 +1,4 @@
-import { normalizePhone, removeEmptyStrings } from "../utils"; // Replace with the actual path to your function
+import { normalizePhone, cleanTraits } from "../utils"; // Replace with the actual path to your function
 
 describe("normalizePhone", () => {
   it("should format number with parentheses and dashes", () => {
@@ -74,9 +74,25 @@ describe("removeEmptyStrings", () => {
         input: { hello: "world", foo: "bar" },
         expected: { hello: "world", foo: "bar" },
       },
+      {
+        input: { name: "Alice", age: 30, city: "", userId: undefined },
+        expected: { name: "Alice", age: 30 },
+      },
+      {
+        input: { a: "", b: " ", c: "valid", d: 0, e: null, f: NaN, g: false },
+        expected: { c: "valid", d: 0, g: false },
+      },
+      {
+        input: { userId: 1234 },
+        expected: { userId: 1234 },
+      },
+      {
+        input: { userId: Infinity, score: -50, level: "" },
+        expected: { score: -50 },
+      },
     ];
     testCases.forEach((testCase) => {
-      expect(removeEmptyStrings(testCase.input)).toEqual(testCase.expected);
+      expect(cleanTraits(testCase.input)).toEqual(testCase.expected);
     });
   });
 });
