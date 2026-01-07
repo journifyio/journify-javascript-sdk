@@ -31,7 +31,7 @@ export function normalizePhone(
   return cleanedPhone;
 }
 
-// Cleans the traits object by removing keys with empty string values
+// Cleans the traits object by keeping only non-empty strings and valid finite numbers
 export function cleanTraits(obj: unknown): Record<string, unknown> {
   // Handle null, undefined, or non-object inputs
   if (!obj || typeof obj !== "object") {
