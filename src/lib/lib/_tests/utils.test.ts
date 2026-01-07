@@ -80,7 +80,7 @@ describe("removeEmptyStrings", () => {
       },
       {
         input: { a: "", b: " ", c: "valid", d: 0, e: null, f: NaN, g: false },
-        expected: { c: "valid", d: 0 },
+        expected: { c: "valid", d: 0, g: false },
       },
       {
         input: { userId: 1234 },

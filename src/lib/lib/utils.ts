@@ -39,21 +39,32 @@ export function cleanTraits(obj: unknown): Record<string, unknown> {
   }
 
   const cleanedObj: Record<string, unknown> = {};
-
   // Use Object.keys to avoid prototype pollution and only iterate over own properties
   for (const key of Object.keys(obj)) {
     const value = obj[key];
-    // Only keep strings and numbers
-    if (typeof value === "string") {
-      if (value.trim().length > 0) {
-        cleanedObj[key] = value;
-      }
-      // Skip empty strings
-    } else if (typeof value === "number" && !isNaN(value) && isFinite(value)) {
-      // Keep valid numbers
-      cleanedObj[key] = value;
+    switch (typeof value) {
+      case "string":
+        // Skip empty or whitespace-only strings
+        if (value.trim().length > 0) {
+          cleanedObj[key] = value;
+        }
+        break;
+      case "number":
+        // Keep only valid finite numbers
+        if (!isNaN(value) && isFinite(value)) {
+          cleanedObj[key] = value;
+        }
+        break;
+      case "boolean":
+      case "object":
+        if (value !== null) {
+          cleanedObj[key] = value;
+        }
+        break;
+      default:
+        // Ignore undefined, functions, symbols, and other non-JSON-compatible types
+        break;
     }
-    // Skip all other types (booleans, objects, arrays, etc.)
   }
 
   return cleanedObj;
