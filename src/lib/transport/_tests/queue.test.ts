@@ -32,7 +32,6 @@ describe("EventQueueImpl class", () => {
       pluginMock.name = "plugin1";
 
       const eventId = "event-queue-ctx-id-example-1";
-      const eventWithPlugin = `${eventId}/${pluginMock.name}`;
 
       const subscribeToDelivery = jest.spyOn(
         EventQueueImpl.prototype as any,
@@ -62,7 +61,8 @@ describe("EventQueueImpl class", () => {
       expect(successIdenitfy.identify).toHaveBeenCalledTimes(1);
       expect(successIdenitfy.identify).toBeCalledWith({
         ...eventCtx,
-        id: eventWithPlugin,
+        id: `${eventId}/${pluginMock.name}`,
+        pluginName: pluginMock.name,
       });
     });
 
@@ -90,8 +90,6 @@ describe("EventQueueImpl class", () => {
       );
 
       const eventId = "event-queue-ctx-id-example-1";
-      const eventWithPlugin1 = `${eventId}/${plugin1.name}`;
-      const eventWithPlugin2 = `${eventId}/${plugin2.name}`;
 
       const eventCtx = new ContextMock(eventId, {
         type: JournifyEventType.TRACK,
@@ -103,11 +101,13 @@ describe("EventQueueImpl class", () => {
       expect(trackFunc.track).toBeCalledTimes(2);
       expect(trackFunc.track).nthCalledWith(1, {
         ...eventCtx,
-        id: eventWithPlugin1,
+        id: `${eventId}/${plugin1.name}`,
+        pluginName: plugin1.name,
       });
       expect(trackFunc.track).nthCalledWith(2, {
         ...eventCtx,
-        id: eventWithPlugin2,
+        id: `${eventId}/${plugin2.name}`,
+        pluginName: plugin2.name,
       });
     });
 
@@ -144,8 +144,6 @@ describe("EventQueueImpl class", () => {
       );
 
       const eventId = "event-queue-ctx-id-example-1";
-      const eventWithPlugin1 = `${eventId}/${plugin1.name}`;
-      const eventWithPlugin2 = `${eventId}/${plugin2.name}`;
 
       const eventCtx = new ContextMock(eventId, {
         type: JournifyEventType.TRACK,
@@ -157,12 +155,14 @@ describe("EventQueueImpl class", () => {
       expect(successtrackFunc.track).toHaveBeenCalledTimes(1);
       expect(successtrackFunc.track).toHaveBeenCalledWith({
         ...eventCtx,
-        id: eventWithPlugin1,
+        id: `${eventId}/${plugin1.name}`,
+        pluginName: plugin1.name,
       });
       expect(failuretrackFunc.track).toHaveBeenCalledTimes(2);
       expect(failuretrackFunc.track).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: eventWithPlugin2,
+          id: `${eventId}/${plugin2.name}`,
+          pluginName: plugin2.name,
         })
       );
     });
@@ -262,6 +262,7 @@ describe("EventQueueImpl class", () => {
       expect(subscribeToDelivery).toBeCalledTimes(1);
       expect(emit).nthCalledWith(1, ON_OPERATION_DELAY_FINISH);
     });
+
     it("Should process same event if all plugins failed", async () => {
       const trackFunc: JPluginMockFuncs = {
         track: jest.fn((ctxParam: Context) => Promise.reject(ctxParam)),

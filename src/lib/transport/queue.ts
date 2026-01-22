@@ -48,8 +48,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
   private push(ctx: Context): Context[] {
     const updatedContextEvents = this.plugins.map((p) => {
       const newId = generateNewIDWithPlugin(ctx.getId(), p.name);
-      const newCtx = this.contextFactory.newContext(ctx.getEvent(), newId);
-      return newCtx;
+      return this.contextFactory.newContext(ctx.getEvent(), newId, p.name);
     });
     this.pQueue.push(...updatedContextEvents);
     return updatedContextEvents;
@@ -94,12 +93,12 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
       return;
     }
 
-    await new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       setTimeout(() => {
-          const plugin = this.plugins.filter((p) =>
-              ctxToDeliver.getId().includes(p.name)
+          const eventPlugins = this.plugins.filter((p) =>
+              ctxToDeliver.getPluginName() == p.name
           );
-          if (plugin.length === 0) {
+          if (!eventPlugins || eventPlugins.length === 0) {
               this.sentry.captureMessage(
                   "unable to find a plugin for given event",
                   null,
@@ -109,11 +108,16 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
                       },
                   }
               );
+              resolve();
               return;
           }
-          for (const p of plugin) {
-              this.attempt(p, ctxToDeliver).then(resolve).catch(reject);
+
+          const attempts: Promise<void>[] = [];
+          for (const p of eventPlugins) {
+            attempts.push(this.attempt(p, ctxToDeliver))
           }
+
+          Promise.all(attempts).then(() => resolve()).catch(reject);
       }, 0);
     });
   }

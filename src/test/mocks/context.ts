@@ -7,15 +7,18 @@ import {
 
 export class ContextMock implements Context {
   private readonly id: string;
+  private readonly pluginName: string;
   private readonly event: JournifyEvent;
   private failedDelivery: ContextFailedDelivery;
 
   constructor(
     id: string,
     event: JournifyEvent,
+    pluginName?: string,
     failedDelivery?: ContextFailedDelivery
   ) {
     this.id = id;
+    this.pluginName = pluginName;
     this.event = event;
     this.failedDelivery = failedDelivery;
   }
@@ -30,6 +33,10 @@ export class ContextMock implements Context {
 
   getId(): string {
     return this.id;
+  }
+
+  getPluginName(): string {
+    return this.pluginName;
   }
 
   isSame(other: Context): boolean {
