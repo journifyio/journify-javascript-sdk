@@ -175,7 +175,6 @@ export class TikTokPixel implements Plugin {
         if (!mappedEvent) {
             return ctx;
         }
-        console.log("Mapped event:", event);
         const mappedProperties = this.fieldsMapper.mapEvent(event);
         const eventId = mappedProperties.event_id;
         delete mappedProperties.event_id;

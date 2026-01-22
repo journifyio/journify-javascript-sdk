@@ -112,7 +112,7 @@ async function identify(
     return sdk.identify(userId, traits, externalIds);
   } catch (error) {
     sentryWrapper.captureException(error);
-    console.error(error);
+    console.warn(error);
   }
 }
 
