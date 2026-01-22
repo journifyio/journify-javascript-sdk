@@ -112,6 +112,7 @@ async function identify(
     return sdk.identify(userId, traits, externalIds);
   } catch (error) {
     sentryWrapper.captureException(error);
+    // warn instead of error to avoid noisy logs when userId is missing
     console.warn(error);
   }
 }
