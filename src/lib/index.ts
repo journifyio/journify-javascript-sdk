@@ -1,11 +1,12 @@
-import { getProductionWriteKey, Loader } from "./api/loader";
-import { Sdk } from "./api/sdk";
-import { Traits } from "./domain/traits";
-import { Context } from "./transport/context";
-import { ExternalIds } from "./domain/externalId";
-import { WriteKeySettings, SdkSettings } from "./transport/plugins/plugin";
-import { SentryWrapperImpl } from "./lib/sentry";
-import { cleanTraits } from "./lib/utils";
+import {getProductionWriteKey, Loader} from "./api/loader";
+import {Sdk} from "./api/sdk";
+import {Traits} from "./domain/traits";
+import {Context} from "./transport/context";
+import {ExternalIds} from "./domain/externalId";
+import {SdkSettings, WriteKeySettings} from "./transport/plugins/plugin";
+import {SentryWrapperImpl} from "./lib/sentry";
+import {cleanTraits} from "./lib/utils";
+import {getConsentMode} from "./lib/consentMode";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 
@@ -57,6 +58,8 @@ async function fetchRemoteWriteKeySettings(
       const response = await fetch(settingsURL);
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
+        const country = response.headers.get("x-client-country")
+        settings.consentMode = getConsentMode(country);
         return settings;
       } else if (500 <= response.status && response.status <= 599) {
         if (i < max_retries - 1) {
