@@ -55,6 +55,7 @@ interface EventContext {
   campaign?: UtmCampaign;
   groupId?: string;
   [key: string]: unknown;
+  consent?: Consent;
 }
 
 interface Page {
@@ -67,4 +68,16 @@ interface Page {
 
 interface Session {
   id?: string;
+}
+
+interface Consent {
+    categoryPreferences?: CategoryPreferences;
+}
+
+interface CategoryPreferences {
+    advertising: boolean;
+    analytics: boolean;
+    functional: boolean;
+    marketing: boolean;
+    personalization: boolean;
 }
