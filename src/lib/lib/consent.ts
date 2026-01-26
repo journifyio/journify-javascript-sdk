@@ -103,7 +103,7 @@ export class ConsentManagerImpl implements ConsentManager {
     private mapConsentConfiguration(config: ConsentConfiguration): ConsentState {
         const result: ConsentState = {};
 
-        for (const [customCategory, { granted, mapsTo }] of Object.entries(config)) {
+        for (const { granted, mapsTo } of Object.values(config)) {
             if (Array.isArray(mapsTo)) {
                 mapsTo.forEach(category => {
                     result[category] = granted;
