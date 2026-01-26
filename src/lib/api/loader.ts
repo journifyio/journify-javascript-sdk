@@ -28,16 +28,17 @@ import { CleverTapWrapperImpl } from "../transport/plugins/cleverTap/cleverTapWr
 import { SessionStore } from "../store/sessionStore";
 import { ExternalIdsSessionCacheImpl } from "../domain/externalId";
 import { AutoCapturePII } from "../lib/autoCapturePII";
-import { HttpCookieServiceImpl } from "../lib/httpCookieService";
-import { PinterestTag } from "../transport/plugins/pinterest/pinterestTag";
-import { JournifyioPlugin } from "../transport/plugins/journifyio/journifyio";
-import { XPixel } from "../transport/plugins/x/xPixel";
-import { SentryWrapper } from "../lib/sentry";
-import { BingAdsTag } from "../transport/plugins/bing_ads_tag/bing_ads_tag";
-import { GoogleAdsGtag } from "../transport/plugins/google_ads_gtag/googleAdsGtag";
-import { LinkedinAdsInsightTag } from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
+import { HttpCookieService, HttpCookieServiceImpl} from "../lib/httpCookieService";
+import {PinterestTag} from "../transport/plugins/pinterest/pinterestTag";
+import {JournifyioPlugin} from "../transport/plugins/journifyio/journifyio";
+import {XPixel} from "../transport/plugins/x/xPixel";
+import {SentryWrapper} from "../lib/sentry";
+import {BingAdsTag} from "../transport/plugins/bing_ads_tag/bing_ads_tag";
+import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag";
+import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
+import {ConsentConfiguration, ConsentManagerImpl, Consent, getConsentMode} from "../lib/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -64,20 +65,25 @@ export class Loader {
   private cookiesStore: Store = null;
   private sdkSettings: SdkSettings;
   private writeKeySettings: WriteKeySettings;
+  private consentMode: Consent;
+  private consentConfiguration: ConsentConfiguration;
+
   constructor(sentryWrapper: SentryWrapper) {
     this.sentryWrapper = sentryWrapper;
   }
 
   public async load(
-    sdkConfig: SdkSettings,
-    writeKeySettings: WriteKeySettings
+      sdkConfig: SdkSettings,
+      writeKeySettings: WriteKeySettings
   ): Promise<Sdk> {
     this.sdkSettings = sdkConfig;
     this.writeKeySettings = writeKeySettings;
+    this.consentMode = getConsentMode(writeKeySettings.countryCode);
+    this.consentConfiguration = sdkConfig.options.consentConfiguration;
     this.startNewSession();
     const browser = new BrowserImpl();
 
-    let cookieService;
+    let cookieService: HttpCookieService;
     if (this.sdkSettings?.options?.httpCookieServiceOptions) {
       cookieService = new HttpCookieServiceImpl(
         this.sdkSettings?.options?.httpCookieServiceOptions,
@@ -106,6 +112,7 @@ export class Loader {
   private initSdk() {
     const fieldMapperFactory = new FieldsMapperFactoryImpl();
     const browser = new BrowserImpl();
+    const consentManager = new ConsentManagerImpl(this.consentMode, this.consentConfiguration);
     const logger: Logger = {
       log: (...args) => console.log(JOURNIFY_PREFIX, ...args),
     };
@@ -120,9 +127,11 @@ export class Loader {
 
     for (const sync of this.writeKeySettings.syncs) {
       const plugin = INTEGRATION_PLUGINS[sync.destination_app];
-      if (plugin) {
+      // Initialize plugin only if consent is given
+      if (plugin && consentManager.hasConsent(sync.destination_consent_categories)) {
         const pluginDeps: PluginDependencies = {
           user: this.user,
+          consentManager: consentManager,
           fieldMapperFactory: fieldMapperFactory,
           eventMapperFactory: new EventMapperFactoryImpl(),
           browser: browser,

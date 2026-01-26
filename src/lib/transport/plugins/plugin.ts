@@ -6,7 +6,7 @@ import { FieldsMapperFactory } from "./lib/fieldMapping";
 import { HttpCookieOptions } from "../../lib/httpCookieService";
 import { User } from "../../domain/user";
 import { SentryWrapper } from "../../lib/sentry";
-import {ConsentMode} from "../../lib/consentMode";
+import {ConsentConfiguration, ConsentManager, Consent} from "../../lib/consent";
 
 export interface Plugin {
   name: string;
@@ -20,6 +20,7 @@ export interface Plugin {
 export interface PluginDependencies<T = undefined> {
   sync: Sync;
   user: User;
+  consentManager: ConsentManager;
   fieldMapperFactory: FieldsMapperFactory;
   eventMapperFactory: EventMapperFactory;
   browser: Browser;
@@ -46,6 +47,7 @@ type SdkOptions = {
   autoCapturePhoneRegex?: string;
   phoneCountryCode?: string;
   httpCookieServiceOptions?: HttpCookieOptions;
+  consentConfiguration?: ConsentConfiguration;
 };
 
 export interface SdkSettings {
@@ -57,7 +59,7 @@ export interface SdkSettings {
 
 export interface WriteKeySettings {
   syncs: Sync[];
-  consentMode?: ConsentMode;
+  countryCode?: string;
 }
 
 export interface Sync {
