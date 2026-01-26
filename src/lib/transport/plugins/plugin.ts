@@ -6,7 +6,7 @@ import { FieldsMapperFactory } from "./lib/fieldMapping";
 import { HttpCookieOptions } from "../../lib/httpCookieService";
 import { User } from "../../domain/user";
 import { SentryWrapper } from "../../lib/sentry";
-import {ConsentConfiguration, ConsentManager} from "../../lib/consent";
+import {ConsentConfiguration} from "../../lib/consent";
 
 export interface Plugin {
   name: string;
@@ -20,7 +20,6 @@ export interface Plugin {
 export interface PluginDependencies<T = undefined> {
   sync: Sync;
   user: User;
-  consentManager: ConsentManager;
   fieldMapperFactory: FieldsMapperFactory;
   eventMapperFactory: EventMapperFactory;
   browser: Browser;

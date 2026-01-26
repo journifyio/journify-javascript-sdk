@@ -131,7 +131,6 @@ export class Loader {
       if (plugin && consentManager.hasConsent(sync.destination_consent_categories)) {
         const pluginDeps: PluginDependencies = {
           user: this.user,
-          consentManager: consentManager,
           fieldMapperFactory: fieldMapperFactory,
           eventMapperFactory: new EventMapperFactoryImpl(),
           browser: browser,
