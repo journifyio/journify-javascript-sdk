@@ -1,6 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 /* eslint-disable  no-case-declarations */
-import _ from "lodash";
+import set from "lodash.set";
+import get from "lodash.get";
 
 export const ARRAY_PATH_SEPARATOR = ".$";
 
@@ -9,7 +10,7 @@ export function getValue(obj: object, path: string): any {
     return getValues(obj, path);
   }
 
-  return _.get(obj, path);
+  return get(obj, path);
 }
 
 export function isArrayPath(path: string): boolean {
@@ -21,7 +22,7 @@ export function setValue(obj: object, path: string, value: any): object {
     return setValues(obj, path, value);
   }
 
-  return _.set(obj, path, value);
+  return set(obj, path, value);
 }
 
 function getValues(data: { [key: string]: any }, path: string): any {
