@@ -4,6 +4,7 @@ import {
   PluginSettings,
   PluginDependencies,
   Logger,
+  Sync,
 } from "../transport/plugins/plugin";
 import { Sdk, SdkDependencies } from "./sdk";
 import { NullStore } from "../store/nullStore";
@@ -38,7 +39,7 @@ import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag"
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
-import {ConsentConfiguration, ConsentManagerImpl, Consent, getConsentMode} from "../lib/consent";
+import {ConsentManagerImpl, getConsentMode, ConsentManager} from "../lib/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -63,10 +64,10 @@ export class Loader {
   private sessionIntervalId: NodeJS.Timeout = null;
   private stores: StoresGroup = null;
   private cookiesStore: Store = null;
+  private localStore: Store = null;
   private sdkSettings: SdkSettings;
   private writeKeySettings: WriteKeySettings;
-  private consentMode: Consent;
-  private consentConfiguration: ConsentConfiguration;
+  private consentManager: ConsentManager = null;
 
   constructor(sentryWrapper: SentryWrapper) {
     this.sentryWrapper = sentryWrapper;
@@ -78,9 +79,18 @@ export class Loader {
   ): Promise<Sdk> {
     this.sdkSettings = sdkConfig;
     this.writeKeySettings = writeKeySettings;
-    this.consentMode = getConsentMode(writeKeySettings.countryCode);
-    this.consentConfiguration = sdkConfig.options.consentConfiguration;
     this.startNewSession();
+
+    if (!this.consentManager) {
+      const consentMode = getConsentMode(writeKeySettings.countryCode);
+      const consentConfiguration = sdkConfig.options?.consentConfiguration;
+      this.consentManager = new ConsentManagerImpl(
+        consentMode,
+        consentConfiguration,
+        this.localStore,
+      );
+    }
+
     const browser = new BrowserImpl();
 
     let cookieService: HttpCookieService;
@@ -110,45 +120,25 @@ export class Loader {
   }
 
   private initSdk() {
-    const fieldMapperFactory = new FieldsMapperFactoryImpl();
-    const browser = new BrowserImpl();
-    const consentManager = new ConsentManagerImpl(this.consentMode, this.consentConfiguration);
-    const logger: Logger = {
-      log: (...args) => console.log(JOURNIFY_PREFIX, ...args),
-    };
-    const testingMode = isTestingWriteKey(this.sdkSettings.writeKey);
-    const pluginExternalSDKs = {
-      clevertap: new CleverTapWrapperImpl(browser, logger, testingMode),
-    };
+    const sharedDeps = this.createSharedPluginDependencies();
 
     this.plugins = {
       journifyio: new JournifyioPlugin(this.sdkSettings, this.sentryWrapper),
     };
 
     for (const sync of this.writeKeySettings.syncs) {
-      const plugin = INTEGRATION_PLUGINS[sync.destination_app];
-      // Initialize plugin only if consent is given
-      if (plugin && consentManager.hasConsent(sync.destination_consent_categories)) {
-        const pluginDeps: PluginDependencies = {
-          user: this.user,
-          fieldMapperFactory: fieldMapperFactory,
-          eventMapperFactory: new EventMapperFactoryImpl(),
-          browser: browser,
-          sync: sync,
-          testingWriteKey: testingMode,
-          externalSDK: pluginExternalSDKs[sync.destination_app],
-          enableHashing: this.sdkSettings?.options?.enableHashing,
-          logger: logger,
-          sentry: this.sentryWrapper,
-        };
-
-        this.plugins[sync.id] = new plugin(pluginDeps);
+      if (this.consentManager.hasConsent(sync.destination_consent_categories)) {
+        const plugin = this.createPlugin(sync, sharedDeps);
+        if (plugin) {
+          this.plugins[sync.id] = plugin;
+        }
       }
     }
 
     const pQueue = new OperationsPriorityQueueImpl<Context>(
       DEFAULT_MAX_QUEUE_ATTEMPTS
     );
+    const browser = sharedDeps.browser;
     const sessionStore = new SessionStore(browser);
     const externalIdsSessionCache = new ExternalIdsSessionCacheImpl(
       browser,
@@ -165,7 +155,7 @@ export class Loader {
       groupFactory: new GroupFactoryImpl(this.stores),
       contextFactory: new ContextFactoryImpl(),
       eventQueue: new EventQueueImpl(
-        Object.values(this.plugins),
+        () => Object.values(this.plugins),
         pQueue,
         browser,
         this.sentryWrapper
@@ -213,6 +203,7 @@ export class Loader {
       : new NullStore();
     this.stores = new StoresGroup(localStore, cookiesStore, memoryStore);
     this.cookiesStore = cookiesStore;
+    this.localStore = localStore;
   }
 
   public startNewSession() {
@@ -241,6 +232,72 @@ export class Loader {
   private resetUtmCampaign() {
     UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
+
+  public getConsentManager(): ConsentManager {
+    return this.consentManager;
+  }
+
+  private createPlugin(sync: Sync, sharedDeps?): Plugin | null {
+    const pluginClass = INTEGRATION_PLUGINS[sync.destination_app];
+    if (!pluginClass) return null;
+
+    // Use shared deps if provided, otherwise create new ones
+    const deps = sharedDeps || this.createSharedPluginDependencies();
+
+    const pluginDeps: PluginDependencies = {
+      user: this.user,
+      fieldMapperFactory: deps.fieldMapperFactory,
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      browser: deps.browser,
+      sync: sync,
+      testingWriteKey: deps.testingMode,
+      externalSDK: deps.pluginExternalSDKs[sync.destination_app],
+      enableHashing: this.sdkSettings?.options?.enableHashing,
+      logger: deps.logger,
+      sentry: this.sentryWrapper,
+    };
+
+    return new pluginClass(pluginDeps);
+  }
+
+  private createSharedPluginDependencies() {
+    const fieldMapperFactory = new FieldsMapperFactoryImpl();
+    const browser = new BrowserImpl();
+    const logger: Logger = {
+      log: (...args) => console.log(JOURNIFY_PREFIX, ...args),
+    };
+    const testingMode = isTestingWriteKey(this.sdkSettings.writeKey);
+    const pluginExternalSDKs = {
+      clevertap: new CleverTapWrapperImpl(browser, logger, testingMode),
+    };
+
+    return {
+      fieldMapperFactory,
+      browser,
+      logger,
+      testingMode,
+      pluginExternalSDKs,
+    };
+  }
+
+  public reinitializePlugins(): void {
+    const sharedDeps = this.createSharedPluginDependencies();
+
+    for (const sync of this.writeKeySettings.syncs) {
+      const hasConsent = this.consentManager.hasConsent(sync.destination_consent_categories);
+      const pluginExists = !!this.plugins[sync.id];
+
+      if (hasConsent && !pluginExists) {
+        const plugin = this.createPlugin(sync, sharedDeps);
+        if (plugin) {
+          this.plugins[sync.id] = plugin;
+        }
+      } else if (!hasConsent && pluginExists) {
+        delete this.plugins[sync.id];
+      }
+    }
+  }
+
 }
 
 const WRITE_KEY_TEST_PREFIX = "wk_test_";

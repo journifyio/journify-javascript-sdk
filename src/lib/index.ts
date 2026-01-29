@@ -6,6 +6,7 @@ import {ExternalIds} from "./domain/externalId";
 import {SdkSettings, WriteKeySettings} from "./transport/plugins/plugin";
 import {SentryWrapperImpl} from "./lib/sentry";
 import {cleanTraits} from "./lib/utils";
+import {Consent, CategoryPreferences, ConsentUpdate} from "./lib/consent";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 
@@ -208,4 +209,27 @@ function recordCallBeforeLoad(call) {
   }
 }
 
-export { load, identify, track, page, group, SdkSettings };
+function updateConsent(
+    updatedConsent: ConsentUpdate,
+    updatedMappings?: {[key: string]: (keyof CategoryPreferences)[]}
+): void {
+  try {
+    if (!sdk) {
+      console.warn('[Journify] SDK not loaded yet. Consent will be updated once SDK loads.');
+      recordCallBeforeLoad(() => updateConsent(updatedConsent, updatedMappings));
+      return;
+    }
+
+    const consentManager = loader.getConsentManager();
+    if (consentManager) {
+      consentManager.updateConsentState(updatedConsent, updatedMappings);
+      // Re-check and initialize plugins with new consent
+      loader.reinitializePlugins();
+    }
+  } catch (error) {
+    sentryWrapper.captureException(error);
+    console.error(error);
+  }
+}
+
+export { load, identify, track, page, group, updateConsent, SdkSettings, Consent, CategoryPreferences };
