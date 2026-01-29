@@ -1,6 +1,6 @@
 {
   "name": "@journifyio/js-sdk",
-  "version": "0.0.203",
+  "version": "0.0.204",
   "description": "Journify SDK in JavaScript",
   "main": "dist/lib/es5/index.js",
   "types": "dist/lib/es5/index.d.ts",
@@ -41,7 +41,10 @@
     "@types/uuid": "^9.0.8",
     "js-cookie": "^3.0.5",
     "liquidjs": "^10.10.0",
-    "lodash": "^4.17.21",
+    "lodash.get": "^4.4.2",
+    "lodash.isarray": "^4.0.0",
+    "lodash.isobject": "^3.0.2",
+    "lodash.set": "^4.3.2",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

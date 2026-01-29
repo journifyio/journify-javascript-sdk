@@ -3,7 +3,8 @@ import { Plugin, PluginDependencies, Sync } from "../plugin";
 import { Context } from "../../context";
 import { toSettingsObject } from "../lib/settings";
 import { User } from "../../../domain/user";
-import _ from "lodash";
+import isObject from "lodash.isobject";
+import isArray from "lodash.isarray";
 import { CleverTapWrapper, SiteData } from "./cleverTapWrapper";
 import { hashPII } from "../lib/hashPII";
 
@@ -94,7 +95,7 @@ export class CleverTapPlugin implements Plugin {
 
     const eventProps = event.properties;
     for (const [key, value] of Object.entries(eventProps)) {
-      if (_.isObject(value) || _.isArray(value)) {
+      if (isObject(value) || isArray(value)) {
         eventProps[key] = JSON.stringify(value);
       }
     }
