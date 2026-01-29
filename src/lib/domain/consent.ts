@@ -27,7 +27,7 @@ export type Consent = {
     categoryPreferences?: CategoryPreferences;
 };
 
-type ConsentState = {
+export type ConsentState = {
     consentMode: ConsentMode;
     consent: Consent;
     categoryMappings: {
@@ -47,10 +47,9 @@ export type ConsentUpdate = {
 };
 
 export interface ConsentService {
-    getConsentState(): ConsentState;
-
-    updateConsentState(consentUpdate: ConsentUpdate, updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }): void;
-
+    updateConsentState(
+        consentUpdate: ConsentUpdate,
+        updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }): void;
     hasConsent(categories: string[]): boolean;
 }
 
@@ -131,10 +130,6 @@ export class ConsentServiceImpl implements ConsentService {
                 this.consentState.consent.categoryPreferences[category] = granted;
             });
         }
-    }
-
-    public getConsentState(): ConsentState {
-        return {...this.consentState};
     }
 
     // Method to update consent state with new granted statuses and optional updated category mappings
