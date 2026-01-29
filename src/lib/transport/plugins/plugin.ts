@@ -6,7 +6,7 @@ import { FieldsMapperFactory } from "./lib/fieldMapping";
 import { HttpCookieOptions } from "../../lib/httpCookieService";
 import { User } from "../../domain/user";
 import { SentryWrapper } from "../../lib/sentry";
-import {ConsentConfiguration} from "../../lib/consent";
+import {ConsentConfiguration} from "../../domain/consent";
 
 export interface Plugin {
   name: string;

@@ -6,7 +6,7 @@ import {ExternalIds} from "./domain/externalId";
 import {SdkSettings, WriteKeySettings} from "./transport/plugins/plugin";
 import {SentryWrapperImpl} from "./lib/sentry";
 import {cleanTraits} from "./lib/utils";
-import {Consent, CategoryPreferences, ConsentUpdate} from "./lib/consent";
+import {Consent, CategoryPreferences, ConsentUpdate} from "./domain/consent";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 

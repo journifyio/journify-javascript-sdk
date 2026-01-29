@@ -1,5 +1,6 @@
 import { JSONValue, Traits } from "./traits";
 import { ExternalIds } from "./externalId";
+import {Consent} from "./consent";
 
 export interface JournifyEvent {
   messageId?: string;
@@ -68,16 +69,4 @@ interface Page {
 
 interface Session {
   id?: string;
-}
-
-interface Consent {
-    categoryPreferences?: CategoryPreferences;
-}
-
-interface CategoryPreferences {
-    advertising: boolean;
-    analytics: boolean;
-    functional: boolean;
-    marketing: boolean;
-    personalization: boolean;
 }

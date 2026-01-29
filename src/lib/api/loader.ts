@@ -39,7 +39,7 @@ import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag"
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
-import {ConsentManagerImpl, getConsentMode, ConsentManager} from "../lib/consent";
+import {ConsentServiceImpl, getConsentMode, ConsentService} from "../domain/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -67,7 +67,7 @@ export class Loader {
   private localStore: Store = null;
   private sdkSettings: SdkSettings;
   private writeKeySettings: WriteKeySettings;
-  private consentManager: ConsentManager = null;
+  private consentManager: ConsentService = null;
 
   constructor(sentryWrapper: SentryWrapper) {
     this.sentryWrapper = sentryWrapper;
@@ -84,7 +84,7 @@ export class Loader {
     if (!this.consentManager) {
       const consentMode = getConsentMode(writeKeySettings.countryCode);
       const consentConfiguration = sdkConfig.options?.consentConfiguration;
-      this.consentManager = new ConsentManagerImpl(
+      this.consentManager = new ConsentServiceImpl(
         consentMode,
         consentConfiguration,
         this.localStore,
@@ -233,7 +233,7 @@ export class Loader {
     UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 
-  public getConsentManager(): ConsentManager {
+  public getConsentManager(): ConsentService {
     return this.consentManager;
   }
 

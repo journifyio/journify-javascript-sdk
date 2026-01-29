@@ -46,7 +46,7 @@ export type ConsentUpdate = {
     [customCategory: string]: boolean;
 };
 
-export interface ConsentManager {
+export interface ConsentService {
     getConsentState(): ConsentState;
 
     updateConsentState(consentUpdate: ConsentUpdate, updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }): void;
@@ -54,7 +54,7 @@ export interface ConsentManager {
     hasConsent(categories: string[]): boolean;
 }
 
-export class ConsentManagerImpl implements ConsentManager {
+export class ConsentServiceImpl implements ConsentService {
     private readonly consentState: ConsentState;
     private readonly store: Store;
 
