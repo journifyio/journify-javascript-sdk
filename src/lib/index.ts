@@ -220,12 +220,7 @@ function updateConsent(
       return;
     }
 
-    const consentManager = loader.getConsentManager();
-    if (consentManager) {
-      consentManager.updateConsentState(updatedConsent, updatedMappings);
-      // Re-check and initialize plugins with new consent
-      loader.reinitializePlugins();
-    }
+    loader.updateConsent(updatedConsent, updatedMappings);
   } catch (error) {
     sentryWrapper.captureException(error);
     console.error(error);

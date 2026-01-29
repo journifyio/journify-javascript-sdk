@@ -39,7 +39,7 @@ import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag"
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
-import {ConsentServiceImpl, getConsentMode, ConsentService} from "../domain/consent";
+import {ConsentServiceImpl, getConsentMode, ConsentService, ConsentUpdate, CategoryPreferences} from "../domain/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -233,8 +233,14 @@ export class Loader {
     UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 
-  public getConsentManager(): ConsentService {
-    return this.consentManager;
+  public updateConsent(
+    consentUpdate: ConsentUpdate,
+    updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }
+  ): void {
+    if (this.consentManager) {
+      this.consentManager.updateConsentState(consentUpdate, updatedMappings);
+      this.reinitializePlugins();
+    }
   }
 
   private createPlugin(sync: Sync, sharedDeps?): Plugin | null {
@@ -280,7 +286,7 @@ export class Loader {
     };
   }
 
-  public reinitializePlugins(): void {
+  private reinitializePlugins(): void {
     const sharedDeps = this.createSharedPluginDependencies();
 
     for (const sync of this.writeKeySettings.syncs) {
