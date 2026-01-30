@@ -67,7 +67,7 @@ export class Loader {
   private localStore: Store = null;
   private sdkSettings: SdkSettings;
   private writeKeySettings: WriteKeySettings;
-  private consentManager: ConsentService = null;
+  private consentService: ConsentService = null;
 
   constructor(sentryWrapper: SentryWrapper) {
     this.sentryWrapper = sentryWrapper;
@@ -81,10 +81,10 @@ export class Loader {
     this.writeKeySettings = writeKeySettings;
     this.startNewSession();
 
-    if (!this.consentManager) {
+    if (!this.consentService) {
       const consentMode = getConsentMode(writeKeySettings.countryCode);
       const consentConfiguration = sdkConfig.options?.consentConfiguration;
-      this.consentManager = new ConsentServiceImpl(
+      this.consentService = new ConsentServiceImpl(
         consentMode,
         consentConfiguration,
         this.localStore,
@@ -127,7 +127,7 @@ export class Loader {
     };
 
     for (const sync of this.writeKeySettings.syncs) {
-      if (this.consentManager.hasConsent(sync.destination_consent_categories)) {
+      if (this.consentService.hasConsent(sync.destination_consent_categories)) {
         const plugin = this.createPlugin(sync, sharedDeps);
         if (plugin) {
           this.plugins[sync.id] = plugin;
@@ -237,8 +237,8 @@ export class Loader {
     consentUpdate: ConsentUpdate,
     updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }
   ): void {
-    if (this.consentManager) {
-      this.consentManager.updateConsentState(consentUpdate, updatedMappings);
+    if (this.consentService) {
+      this.consentService.updateConsentState(consentUpdate, updatedMappings);
       this.reinitializePlugins();
     }
   }
@@ -290,7 +290,7 @@ export class Loader {
     const sharedDeps = this.createSharedPluginDependencies();
 
     for (const sync of this.writeKeySettings.syncs) {
-      const hasConsent = this.consentManager.hasConsent(sync.destination_consent_categories);
+      const hasConsent = this.consentService.hasConsent(sync.destination_consent_categories);
       const pluginExists = !!this.plugins[sync.id];
 
       if (hasConsent && !pluginExists) {
