@@ -101,21 +101,50 @@ export class ConsentServiceImpl implements ConsentService {
     }
 
     private setConsentFromConfiguration(config: ConsentConfiguration): void {
+        const mappedJournifyCategories = new Set<string>();
+
         for (const [customCategory, {granted, mapsTo}] of Object.entries(config)) {
-            // Set up mappings
+            let categoriesToMap: (keyof CategoryPreferences)[] = [];
+
             if (mapsTo && Array.isArray(mapsTo)) {
-                this.consentState.categoryMappings[customCategory] = mapsTo;
+                // Filter out already-mapped Journify categories
+                categoriesToMap = mapsTo.filter(category => {
+                    if (mappedJournifyCategories.has(category)) {
+                        console.warn(
+                            `[Journify] Category "${category}" is already mapped.
+                             Skipping duplicate mapping from "${customCategory}".`
+                        );
+                        return false;
+                    }
+                    return true;
+                });
+
+                // Skip if all categories were duplicates
+                if (categoriesToMap.length === 0) {
+                    continue;
+                }
             } else if (CONSENT_CATEGORIES.includes(customCategory as keyof CategoryPreferences)) {
-                this.consentState.categoryMappings[customCategory] = [customCategory as keyof CategoryPreferences];
+                const category = customCategory as keyof CategoryPreferences;
+                if (mappedJournifyCategories.has(category)) {
+                    console.warn(
+                        `[Journify] Category "${category}" is already mapped.
+                         Skipping duplicate mapping from "${customCategory}".`
+                    );
+                    continue;
+                }
+                categoriesToMap = [category];
             } else {
                 console.warn(
-                    `[Journify] Invalid consent configuration: "${customCategory}" must either provide
-                     a "mapsTo" array or be one of: ${CONSENT_CATEGORIES.join(', ')}. Skipping this category.`
+                    `[Journify] Invalid consent configuration: "${customCategory}" must either provide a 
+                    "mapsTo" array or be one of: ${CONSENT_CATEGORIES.join(', ')}. Skipping this category.`
                 );
                 continue;
             }
 
-            // Apply consent values based on mappings
+            // Track mapped Journify categories
+            categoriesToMap.forEach(cat => mappedJournifyCategories.add(cat));
+
+            this.consentState.categoryMappings[customCategory] = categoriesToMap;
             this.updateConsentForCategory(customCategory, granted);
         }
     }
