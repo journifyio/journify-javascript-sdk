@@ -16,21 +16,21 @@ export interface EventQueue {
 
 export class EventQueueImpl extends EmitterImpl implements EventQueue {
   private pQueue: OperationsPriorityQueue<Context>;
-  private readonly plugins: Plugin[] = [];
+  private readonly getPlugins: () => Plugin[];
   private flushing = false;
   private readonly browser: Browser;
   private readonly contextFactory: ContextFactory;
   private readonly sentry: SentryWrapper;
 
   public constructor(
-    plugins: Plugin[],
+    getPlugins: () => Plugin[],
     pQueue: OperationsPriorityQueue<Context>,
     browser: Browser,
     sentry: SentryWrapper,
     contextFactory: ContextFactory = new ContextFactoryImpl()
   ) {
     super();
-    this.plugins = plugins;
+    this.getPlugins = getPlugins;
     this.pQueue = pQueue;
     this.pQueue.on(ON_OPERATION_DELAY_FINISH, async () => {
       try {
@@ -46,7 +46,8 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
   }
 
   private push(ctx: Context): Context[] {
-    const updatedContextEvents = this.plugins.map((p) => {
+    const plugins = this.getPlugins();
+    const updatedContextEvents = plugins.map((p) => {
       const newId = generateNewIDWithPlugin(ctx.getId(), p.name);
       const newCtx = this.contextFactory.newContext(ctx.getEvent(), newId);
       return newCtx;
@@ -96,7 +97,8 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
 
     await new Promise((resolve, reject) => {
       setTimeout(() => {
-          const plugin = this.plugins.filter((p) =>
+          const plugins = this.getPlugins();
+          const plugin = plugins.filter((p) =>
               ctxToDeliver.getId().includes(p.name)
           );
           if (plugin.length === 0) {

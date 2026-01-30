@@ -1,13 +1,14 @@
 import * as uuid from "uuid";
-import { User } from "../domain/user";
-import { JournifyEvent, JournifyEventType } from "../domain/event";
-import { ExternalIdsSessionCache, ExternalIds } from "../domain/externalId";
-import { LIB_VERSION } from "../generated/libVersion";
-import { SESSION_ID_PERSISTENCE_KEY, Store, StoresGroup } from "../store/store";
-import { Group } from "../domain/group";
-import { Browser } from "./browser";
-import { Traits } from "../domain/traits";
-import { SessionStore } from "../store/sessionStore";
+import {User} from "../domain/user";
+import {JournifyEvent, JournifyEventType} from "../domain/event";
+import {ExternalIds, ExternalIdsSessionCache} from "../domain/externalId";
+import {LIB_VERSION} from "../generated/libVersion";
+import {CONSENT_STATE_PERSISTENCE_KEY, SESSION_ID_PERSISTENCE_KEY, Store, StoresGroup} from "../store/store";
+import {Group} from "../domain/group";
+import {Browser} from "./browser";
+import {Traits} from "../domain/traits";
+import {SessionStore} from "../store/sessionStore";
+import {ConsentState} from "../domain/consent";
 
 export interface EventFactory {
   setUser(user: User): void;
@@ -138,6 +139,9 @@ export class EventFactoryImpl implements EventFactory {
       url: this.browser.canonicalUrl(),
     };
 
+    const consent = this.stores.get<ConsentState>(CONSENT_STATE_PERSISTENCE_KEY)?.consent;
+    if (consent) ctx.consent = consent;
+
     // TODO: Refactor StoreGroup to choose which storage you want to use
     const campaign = this.browser.utmCampaign(
       this.browser.location().search,
@@ -168,15 +172,13 @@ export class EventFactoryImpl implements EventFactory {
       };
     }
 
-    const normalizedEvent: JournifyEvent = {
+    return {
       ...baseEvent,
       messageId: uuid.v4(),
       timestamp: new Date(),
       externalIds: this.getExternalIDs(),
       context: ctx,
     };
-
-    return normalizedEvent;
   }
 
   private appendTraitsFromProperties(

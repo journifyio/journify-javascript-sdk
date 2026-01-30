@@ -46,7 +46,7 @@ describe("EventQueueImpl class", () => {
         captureMessage: jest.fn(),
       };
       const eventQueue = new EventQueueImpl(
-        [pluginMock],
+        () => [pluginMock],
         priorityQueue,
         mockBrowser,
         mockSentry
@@ -83,7 +83,7 @@ describe("EventQueueImpl class", () => {
         captureMessage: jest.fn(),
       };
       const eventQueue = new EventQueueImpl(
-        [plugin1, plugin2],
+        () => [plugin1, plugin2],
         priorityQueue,
         mockBrowser,
         mockSentry
@@ -137,7 +137,7 @@ describe("EventQueueImpl class", () => {
         captureMessage: jest.fn(),
       };
       const eventQueue = new EventQueueImpl(
-        [plugin1, plugin2],
+        () => [plugin1, plugin2],
         priorityQueue,
         mockBrowser,
         mockSentry
@@ -191,7 +191,7 @@ describe("EventQueueImpl class", () => {
       };
 
       const eventQueue = new EventQueueImpl(
-        [plugin1, plugin2],
+        () => [plugin1, plugin2],
         priorityQueue,
         mockBrowser,
         mockSentry
@@ -242,7 +242,7 @@ describe("EventQueueImpl class", () => {
       };
 
       const eventQueue = new EventQueueImpl(
-        [plugin1],
+        () => [plugin1],
         pQueueMock,
         mockBrowser,
         mockSentry
@@ -294,7 +294,7 @@ describe("EventQueueImpl class", () => {
       };
 
       const eventQueue = new EventQueueImpl(
-        [plugin1, plugin2],
+        () => [plugin1, plugin2],
         priorityQueue,
         mockBrowser,
         mockSentry

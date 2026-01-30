@@ -1,5 +1,6 @@
 import { JSONValue, Traits } from "./traits";
 import { ExternalIds } from "./externalId";
+import {Consent} from "./consent";
 
 export interface JournifyEvent {
   messageId?: string;
@@ -55,6 +56,7 @@ interface EventContext {
   campaign?: UtmCampaign;
   groupId?: string;
   [key: string]: unknown;
+  consent?: Consent;
 }
 
 interface Page {
