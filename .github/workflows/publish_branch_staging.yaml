@@ -74,6 +74,7 @@ jobs:
           destination: "static.journify.dev/@journifyio/js-sdk@${{ github.event.inputs.branch }}"
           headers: |-
             cache-control: no-store
+            content-type: 'text/javascript; charset=utf-8'
 
 
       - name: 'Set up Cloud SDK'

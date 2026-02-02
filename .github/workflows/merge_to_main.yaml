@@ -85,6 +85,8 @@ jobs:
         with:
           path: 'dist/_bundles/journifyio.min.js'
           destination: 'static.journify.dev/@journifyio/js-sdk@latest'
+          headers: |-
+            content-type: 'text/javascript; charset=utf-8'
 
       - id: publish_current_version_to_staging_cdn
         name: Publish current version to staging CDN
@@ -93,6 +95,8 @@ jobs:
         with:
           path: 'dist/_bundles/journifyio.min.js'
           destination: "static.journify.dev/@journifyio/js-sdk@${{ steps.release_check.outputs.current_version }}"
+          headers: |-
+            content-type: 'text/javascript; charset=utf-8'
 
       - name: Release to Github
         if: steps.release_check.outputs.new_release == 'true'

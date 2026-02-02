@@ -63,6 +63,8 @@ jobs:
         with:
           path: 'dist/_bundles/journifyio.min.js'
           destination: 'static.journify.dev/@journifyio/js-sdk@latest'
+          headers: |-
+            content-type: 'text/javascript; charset=utf-8'
 
       - id: publish_current_version_to_staging_cdn
         name: Publish current version to staging CDN
@@ -70,6 +72,8 @@ jobs:
         with:
           path: 'dist/_bundles/journifyio.min.js'
           destination: "static.journify.dev/@journifyio/js-sdk@${{ github.event.inputs.version }}"
+          headers: |-
+            content-type: 'text/javascript; charset=utf-8'
 
 
       - name: 'Set up Cloud SDK'

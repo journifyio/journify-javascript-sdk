@@ -63,6 +63,8 @@ jobs:
         with:
           path: 'dist/_bundles/journifyio.min.js'
           destination: 'static.journify.io/@journifyio/js-sdk@latest'
+          headers: |-
+            content-type: 'text/javascript; charset=utf-8'
 
       - id: publish_current_version_to_production_cdn
         name: Publish current version to production CDN
@@ -70,6 +72,8 @@ jobs:
         with:
           path: 'dist/_bundles/journifyio.min.js'
           destination: "static.journify.io/@journifyio/js-sdk@${{ github.event.inputs.version }}"
+          headers: |-
+            content-type: 'text/javascript; charset=utf-8'
 
       - name: Publish to npm
         uses: JS-DevTools/npm-publish@v1
