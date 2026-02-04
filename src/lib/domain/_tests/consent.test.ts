@@ -187,7 +187,7 @@ describe("ConsentServiceImpl class", () => {
             const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
             const consentConfiguration: ConsentConfiguration = {
-                "C001": { granted: true, mapsTo: ["analytics", "invalid_category" as any] },
+                "C001": { granted: true, mapsTo: ["analytics", "invalid_category" as never] },
             };
             const consentService = new ConsentServiceImpl('strict', consentConfiguration);
 
