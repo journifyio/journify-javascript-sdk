@@ -19,6 +19,7 @@ import {
 import { SessionStore } from "../../store/sessionStore";
 
 import { TextEncoder, TextDecoder } from "util";
+import { ConsentServiceMock } from "../../../test/mocks/consentService";
 
 Object.assign(global, { TextDecoder, TextEncoder });
 
@@ -103,11 +104,15 @@ describe("EventFactoryImpl class", () => {
         testStores.cookies,
         testStores.memory
       );
+
+      const consentService = new ConsentServiceMock();
+
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
       eventFactory.setUser(user);
 
@@ -139,6 +144,9 @@ describe("EventFactoryImpl class", () => {
             title,
           },
           campaign: campaign,
+          consent: {
+            categoryPreferences: {},
+          },
         },
       };
 
@@ -183,12 +191,14 @@ describe("EventFactoryImpl class", () => {
         captureMessage: jest.fn(),
       };
       const user = new UserImpl(stores, sentryMock);
+      const consentService = new ConsentServiceMock();
 
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
       eventFactory.setUser(user);
 
@@ -257,12 +267,14 @@ describe("EventFactoryImpl class", () => {
         captureMessage: jest.fn(),
       };
       const user = new UserImpl(stores, sentryMock);
+      const consentService = new ConsentServiceMock();
 
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
       eventFactory.setUser(user);
 
@@ -328,12 +340,14 @@ describe("EventFactoryImpl class", () => {
         captureMessage: jest.fn(),
       };
       const user = new UserImpl(stores, sentryMock);
+      const consentService = new ConsentServiceMock();
 
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
       eventFactory.setUser(user);
 
@@ -396,12 +410,14 @@ describe("EventFactoryImpl class", () => {
         captureMessage: jest.fn(),
       };
       const user = new UserImpl(stores, sentryMock);
+      const consentService = new ConsentServiceMock();
 
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
       eventFactory.setUser(user);
 
@@ -471,11 +487,14 @@ describe("EventFactoryImpl class", () => {
       };
       const user = new UserImpl(stores, sentryMock);
       user.load();
+      const consentService = new ConsentServiceMock();
+
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
 
       const actualEvent = await eventFactory.newTrackEvent(
@@ -524,12 +543,14 @@ describe("EventFactoryImpl class", () => {
       };
       const user = new UserImpl(stores, sentryMock);
       user.load();
+      const consentService = new ConsentServiceMock();
 
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
 
       const actualEvent = await eventFactory.newTrackEvent(
@@ -580,12 +601,14 @@ describe("EventFactoryImpl class", () => {
       };
       const user = new UserImpl(stores, sentryMock);
       user.load();
+      const consentService = new ConsentServiceMock();
 
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
 
       const actualEvent = await eventFactory.newPageEvent(
@@ -635,11 +658,14 @@ describe("EventFactoryImpl class", () => {
       };
       const user = new UserImpl(stores, sentryMock);
       user.load();
+      const consentService = new ConsentServiceMock();
+
       const eventFactory = new EventFactoryImpl(
         stores,
         testStores.cookies,
         browser,
-        externalIdsCache
+        externalIdsCache,
+        consentService
       );
       eventFactory.setUser(user);
 
