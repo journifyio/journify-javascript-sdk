@@ -39,7 +39,7 @@ import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag"
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
-import {ConsentServiceImpl, getConsentMode, ConsentService, ConsentUpdate, CategoryPreferences} from "../domain/consent";
+import {ConsentServiceImpl, ConsentService, ConsentUpdate, CategoryPreferences} from "../domain/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -64,7 +64,6 @@ export class Loader {
   private sessionIntervalId: NodeJS.Timeout = null;
   private stores: StoresGroup = null;
   private cookiesStore: Store = null;
-  private localStore: Store = null;
   private sdkSettings: SdkSettings;
   private writeKeySettings: WriteKeySettings;
   private consentService: ConsentService = null;
@@ -82,11 +81,10 @@ export class Loader {
     this.startNewSession();
 
     if (!this.consentService) {
-      const consentMode = getConsentMode(writeKeySettings.countryCode);
       const consentConfiguration = sdkConfig.options?.consentConfiguration;
       this.consentService = new ConsentServiceImpl(
-        consentMode,
-        consentConfiguration
+          writeKeySettings.countryCode,
+          consentConfiguration
       );
     }
 
@@ -95,17 +93,17 @@ export class Loader {
     let cookieService: HttpCookieService;
     if (this.sdkSettings?.options?.httpCookieServiceOptions) {
       cookieService = new HttpCookieServiceImpl(
-        this.sdkSettings?.options?.httpCookieServiceOptions,
-        browser,
-        this.sentryWrapper,
-        this.cookiesStore
+          this.sdkSettings?.options?.httpCookieServiceOptions,
+          browser,
+          this.sentryWrapper,
+          this.cookiesStore
       );
     }
     this.user = new UserImpl(
-      this.stores,
-      this.sentryWrapper,
-      cookieService,
-      this.sdkSettings?.options?.phoneCountryCode
+        this.stores,
+        this.sentryWrapper,
+        cookieService,
+        this.sdkSettings?.options?.phoneCountryCode
     );
     await this.user.load();
 
@@ -135,39 +133,39 @@ export class Loader {
     }
 
     const pQueue = new OperationsPriorityQueueImpl<Context>(
-      DEFAULT_MAX_QUEUE_ATTEMPTS
+        DEFAULT_MAX_QUEUE_ATTEMPTS
     );
     const browser = sharedDeps.browser;
     const sessionStore = new SessionStore(browser);
     const externalIdsSessionCache = new ExternalIdsSessionCacheImpl(
-      browser,
-      sessionStore
+        browser,
+        sessionStore
     );
     const deps: SdkDependencies = {
       user: this.user,
       eventFactory: new EventFactoryImpl(
-        this.stores,
-        this.cookiesStore,
-        browser,
-        externalIdsSessionCache,
-        this.consentService
+          this.stores,
+          this.cookiesStore,
+          browser,
+          externalIdsSessionCache,
+          this.consentService
       ),
       groupFactory: new GroupFactoryImpl(this.stores),
       contextFactory: new ContextFactoryImpl(),
       eventQueue: new EventQueueImpl(
-        () => Object.values(this.plugins),
-        pQueue,
-        browser,
-        this.sentryWrapper
+          () => Object.values(this.plugins),
+          pQueue,
+          browser,
+          this.sentryWrapper
       ),
     };
 
     this.sdk = new Sdk(this.sdkSettings, deps);
     if (this.sdkSettings.options?.autoCapturePII) {
       const autoCapturePII = new AutoCapturePII(
-        browser,
-        this.user,
-        this.sdkSettings.options.autoCapturePhoneRegex
+          browser,
+          this.user,
+          this.sdkSettings.options.autoCapturePhoneRegex
       );
       autoCapturePII.listen();
     }
@@ -195,15 +193,14 @@ export class Loader {
       return;
     }
     const localStore = new BrowserStore(
-      BrowserStore.isLocalStorageAvailable() ? localStorage : undefined
+        BrowserStore.isLocalStorageAvailable() ? localStorage : undefined
     );
     const memoryStore = new MemoryStore();
     const cookiesStore = CookiesStore.isAvailable()
-      ? new CookiesStore(this.sdkSettings?.options?.cookie?.domain)
-      : new NullStore();
+        ? new CookiesStore(this.sdkSettings?.options?.cookie?.domain)
+        : new NullStore();
     this.stores = new StoresGroup(localStore, cookiesStore, memoryStore);
     this.cookiesStore = cookiesStore;
-    this.localStore = localStore;
   }
 
   public startNewSession() {

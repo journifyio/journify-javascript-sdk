@@ -2,7 +2,7 @@ import { Consent, ConsentService, ConsentUpdate, CategoryPreferences } from "../
 
 export class ConsentServiceMock implements ConsentService {
     public funcs: ConsentServiceMockFuncs;
-    private consent: Consent = { categoryPreferences: {} };
+    private consent: Consent = { categoryPreferences: {}, country: 'MA' };
 
     public constructor(funcs?: ConsentServiceMockFuncs) {
         this.funcs = funcs || {};

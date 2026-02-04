@@ -23,6 +23,7 @@ export type CategoryPreferences = {
 
 export type Consent = {
     categoryPreferences?: CategoryPreferences;
+    country: string
 };
 
 export type ConsentState = {
@@ -56,18 +57,25 @@ export class ConsentServiceImpl implements ConsentService {
     private readonly consentState: ConsentState;
 
     constructor(
-        consentMode: ConsentMode,
+        country: string,
         consentConfiguration?: ConsentConfiguration
     ) {
+        const consentMode = this.getConsentMode(country);
         this.consentState = {
             consentMode,
-            consent: { categoryPreferences: {} },
+            consent: { categoryPreferences: {}, country },
             categoryMappings: {}
         };
 
         if (consentConfiguration) {
             this.setConsentFromConfiguration(consentConfiguration);
         }
+    }
+
+    // Determine consent mode based on country
+    private getConsentMode(country?: string): ConsentMode {
+        const normalizedCountry = country?.trim().toUpperCase() || ''
+        return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
     }
 
     private setConsentFromConfiguration(config: ConsentConfiguration): void {
@@ -184,10 +192,4 @@ export class ConsentServiceImpl implements ConsentService {
 
         return true;
     }
-}
-
-// Utility function to determine consent mode based on country
-export function getConsentMode(country?: string): ConsentMode {
-    const normalizedCountry = country?.trim().toUpperCase() || ''
-    return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
 }
