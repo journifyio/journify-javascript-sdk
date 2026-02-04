@@ -49,4 +49,3 @@ export class StoresGroup implements Store {
 }
 
 export const SESSION_ID_PERSISTENCE_KEY = "journifyio_session_id";
-export const CONSENT_STATE_PERSISTENCE_KEY = "journifyio_consent_state";

@@ -86,8 +86,7 @@ export class Loader {
       const consentConfiguration = sdkConfig.options?.consentConfiguration;
       this.consentService = new ConsentServiceImpl(
         consentMode,
-        consentConfiguration,
-        this.localStore,
+        consentConfiguration
       );
     }
 
@@ -150,7 +149,8 @@ export class Loader {
         this.stores,
         this.cookiesStore,
         browser,
-        externalIdsSessionCache
+        externalIdsSessionCache,
+        this.consentService
       ),
       groupFactory: new GroupFactoryImpl(this.stores),
       contextFactory: new ContextFactoryImpl(),

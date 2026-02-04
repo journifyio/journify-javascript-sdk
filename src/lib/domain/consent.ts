@@ -1,5 +1,3 @@
-import {CONSENT_STATE_PERSISTENCE_KEY, Store} from "../store/store";
-
 const STRICT_MODE = 'strict';
 const RELAXED_MODE = 'relaxed';
 
@@ -51,110 +49,81 @@ export interface ConsentService {
         consentUpdate: ConsentUpdate,
         updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }): void;
     hasConsent(categories: string[]): boolean;
+    getConsent(): Consent;
 }
 
 export class ConsentServiceImpl implements ConsentService {
     private readonly consentState: ConsentState;
-    private readonly store: Store;
 
     constructor(
         consentMode: ConsentMode,
-        consentConfiguration?: ConsentConfiguration,
-        store?: Store
+        consentConfiguration?: ConsentConfiguration
     ) {
-        this.store = store;
-
-        const persisted = this.loadFromStore();
-
-        // Initialize with current mode and defaults
         this.consentState = {
             consentMode,
             consent: { categoryPreferences: {} },
             categoryMappings: {}
         };
 
-        // Preserve persisted consent/mappings if available
-        if (persisted) {
-            this.consentState.consent.categoryPreferences = persisted.consent?.categoryPreferences ?? {};
-            this.consentState.categoryMappings = persisted.categoryMappings ?? {};
-        }
-
-        // Apply new configuration if provided
         if (consentConfiguration) {
             this.setConsentFromConfiguration(consentConfiguration);
-        }
-
-        this.saveToStore();
-
-    }
-
-    private loadFromStore(): ConsentState | null {
-        if (!this.store) return null;
-        return this.store.get(CONSENT_STATE_PERSISTENCE_KEY)
-    }
-
-    private saveToStore(): void {
-        if (!this.store) return;
-        if (this.consentState && Object.keys(this.consentState).length > 0) {
-            this.store.set(CONSENT_STATE_PERSISTENCE_KEY, this.consentState);
         }
     }
 
     private setConsentFromConfiguration(config: ConsentConfiguration): void {
+        // Keep track of already mapped Journify categories to avoid duplicates
         const mappedJournifyCategories = new Set<string>();
 
         for (const [customCategory, {granted, mapsTo}] of Object.entries(config)) {
-            let categoriesToMap: (keyof CategoryPreferences)[] = [];
+            // Collects categories that pass validation
+            let validCategories: (keyof CategoryPreferences)[] = [];
+            const isStandardCategory = CONSENT_CATEGORIES.includes(customCategory as keyof CategoryPreferences);
 
-            if (mapsTo && Array.isArray(mapsTo)) {
-                // Filter out already-mapped Journify categories
-                categoriesToMap = mapsTo.filter(category => {
-                    if (mappedJournifyCategories.has(category)) {
-                        console.warn(
-                            `[Journify] Category "${category}" is already mapped.
-                             Skipping duplicate mapping from "${customCategory}".`
-                        );
-                        return false;
-                    }
-                    return true;
-                });
-
-                // Skip if all categories were duplicates
-                if (categoriesToMap.length === 0) {
-                    continue;
-                }
-            } else if (CONSENT_CATEGORIES.includes(customCategory as keyof CategoryPreferences)) {
+            if (isStandardCategory) {
+                // Standard category maps directly to itself
                 const category = customCategory as keyof CategoryPreferences;
                 if (mappedJournifyCategories.has(category)) {
                     console.warn(
-                        `[Journify] Category "${category}" is already mapped.
-                         Skipping duplicate mapping from "${customCategory}".`
+                        `[Journify] Category "${category}" is already mapped. Skipping duplicate.`
                     );
-                    continue;
+                } else {
+                    validCategories = [category];
                 }
-                categoriesToMap = [category];
-            } else {
+            } else if (!mapsTo || !Array.isArray(mapsTo)) {
+                // Not a standard category and no valid mapsTo array
                 console.warn(
-                    `[Journify] Invalid consent configuration: "${customCategory}" must either provide a 
-                    "mapsTo" array or be one of: ${CONSENT_CATEGORIES.join(', ')}. Skipping this category.`
+                    `[Journify] Invalid consent configuration: "${customCategory}" must either provide a
+                    "mapsTo" array or be one of: ${CONSENT_CATEGORIES.join(', ')}. Skipping.`
                 );
-                continue;
+            } else {
+                // Validate each category in mapsTo
+                for (const category of mapsTo) {
+                    if (!CONSENT_CATEGORIES.includes(category)) {
+                        console.warn(
+                            `[Journify] "${category}" in mapsTo for "${customCategory}" is not a valid Journify category. Skipping.`
+                        );
+                    } else if (mappedJournifyCategories.has(category)) {
+                        console.warn(
+                            `[Journify] Category "${category}" is already mapped. Skipping duplicate mapping from "${customCategory}".`
+                        );
+                    } else {
+                        validCategories.push(category);
+                    }
+                }
             }
 
-            // Track mapped Journify categories
-            categoriesToMap.forEach(cat => mappedJournifyCategories.add(cat));
-
-            this.consentState.categoryMappings[customCategory] = categoriesToMap;
-            this.updateConsentForCategory(customCategory, granted);
+            // Apply valid mappings
+            if (validCategories.length > 0) {
+                validCategories.forEach(category => mappedJournifyCategories.add(category));
+                this.consentState.categoryMappings[customCategory] = validCategories;
+                this.updateConsentForCategory(customCategory, granted);
+            }
         }
     }
 
     private updateConsentForCategory(customCategory: string, granted: boolean): void {
         const mappedCategories = this.consentState.categoryMappings[customCategory];
         if (mappedCategories) {
-            if (!this.consentState.consent.categoryPreferences) {
-                this.consentState.consent.categoryPreferences = {};
-            }
             mappedCategories.forEach(category => {
                 this.consentState.consent.categoryPreferences[category] = granted;
             });
@@ -177,8 +146,10 @@ export class ConsentServiceImpl implements ConsentService {
         for (const [customCategory, granted] of Object.entries(consentUpdate)) {
             this.updateConsentForCategory(customCategory, granted);
         }
+    }
 
-        this.saveToStore();
+    public getConsent(): Consent {
+        return this.consentState.consent;
     }
 
     // Method that checks if consent is given for the specified categories
@@ -217,16 +188,6 @@ export class ConsentServiceImpl implements ConsentService {
 
 // Utility function to determine consent mode based on country
 export function getConsentMode(country?: string): ConsentMode {
-    if (!country || country.trim() === '') {
-        return RELAXED_MODE; // Default to relaxed if country is not provided
-    }
-
-    const normalizedCountry = country.trim().toUpperCase();
-
-    // Validate ISO 3166-1 alpha-2 format (2 uppercase letters)
-    if (!/^[A-Z]{2}$/.test(normalizedCountry)) {
-        return RELAXED_MODE; // Default to relaxed for invalid country codes
-    }
-
+    const normalizedCountry = country?.trim().toUpperCase() || ''
     return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
 }

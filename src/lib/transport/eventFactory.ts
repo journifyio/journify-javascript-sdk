@@ -1,14 +1,14 @@
 import * as uuid from "uuid";
-import {User} from "../domain/user";
-import {JournifyEvent, JournifyEventType} from "../domain/event";
-import {ExternalIds, ExternalIdsSessionCache} from "../domain/externalId";
-import {LIB_VERSION} from "../generated/libVersion";
-import {CONSENT_STATE_PERSISTENCE_KEY, SESSION_ID_PERSISTENCE_KEY, Store, StoresGroup} from "../store/store";
-import {Group} from "../domain/group";
-import {Browser} from "./browser";
-import {Traits} from "../domain/traits";
-import {SessionStore} from "../store/sessionStore";
-import {ConsentState} from "../domain/consent";
+import { User } from "../domain/user";
+import { JournifyEvent, JournifyEventType } from "../domain/event";
+import { ExternalIdsSessionCache, ExternalIds } from "../domain/externalId";
+import { LIB_VERSION } from "../generated/libVersion";
+import { SESSION_ID_PERSISTENCE_KEY, Store, StoresGroup } from "../store/store";
+import { Group } from "../domain/group";
+import { Browser } from "./browser";
+import { Traits } from "../domain/traits";
+import { SessionStore } from "../store/sessionStore";
+import { ConsentService } from "../domain/consent";
 
 export interface EventFactory {
   setUser(user: User): void;
@@ -35,17 +35,20 @@ export class EventFactoryImpl implements EventFactory {
   private readonly stores: StoresGroup;
   private readonly cookiesStore: Store;
   private readonly externalIdsSessionCache: ExternalIdsSessionCache;
+  private readonly consentService: ConsentService;
 
   public constructor(
     stores: StoresGroup,
     cookiesStore: Store,
     browser: Browser,
-    externalIdsSessionCache: ExternalIdsSessionCache
+    externalIdsSessionCache: ExternalIdsSessionCache,
+    consentService: ConsentService,
   ) {
     this.stores = stores;
     this.cookiesStore = cookiesStore;
     this.browser = browser;
     this.externalIdsSessionCache = externalIdsSessionCache;
+    this.consentService = consentService;
   }
 
   public setGroup(group: Group) {
@@ -139,7 +142,7 @@ export class EventFactoryImpl implements EventFactory {
       url: this.browser.canonicalUrl(),
     };
 
-    const consent = this.stores.get<ConsentState>(CONSENT_STATE_PERSISTENCE_KEY)?.consent;
+    const consent = this.consentService.getConsent();
     if (consent) ctx.consent = consent;
 
     // TODO: Refactor StoreGroup to choose which storage you want to use
@@ -172,13 +175,15 @@ export class EventFactoryImpl implements EventFactory {
       };
     }
 
-    return {
+    const normalizedEvent: JournifyEvent = {
       ...baseEvent,
       messageId: uuid.v4(),
       timestamp: new Date(),
       externalIds: this.getExternalIDs(),
       context: ctx,
     };
+
+    return normalizedEvent;
   }
 
   private appendTraitsFromProperties(
