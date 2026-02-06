@@ -1,11 +1,13 @@
-import { getProductionWriteKey, Loader } from "./api/loader";
-import { Sdk } from "./api/sdk";
-import { Traits } from "./domain/traits";
-import { Context } from "./transport/context";
-import { ExternalIds } from "./domain/externalId";
-import { WriteKeySettings, SdkSettings } from "./transport/plugins/plugin";
-import { SentryWrapperImpl } from "./lib/sentry";
-import { cleanTraits } from "./lib/utils";
+import {getProductionWriteKey, Loader} from "./api/loader";
+import {Sdk} from "./api/sdk";
+import {Traits} from "./domain/traits";
+import {Context} from "./transport/context";
+import {ExternalIds} from "./domain/externalId";
+import {SdkSettings, WriteKeySettings} from "./transport/plugins/plugin";
+import {SentryWrapperImpl} from "./lib/sentry";
+import {cleanTraits} from "./lib/utils";
+import {Consent, CategoryPreferences} from "./domain/consent";
+import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 
@@ -48,18 +50,20 @@ async function fetchRemoteWriteKeySettings(
   writeKey: string,
   cdnHost: string
 ): Promise<WriteKeySettings> {
-  const max_retries = 2;
-  const settingsURL = `${cdnHost}/write_keys/${writeKey}.json`;
+  const maxRetries = 2;
+  const settingsUrl = `${cdnHost}/write_keys/${writeKey}.json`;
+  const countryHeader = "x-client-country";
 
-  for (let i = 0; i < max_retries; i++) {
+  for (let i = 0; i < maxRetries; i++) {
     try {
-      sentryWrapper.setTag("settingsURL", settingsURL);
-      const response = await fetch(settingsURL);
+      sentryWrapper.setTag("settingsURL", settingsUrl);
+      const response = await fetch(settingsUrl);
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
+        settings.countryCode = response.headers.get(countryHeader);
         return settings;
       } else if (500 <= response.status && response.status <= 599) {
-        if (i < max_retries - 1) {
+        if (i < maxRetries - 1) {
           console.log(`Retrying in 2 seconds...`);
           await sleep(2000);
         }
@@ -68,7 +72,7 @@ async function fetchRemoteWriteKeySettings(
           `write key settings are not found for write key ${writeKey}. Status: ${response.status}`
         );
         await sentryWrapper.setResponse({
-          url: settingsURL,
+          url: settingsUrl,
           headers: response.headers,
           status: response.status,
           body: await response.text(),
@@ -80,7 +84,7 @@ async function fetchRemoteWriteKeySettings(
     } catch (error) {
       sentryWrapper.captureException(error);
       console.error(
-        `Failed to fetch write key settings from ${settingsURL}. error: ${error}`
+        `Failed to fetch write key settings from ${settingsUrl}. error: ${error}`
       );
     }
   }
@@ -206,4 +210,19 @@ function recordCallBeforeLoad(call) {
   }
 }
 
-export { load, identify, track, page, group, SdkSettings };
+function updateConsent(categoryPreferences: CategoryPreferences): void {
+  try {
+    if (!sdk) {
+      console.warn('[Journify] SDK not loaded yet. Consent will be updated once SDK loads.');
+      recordCallBeforeLoad(() => updateConsent(categoryPreferences));
+      return;
+    }
+
+    loader.updateConsent(categoryPreferences);
+  } catch (error) {
+    sentryWrapper.captureException(error);
+    console.error(error);
+  }
+}
+
+export { load, identify, track, page, group, updateConsent, SdkSettings, Consent, CategoryPreferences, fromGoogleConsentV2, GoogleConsentV2 };

@@ -6,6 +6,7 @@ import { FieldsMapperFactory } from "./lib/fieldMapping";
 import { HttpCookieOptions } from "../../lib/httpCookieService";
 import { User } from "../../domain/user";
 import { SentryWrapper } from "../../lib/sentry";
+import {CategoryPreferences} from "../../domain/consent";
 
 export interface Plugin {
   name: string;
@@ -45,6 +46,7 @@ type SdkOptions = {
   autoCapturePhoneRegex?: string;
   phoneCountryCode?: string;
   httpCookieServiceOptions?: HttpCookieOptions;
+  initialConsent?: CategoryPreferences;
 };
 
 export interface SdkSettings {
@@ -56,11 +58,13 @@ export interface SdkSettings {
 
 export interface WriteKeySettings {
   syncs: Sync[];
+  countryCode?: string;
 }
 
 export interface Sync {
   id: string;
   destination_app: string;
+  destination_consent_categories?: string[];
   settings: SyncSetting[];
   field_mappings: FieldMapping[];
   event_mappings: EventMapping[];

@@ -8,6 +8,7 @@ import { Group } from "../domain/group";
 import { Browser } from "./browser";
 import { Traits } from "../domain/traits";
 import { SessionStore } from "../store/sessionStore";
+import { ConsentService } from "../domain/consent";
 
 export interface EventFactory {
   setUser(user: User): void;
@@ -34,17 +35,20 @@ export class EventFactoryImpl implements EventFactory {
   private readonly stores: StoresGroup;
   private readonly cookiesStore: Store;
   private readonly externalIdsSessionCache: ExternalIdsSessionCache;
+  private readonly consentService: ConsentService;
 
   public constructor(
     stores: StoresGroup,
     cookiesStore: Store,
     browser: Browser,
-    externalIdsSessionCache: ExternalIdsSessionCache
+    externalIdsSessionCache: ExternalIdsSessionCache,
+    consentService: ConsentService,
   ) {
     this.stores = stores;
     this.cookiesStore = cookiesStore;
     this.browser = browser;
     this.externalIdsSessionCache = externalIdsSessionCache;
+    this.consentService = consentService;
   }
 
   public setGroup(group: Group) {
@@ -137,6 +141,9 @@ export class EventFactoryImpl implements EventFactory {
       path: this.browser.canonicalPath(),
       url: this.browser.canonicalUrl(),
     };
+
+    const consent = this.consentService.getConsent();
+    if (consent) ctx.consent = consent;
 
     // TODO: Refactor StoreGroup to choose which storage you want to use
     const campaign = this.browser.utmCampaign(
