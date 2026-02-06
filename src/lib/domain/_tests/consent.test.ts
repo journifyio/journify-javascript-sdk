@@ -1,4 +1,4 @@
-import {ConsentServiceImpl, ConsentConfiguration} from "../consent";
+import {ConsentServiceImpl, CategoryPreferences} from "../consent";
 
 describe("ConsentServiceImpl class", () => {
     describe("constructor", () => {
@@ -57,8 +57,8 @@ describe("ConsentServiceImpl class", () => {
             })
         })
 
-        describe("consent configuration", () => {
-            it("Should initialize with empty consent when no config provided", () => {
+        describe("initial consent", () => {
+            it("Should initialize with empty consent when no initialConsent provided", () => {
                 const consentService = new ConsentServiceImpl('US');
 
                 const consent = consentService.getConsent();
@@ -68,12 +68,12 @@ describe("ConsentServiceImpl class", () => {
                 expect(consent.country).toBe('US');
             })
 
-            it("Should apply consentConfiguration and map categories correctly", () => {
-                const consentConfiguration: ConsentConfiguration = {
-                    "C001": { granted: false, mapsTo: ["advertising"]},
-                    "C002": { granted: true, mapsTo: ["analytics"]},
+            it("Should apply initialConsent for standard categories", () => {
+                const initialConsent: CategoryPreferences = {
+                    advertising: false,
+                    analytics: true,
                 };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+                const consentService = new ConsentServiceImpl('FR', initialConsent);
 
                 const consent = consentService.getConsent();
 
@@ -85,211 +85,104 @@ describe("ConsentServiceImpl class", () => {
                 expect(consent.country).toBe('FR');
             })
 
-            it("Should auto-map predefined category names without mapsTo", () => {
-                const consentConfiguration: ConsentConfiguration = {
-                    "advertising": { granted: true },
-                    "analytics": { granted: false },
-                };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
-
-                const consent = consentService.getConsent();
-
-                expect(consent).toBeDefined();
-                expect(consent.categoryPreferences).toEqual({
+            it("Should apply all standard category types", () => {
+                const initialConsent: CategoryPreferences = {
                     advertising: true,
-                    analytics: false,
-                });
-            })
-
-            it("Should warn and skip invalid custom categories without mapsTo", () => {
-                const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-                const consentConfiguration: ConsentConfiguration = {
-                    "invalid_category": { granted: true },
-                    "analytics": { granted: true },
-                };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
-
-                const consent = consentService.getConsent();
-
-                expect(warnSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('Invalid consent configuration: "invalid_category"')
-                );
-                expect(consent.categoryPreferences).toEqual({
                     analytics: true,
-                });
-
-                warnSpy.mockRestore();
-            })
-
-            it("Should skip and warn when multiple custom categories map to same Journify category", () => {
-                const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-                const consentConfiguration: ConsentConfiguration = {
-                    "C001": { granted: true, mapsTo: ["advertising"] },
-                    "C002": { granted: false, mapsTo: ["advertising"] },
+                    functional: true,
+                    marketing: false,
+                    personalization: true,
                 };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+                const consentService = new ConsentServiceImpl('FR', initialConsent);
 
                 const consent = consentService.getConsent();
 
-                expect(warnSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('Category "advertising" is already mapped')
-                );
-                expect(consent.categoryPreferences).toEqual({
-                    advertising: true,
-                });
-
-                warnSpy.mockRestore();
-            })
-
-            it("Should skip custom category entirely when all mapsTo targets are already mapped", () => {
-                const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-                const consentConfiguration: ConsentConfiguration = {
-                    "C001": { granted: true, mapsTo: ["advertising", "analytics"] },
-                    "C002": { granted: false, mapsTo: ["advertising", "analytics"] },
-                };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
-
-                const consent = consentService.getConsent();
-
-                expect(warnSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('Category "advertising" is already mapped')
-                );
-                expect(warnSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('Category "analytics" is already mapped')
-                );
                 expect(consent.categoryPreferences).toEqual({
                     advertising: true,
                     analytics: true,
+                    functional: true,
+                    marketing: false,
+                    personalization: true,
                 });
-
-                warnSpy.mockRestore();
             })
 
-            it("Should partially map when only some mapsTo targets are duplicates", () => {
-                const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-                const consentConfiguration: ConsentConfiguration = {
-                    "C001": { granted: true, mapsTo: ["advertising"] },
-                    "C002": { granted: false, mapsTo: ["advertising", "analytics"] },
-                };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
-
-                const consent = consentService.getConsent();
-
-                expect(warnSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('Category "advertising" is already mapped')
-                );
-                expect(consent.categoryPreferences).toEqual({
-                    advertising: true,
-                    analytics: false,
-                });
-
-                warnSpy.mockRestore();
-            })
-
-            it("Should skip and warn when predefined category name is mapped via mapsTo first", () => {
-                const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-                const consentConfiguration: ConsentConfiguration = {
-                    "C001": { granted: true, mapsTo: ["analytics"] },
-                    "analytics": { granted: false },
-                };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
-
-                const consent = consentService.getConsent();
-
-                expect(warnSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('Category "analytics" is already mapped')
-                );
-                expect(consent.categoryPreferences).toEqual({
+            it("Should not modify original initialConsent object", () => {
+                const initialConsent: CategoryPreferences = {
                     analytics: true,
-                });
-
-                warnSpy.mockRestore();
-            })
-
-            it("Should warn and skip invalid categories in mapsTo", () => {
-                const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
-                const consentConfiguration: ConsentConfiguration = {
-                    "C001": { granted: true, mapsTo: ["analytics", "invalid_category" as never] },
                 };
-                const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+                const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-                const consent = consentService.getConsent();
+                consentService.updateConsent({ analytics: false });
 
-                expect(warnSpy).toHaveBeenCalledWith(
-                    expect.stringContaining('"invalid_category" in mapsTo for "C001" is not a valid Journify category')
-                );
-                expect(consent.categoryPreferences).toEqual({
-                    analytics: true,
-                });
-
-                warnSpy.mockRestore();
+                expect(initialConsent.analytics).toBe(true);
+                expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
             })
         })
     })
 })
 
 describe("ConsentService interface", () => {
-    describe("updateConsentState method", () => {
-        it("Should update consent values for mapped categories", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "C001": { granted: false, mapsTo: ["advertising"] },
-                "C002": { granted: false, mapsTo: ["analytics"] },
+    describe("updateConsent method", () => {
+        it("Should update consent values for standard categories", () => {
+            const initialConsent: CategoryPreferences = {
+                advertising: false,
+                analytics: false,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             expect(consentService.getConsent().categoryPreferences.advertising).toBe(false);
             expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
 
-            consentService.updateConsentState({ "C001": true });
+            consentService.updateConsent({ advertising: true });
 
             expect(consentService.getConsent().categoryPreferences.advertising).toBe(true);
             expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
         })
 
-        it("Should update mappings when updatedMappings provided", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: true },
+        it("Should add new categories that weren't in initial consent", () => {
+            const initialConsent: CategoryPreferences = {
+                analytics: true,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            consentService.updateConsentState(
-                { "C001": true },
-                { "C001": ["advertising"] }
-            );
+            consentService.updateConsent({ advertising: true, marketing: false });
 
-            expect(consentService.getConsent().categoryPreferences.advertising).toBe(true);
+            expect(consentService.getConsent().categoryPreferences).toEqual({
+                analytics: true,
+                advertising: true,
+                marketing: false,
+            });
         })
 
-        it("Should do nothing when category has no mapping", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: false },
+        it("Should update multiple categories at once", () => {
+            const initialConsent: CategoryPreferences = {
+                advertising: false,
+                analytics: false,
+                marketing: false,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            consentService.updateConsentState({ "unmapped_category": true });
+            consentService.updateConsent({
+                advertising: true,
+                analytics: true,
+            });
 
-            expect(consentService.getConsent().categoryPreferences).toEqual({ analytics: false });
+            expect(consentService.getConsent().categoryPreferences).toEqual({
+                advertising: true,
+                analytics: true,
+                marketing: false,
+            });
         })
 
-        it("Should update all mapped Journify categories when custom category maps to multiple", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "C001": { granted: false, mapsTo: ["advertising", "marketing"] },
-            };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+        it("Should ignore invalid category names", () => {
+            const consentService = new ConsentServiceImpl('FR', { analytics: true });
 
-            expect(consentService.getConsent().categoryPreferences.advertising).toBe(false);
-            expect(consentService.getConsent().categoryPreferences.marketing).toBe(false);
+            // TypeScript would catch this, but testing runtime behavior
+            consentService.updateConsent({ invalid_category: true } as CategoryPreferences);
 
-            consentService.updateConsentState({ "C001": true });
-
-            expect(consentService.getConsent().categoryPreferences.advertising).toBe(true);
-            expect(consentService.getConsent().categoryPreferences.marketing).toBe(true);
+            expect(consentService.getConsent().categoryPreferences).toEqual({
+                analytics: true,
+            });
         })
     })
 
@@ -303,52 +196,52 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return false in strict mode when category is undefined", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "advertising": { granted: true },
+            const initialConsent: CategoryPreferences = {
+                advertising: true,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             const result = consentService.hasConsent(['analytics']);
             expect(result).toBe(false);
         })
 
         it("Should return false when category is explicitly false", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: false },
+            const initialConsent: CategoryPreferences = {
+                analytics: false,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             const result = consentService.hasConsent(['analytics']);
             expect(result).toBe(false);
         })
 
         it("Should return true when all required categories are true", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: true },
-                "advertising": { granted: true },
+            const initialConsent: CategoryPreferences = {
+                analytics: true,
+                advertising: true,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             const result = consentService.hasConsent(['analytics', 'advertising']);
             expect(result).toBe(true);
         })
 
         it("Should return false when any required category is false", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: true },
-                "advertising": { granted: false },
+            const initialConsent: CategoryPreferences = {
+                analytics: true,
+                advertising: false,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             const result = consentService.hasConsent(['analytics', 'advertising']);
             expect(result).toBe(false);
         })
 
         it("Should return false in strict mode when destination categories are empty or undefined", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: true },
+            const initialConsent: CategoryPreferences = {
+                analytics: true,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             expect(consentService.hasConsent([])).toBe(false);
             expect(consentService.hasConsent(undefined)).toBe(false);
@@ -364,30 +257,30 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return true in relaxed mode when category is undefined", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "advertising": { granted: true },
+            const initialConsent: CategoryPreferences = {
+                advertising: true,
             };
-            const consentService = new ConsentServiceImpl('US', consentConfiguration);
+            const consentService = new ConsentServiceImpl('US', initialConsent);
 
             const result = consentService.hasConsent(['analytics']);
             expect(result).toBe(true);
         })
 
         it("Should return false in relaxed mode when category is explicitly false", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: false },
+            const initialConsent: CategoryPreferences = {
+                analytics: false,
             };
-            const consentService = new ConsentServiceImpl('US', consentConfiguration);
+            const consentService = new ConsentServiceImpl('US', initialConsent);
 
             const result = consentService.hasConsent(['analytics']);
             expect(result).toBe(false);
         })
 
         it("Should return true in relaxed mode when destination categories are empty or undefined", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: false },
+            const initialConsent: CategoryPreferences = {
+                analytics: false,
             };
-            const consentService = new ConsentServiceImpl('US', consentConfiguration);
+            const consentService = new ConsentServiceImpl('US', initialConsent);
 
             expect(consentService.hasConsent([])).toBe(true);
             expect(consentService.hasConsent(undefined)).toBe(true);
@@ -395,10 +288,10 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return true in relaxed mode when some categories are true and others undefined", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: true },
+            const initialConsent: CategoryPreferences = {
+                analytics: true,
             };
-            const consentService = new ConsentServiceImpl('US', consentConfiguration);
+            const consentService = new ConsentServiceImpl('US', initialConsent);
 
             const result = consentService.hasConsent(['analytics', 'advertising']);
             expect(result).toBe(true);
@@ -407,11 +300,11 @@ describe("ConsentService interface", () => {
 
     describe("getConsent method", () => {
         it("Should return the current consent object with country", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: true },
-                "advertising": { granted: false },
+            const initialConsent: CategoryPreferences = {
+                analytics: true,
+                advertising: false,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             const consent = consentService.getConsent();
 
@@ -424,15 +317,15 @@ describe("ConsentService interface", () => {
             });
         })
 
-        it("Should reflect updates made via updateConsentState", () => {
-            const consentConfiguration: ConsentConfiguration = {
-                "analytics": { granted: false },
+        it("Should reflect updates made via updateConsent", () => {
+            const initialConsent: CategoryPreferences = {
+                analytics: false,
             };
-            const consentService = new ConsentServiceImpl('FR', consentConfiguration);
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
 
-            consentService.updateConsentState({ "analytics": true });
+            consentService.updateConsent({ analytics: true });
 
             expect(consentService.getConsent().categoryPreferences.analytics).toBe(true);
         })

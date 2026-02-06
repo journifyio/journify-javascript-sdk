@@ -1,4 +1,4 @@
-import { Consent, ConsentService, ConsentUpdate, CategoryPreferences } from "../../lib/domain/consent";
+import { Consent, ConsentService, CategoryPreferences } from "../../lib/domain/consent";
 
 export class ConsentServiceMock implements ConsentService {
     public funcs: ConsentServiceMockFuncs;
@@ -8,12 +8,9 @@ export class ConsentServiceMock implements ConsentService {
         this.funcs = funcs || {};
     }
 
-    updateConsentState(
-        consentUpdate: ConsentUpdate,
-        updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }
-    ): void {
-        if (this.funcs?.updateConsentState) {
-            this.funcs.updateConsentState(consentUpdate, updatedMappings);
+    updateConsent(categoryPreferences: CategoryPreferences): void {
+        if (this.funcs?.updateConsent) {
+            this.funcs.updateConsent(categoryPreferences);
         }
     }
 
@@ -37,7 +34,7 @@ export class ConsentServiceMock implements ConsentService {
 }
 
 export interface ConsentServiceMockFuncs {
-    updateConsentState?: jest.Func;
+    updateConsent?: jest.Func;
     hasConsent?: jest.Func;
     getConsent?: jest.Func;
 }

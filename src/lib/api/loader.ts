@@ -39,7 +39,7 @@ import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag"
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
-import {ConsentServiceImpl, ConsentService, ConsentUpdate, CategoryPreferences} from "../domain/consent";
+import {ConsentServiceImpl, ConsentService, CategoryPreferences} from "../domain/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -81,10 +81,10 @@ export class Loader {
     this.startNewSession();
 
     if (!this.consentService) {
-      const consentConfiguration = sdkConfig.options?.consentConfiguration;
+      const initialConsent = sdkConfig.options?.initialConsent;
       this.consentService = new ConsentServiceImpl(
           writeKeySettings.countryCode,
-          consentConfiguration
+          initialConsent
       );
     }
 
@@ -230,12 +230,9 @@ export class Loader {
     UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 
-  public updateConsent(
-    consentUpdate: ConsentUpdate,
-    updatedMappings?: { [key: string]: (keyof CategoryPreferences)[] }
-  ): void {
+  public updateConsent(categoryPreferences: CategoryPreferences): void {
     if (this.consentService) {
-      this.consentService.updateConsentState(consentUpdate, updatedMappings);
+      this.consentService.updateConsent(categoryPreferences);
       this.reinitializePlugins();
     }
   }
