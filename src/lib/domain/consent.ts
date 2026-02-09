@@ -23,18 +23,18 @@ export type CategoryPreferences = {
 
 export type Consent = {
     categoryPreferences?: CategoryPreferences;
-    country: string
 };
 
 export type ConsentState = {
     consentMode: ConsentMode;
     consent: Consent;
+    country: string;
 }
 
 export interface ConsentService {
     updateConsent(categoryPreferences: CategoryPreferences): void;
     hasConsent(categories: string[]): boolean;
-    getConsent(): Consent;
+    getConsentState(): ConsentState;
 }
 
 export class ConsentServiceImpl implements ConsentService {
@@ -49,8 +49,8 @@ export class ConsentServiceImpl implements ConsentService {
             consentMode,
             consent: {
                 categoryPreferences: initialConsent ? { ...initialConsent } : {},
-                country
-            }
+            },
+            country
         };
     }
 
@@ -68,8 +68,8 @@ export class ConsentServiceImpl implements ConsentService {
         }
     }
 
-    public getConsent(): Consent {
-        return this.consentState.consent;
+    public getConsentState(): ConsentState {
+        return this.consentState;
     }
 
     // Method that checks if consent is given for the specified categories

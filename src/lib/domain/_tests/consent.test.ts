@@ -49,11 +49,11 @@ describe("ConsentServiceImpl class", () => {
                 expect(consentService.hasConsent(['analytics'])).toBe(true);
             })
 
-            it("Should include country in consent object", () => {
+            it("Should include country in consent state", () => {
                 const consentService = new ConsentServiceImpl('FR');
-                const consent = consentService.getConsent();
+                const consentState = consentService.getConsentState();
 
-                expect(consent.country).toBe('FR');
+                expect(consentState.country).toBe('FR');
             })
         })
 
@@ -61,11 +61,11 @@ describe("ConsentServiceImpl class", () => {
             it("Should initialize with empty consent when no initialConsent provided", () => {
                 const consentService = new ConsentServiceImpl('US');
 
-                const consent = consentService.getConsent();
+                const consentState = consentService.getConsentState();
 
-                expect(consent).toBeDefined();
-                expect(consent.categoryPreferences).toEqual({});
-                expect(consent.country).toBe('US');
+                expect(consentState).toBeDefined();
+                expect(consentState.consent.categoryPreferences).toEqual({});
+                expect(consentState.country).toBe('US');
             })
 
             it("Should apply initialConsent for standard categories", () => {
@@ -75,14 +75,14 @@ describe("ConsentServiceImpl class", () => {
                 };
                 const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-                const consent = consentService.getConsent();
+                const consentState = consentService.getConsentState();
 
-                expect(consent).toBeDefined();
-                expect(consent.categoryPreferences).toEqual({
+                expect(consentState).toBeDefined();
+                expect(consentState.consent.categoryPreferences).toEqual({
                     advertising: false,
                     analytics: true,
                 });
-                expect(consent.country).toBe('FR');
+                expect(consentState.country).toBe('FR');
             })
 
             it("Should apply all standard category types", () => {
@@ -95,9 +95,9 @@ describe("ConsentServiceImpl class", () => {
                 };
                 const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-                const consent = consentService.getConsent();
+                const consentState = consentService.getConsentState();
 
-                expect(consent.categoryPreferences).toEqual({
+                expect(consentState.consent.categoryPreferences).toEqual({
                     advertising: true,
                     analytics: true,
                     functional: true,
@@ -115,7 +115,7 @@ describe("ConsentServiceImpl class", () => {
                 consentService.updateConsent({ analytics: false });
 
                 expect(initialConsent.analytics).toBe(true);
-                expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+                expect(consentService.getConsentState().consent.categoryPreferences.analytics).toBe(false);
             })
         })
     })
@@ -130,13 +130,13 @@ describe("ConsentService interface", () => {
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            expect(consentService.getConsent().categoryPreferences.advertising).toBe(false);
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+            expect(consentService.getConsentState().consent.categoryPreferences.advertising).toBe(false);
+            expect(consentService.getConsentState().consent.categoryPreferences.analytics).toBe(false);
 
             consentService.updateConsent({ advertising: true });
 
-            expect(consentService.getConsent().categoryPreferences.advertising).toBe(true);
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+            expect(consentService.getConsentState().consent.categoryPreferences.advertising).toBe(true);
+            expect(consentService.getConsentState().consent.categoryPreferences.analytics).toBe(false);
         })
 
         it("Should add new categories that weren't in initial consent", () => {
@@ -147,7 +147,7 @@ describe("ConsentService interface", () => {
 
             consentService.updateConsent({ advertising: true, marketing: false });
 
-            expect(consentService.getConsent().categoryPreferences).toEqual({
+            expect(consentService.getConsentState().consent.categoryPreferences).toEqual({
                 analytics: true,
                 advertising: true,
                 marketing: false,
@@ -167,7 +167,7 @@ describe("ConsentService interface", () => {
                 analytics: true,
             });
 
-            expect(consentService.getConsent().categoryPreferences).toEqual({
+            expect(consentService.getConsentState().consent.categoryPreferences).toEqual({
                 advertising: true,
                 analytics: true,
                 marketing: false,
@@ -180,7 +180,7 @@ describe("ConsentService interface", () => {
             // TypeScript would catch this, but testing runtime behavior
             consentService.updateConsent({ invalid_category: true } as CategoryPreferences);
 
-            expect(consentService.getConsent().categoryPreferences).toEqual({
+            expect(consentService.getConsentState().consent.categoryPreferences).toEqual({
                 analytics: true,
             });
         })
@@ -298,23 +298,24 @@ describe("ConsentService interface", () => {
         })
     })
 
-    describe("getConsent method", () => {
-        it("Should return the current consent object with country", () => {
+    describe("getConsentState method", () => {
+        it("Should return the current consent state with country", () => {
             const initialConsent: CategoryPreferences = {
                 analytics: true,
                 advertising: false,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            const consent = consentService.getConsent();
+            const consentState = consentService.getConsentState();
 
-            expect(consent).toEqual({
+            expect(consentState.consent).toEqual({
                 categoryPreferences: {
                     analytics: true,
                     advertising: false,
                 },
-                country: 'FR'
             });
+            expect(consentState.country).toBe('FR');
+            expect(consentState.consentMode).toBe('strict');
         })
 
         it("Should reflect updates made via updateConsent", () => {
@@ -323,11 +324,11 @@ describe("ConsentService interface", () => {
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+            expect(consentService.getConsentState().consent.categoryPreferences.analytics).toBe(false);
 
             consentService.updateConsent({ analytics: true });
 
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(true);
+            expect(consentService.getConsentState().consent.categoryPreferences.analytics).toBe(true);
         })
     })
 })
