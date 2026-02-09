@@ -54,6 +54,7 @@ interface EventContext {
   locale?: string;
   page?: Page;
   campaign?: UtmCampaign;
+  location?: Location;
   groupId?: string;
   [key: string]: unknown;
   consent?: Consent;
@@ -69,4 +70,9 @@ interface Page {
 
 interface Session {
   id?: string;
+}
+
+interface Location {
+  city?: string;
+  country?: string;
 }
