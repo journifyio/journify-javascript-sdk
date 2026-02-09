@@ -2,7 +2,7 @@ import { Consent, ConsentService, CategoryPreferences } from "../../lib/domain/c
 
 export class ConsentServiceMock implements ConsentService {
     public funcs: ConsentServiceMockFuncs;
-    private consent: Consent = { categoryPreferences: {}, country: 'MA' };
+    private consent: Consent = { categoryPreferences: {}};
 
     public constructor(funcs?: ConsentServiceMockFuncs) {
         this.funcs = funcs || {};
@@ -26,10 +26,6 @@ export class ConsentServiceMock implements ConsentService {
             return this.funcs.getConsent();
         }
         return this.consent;
-    }
-
-    setConsent(consent: Consent): void {
-        this.consent = consent;
     }
 }
 

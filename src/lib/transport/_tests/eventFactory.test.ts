@@ -145,7 +145,6 @@ describe("EventFactoryImpl class", () => {
           },
           campaign: campaign,
           consent: {
-            country: 'MA',
             categoryPreferences: {},
           },
         },

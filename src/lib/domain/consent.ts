@@ -23,7 +23,6 @@ export type CategoryPreferences = {
 
 export type Consent = {
     categoryPreferences?: CategoryPreferences;
-    country: string
 };
 
 export type ConsentState = {
@@ -49,7 +48,6 @@ export class ConsentServiceImpl implements ConsentService {
             consentMode,
             consent: {
                 categoryPreferences: initialConsent ? { ...initialConsent } : {},
-                country
             }
         };
     }

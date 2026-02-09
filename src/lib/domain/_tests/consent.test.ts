@@ -49,12 +49,6 @@ describe("ConsentServiceImpl class", () => {
                 expect(consentService.hasConsent(['analytics'])).toBe(true);
             })
 
-            it("Should include country in consent object", () => {
-                const consentService = new ConsentServiceImpl('FR');
-                const consent = consentService.getConsent();
-
-                expect(consent.country).toBe('FR');
-            })
         })
 
         describe("initial consent", () => {
@@ -65,7 +59,6 @@ describe("ConsentServiceImpl class", () => {
 
                 expect(consent).toBeDefined();
                 expect(consent.categoryPreferences).toEqual({});
-                expect(consent.country).toBe('US');
             })
 
             it("Should apply initialConsent for standard categories", () => {
@@ -82,7 +75,6 @@ describe("ConsentServiceImpl class", () => {
                     advertising: false,
                     analytics: true,
                 });
-                expect(consent.country).toBe('FR');
             })
 
             it("Should apply all standard category types", () => {
@@ -313,7 +305,6 @@ describe("ConsentService interface", () => {
                     analytics: true,
                     advertising: false,
                 },
-                country: 'FR'
             });
         })
 
