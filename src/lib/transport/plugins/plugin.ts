@@ -6,7 +6,7 @@ import { FieldsMapperFactory } from "./lib/fieldMapping";
 import { HttpCookieOptions } from "../../lib/httpCookieService";
 import { User } from "../../domain/user";
 import { SentryWrapper } from "../../lib/sentry";
-import {CategoryPreferences} from "../../domain/consent";
+import {ConsentCategoryPreferences} from "../../domain/consent";
 
 export interface Plugin {
   name: string;
@@ -46,7 +46,7 @@ type SdkOptions = {
   autoCapturePhoneRegex?: string;
   phoneCountryCode?: string;
   httpCookieServiceOptions?: HttpCookieOptions;
-  initialConsent?: CategoryPreferences;
+  initialConsent?: ConsentCategoryPreferences;
 };
 
 export interface SdkSettings {

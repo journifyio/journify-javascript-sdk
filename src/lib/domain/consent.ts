@@ -17,12 +17,12 @@ export const CONSENT_CATEGORIES = ['advertising', 'analytics', 'functional', 'ma
 
 export type ConsentMode = typeof STRICT_MODE | typeof RELAXED_MODE;
 
-export type CategoryPreferences = {
+export type ConsentCategoryPreferences = {
     [K in typeof CONSENT_CATEGORIES[number]]?: boolean;
 };
 
 export type Consent = {
-    categoryPreferences?: CategoryPreferences;
+    categoryPreferences?: ConsentCategoryPreferences;
 };
 
 export type ConsentState = {
@@ -31,7 +31,7 @@ export type ConsentState = {
 }
 
 export interface ConsentService {
-    updateConsent(categoryPreferences: CategoryPreferences): void;
+    updateConsent(categoryPreferences: ConsentCategoryPreferences): void;
     hasConsent(categories: string[]): boolean;
     getConsent(): Consent;
 }
@@ -41,7 +41,7 @@ export class ConsentServiceImpl implements ConsentService {
 
     constructor(
         country: string,
-        initialConsent?: CategoryPreferences
+        initialConsent?: ConsentCategoryPreferences
     ) {
         const consentMode = this.getConsentMode(country);
         this.consentState = {
@@ -58,7 +58,7 @@ export class ConsentServiceImpl implements ConsentService {
         return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
     }
 
-    public updateConsent(categoryPreferences: CategoryPreferences): void {
+    public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
         for (const [category, granted] of Object.entries(categoryPreferences)) {
             if (CONSENT_CATEGORIES.includes(category as typeof CONSENT_CATEGORIES[number])) {
                 this.consentState.consent.categoryPreferences[category] = granted;

@@ -1,4 +1,4 @@
-import {ConsentServiceImpl, CategoryPreferences} from "../consent";
+import {ConsentServiceImpl, ConsentCategoryPreferences} from "../consent";
 
 describe("ConsentServiceImpl class", () => {
     describe("constructor", () => {
@@ -62,7 +62,7 @@ describe("ConsentServiceImpl class", () => {
             })
 
             it("Should apply initialConsent for standard categories", () => {
-                const initialConsent: CategoryPreferences = {
+                const initialConsent: ConsentCategoryPreferences = {
                     advertising: false,
                     analytics: true,
                 };
@@ -78,7 +78,7 @@ describe("ConsentServiceImpl class", () => {
             })
 
             it("Should apply all standard category types", () => {
-                const initialConsent: CategoryPreferences = {
+                const initialConsent: ConsentCategoryPreferences = {
                     advertising: true,
                     analytics: true,
                     functional: true,
@@ -99,7 +99,7 @@ describe("ConsentServiceImpl class", () => {
             })
 
             it("Should not modify original initialConsent object", () => {
-                const initialConsent: CategoryPreferences = {
+                const initialConsent: ConsentCategoryPreferences = {
                     analytics: true,
                 };
                 const consentService = new ConsentServiceImpl('FR', initialConsent);
@@ -116,7 +116,7 @@ describe("ConsentServiceImpl class", () => {
 describe("ConsentService interface", () => {
     describe("updateConsent method", () => {
         it("Should update consent values for standard categories", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 advertising: false,
                 analytics: false,
             };
@@ -132,7 +132,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should add new categories that weren't in initial consent", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
@@ -147,7 +147,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should update multiple categories at once", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 advertising: false,
                 analytics: false,
                 marketing: false,
@@ -170,7 +170,7 @@ describe("ConsentService interface", () => {
             const consentService = new ConsentServiceImpl('FR', { analytics: true });
 
             // TypeScript would catch this, but testing runtime behavior
-            consentService.updateConsent({ invalid_category: true } as CategoryPreferences);
+            consentService.updateConsent({ invalid_category: true } as ConsentCategoryPreferences);
 
             expect(consentService.getConsent().categoryPreferences).toEqual({
                 analytics: true,
@@ -188,7 +188,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return false in strict mode when category is undefined", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 advertising: true,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
@@ -198,7 +198,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return false when category is explicitly false", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: false,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
@@ -208,7 +208,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return true when all required categories are true", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
                 advertising: true,
             };
@@ -219,7 +219,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return false when any required category is false", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
                 advertising: false,
             };
@@ -230,7 +230,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return false in strict mode when destination categories are empty or undefined", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
@@ -249,7 +249,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return true in relaxed mode when category is undefined", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 advertising: true,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
@@ -259,7 +259,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return false in relaxed mode when category is explicitly false", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: false,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
@@ -269,7 +269,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return true in relaxed mode when destination categories are empty or undefined", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: false,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
@@ -280,7 +280,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should return true in relaxed mode when some categories are true and others undefined", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
@@ -292,7 +292,7 @@ describe("ConsentService interface", () => {
 
     describe("getConsent method", () => {
         it("Should return the current consent object with country", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
                 advertising: false,
             };
@@ -309,7 +309,7 @@ describe("ConsentService interface", () => {
         })
 
         it("Should reflect updates made via updateConsent", () => {
-            const initialConsent: CategoryPreferences = {
+            const initialConsent: ConsentCategoryPreferences = {
                 analytics: false,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);

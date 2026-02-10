@@ -1,4 +1,4 @@
-import { CategoryPreferences } from "../../domain/consent";
+import { ConsentCategoryPreferences } from "../../domain/consent";
 
 /**
  * Google Consent Mode v2 consent signals.
@@ -58,8 +58,8 @@ function toBoolean(value: 'granted' | 'denied' | boolean | undefined): boolean |
  * }));
  * ```
  */
-export function fromGoogleConsentV2(googleConsent: GoogleConsentV2): CategoryPreferences {
-    const preferences: CategoryPreferences = {};
+export function fromGoogleConsentV2(googleConsent: GoogleConsentV2): ConsentCategoryPreferences {
+    const preferences: ConsentCategoryPreferences = {};
 
     const adStorage = toBoolean(googleConsent.ad_storage);
     const adUserData = toBoolean(googleConsent.ad_user_data);

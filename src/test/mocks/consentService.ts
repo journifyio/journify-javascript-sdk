@@ -1,4 +1,4 @@
-import { Consent, ConsentService, CategoryPreferences } from "../../lib/domain/consent";
+import { Consent, ConsentService, ConsentCategoryPreferences } from "../../lib/domain/consent";
 
 export class ConsentServiceMock implements ConsentService {
     public funcs: ConsentServiceMockFuncs;
@@ -8,7 +8,7 @@ export class ConsentServiceMock implements ConsentService {
         this.funcs = funcs || {};
     }
 
-    updateConsent(categoryPreferences: CategoryPreferences): void {
+    updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
         if (this.funcs?.updateConsent) {
             this.funcs.updateConsent(categoryPreferences);
         }

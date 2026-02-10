@@ -39,7 +39,7 @@ import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag"
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
-import {ConsentServiceImpl, ConsentService, CategoryPreferences} from "../domain/consent";
+import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences} from "../domain/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -230,7 +230,7 @@ export class Loader {
     UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 
-  public updateConsent(categoryPreferences: CategoryPreferences): void {
+  public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
     if (this.consentService) {
       this.consentService.updateConsent(categoryPreferences);
       this.reinitializePlugins();
