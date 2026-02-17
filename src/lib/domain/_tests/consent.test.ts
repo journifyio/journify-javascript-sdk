@@ -7,46 +7,46 @@ describe("ConsentServiceImpl class", () => {
                 const consentService = new ConsentServiceImpl('FR');
 
                 // In strict mode with no config, hasConsent should return false
-                expect(consentService.hasConsent(['analytics'])).toBe(false);
+                expect(consentService.hasConsent('analytics')).toBe(false);
             })
 
             it("Should use 'relaxed' mode for non-GDPR countries (e.g., 'US', 'SA')", () => {
                 const consentService = new ConsentServiceImpl('SA');
 
                 // In relaxed mode with no config, hasConsent should return true
-                expect(consentService.hasConsent(['analytics'])).toBe(true);
+                expect(consentService.hasConsent('analytics')).toBe(true);
             })
 
             it("Should use 'relaxed' mode for empty/undefined country", () => {
                 let consentService = new ConsentServiceImpl('');
-                expect(consentService.hasConsent(['analytics'])).toBe(true);
+                expect(consentService.hasConsent('analytics')).toBe(true);
 
                 consentService = new ConsentServiceImpl(undefined);
-                expect(consentService.hasConsent(['analytics'])).toBe(true);
+                expect(consentService.hasConsent('analytics')).toBe(true);
             })
 
             it("Should normalize lowercase country codes", () => {
                 // GDPR countries in lowercase should still trigger strict mode
                 let consentService = new ConsentServiceImpl('fr');
-                expect(consentService.hasConsent(['analytics'])).toBe(false);
+                expect(consentService.hasConsent('analytics')).toBe(false);
 
                 consentService = new ConsentServiceImpl('de');
-                expect(consentService.hasConsent(['analytics'])).toBe(false);
+                expect(consentService.hasConsent('analytics')).toBe(false);
 
                 // Non-GDPR in lowercase should trigger relaxed mode
                 consentService = new ConsentServiceImpl('us');
-                expect(consentService.hasConsent(['analytics'])).toBe(true);
+                expect(consentService.hasConsent('analytics')).toBe(true);
             })
 
             it("Should trim whitespace from country codes", () => {
                 let consentService = new ConsentServiceImpl(' FR ');
-                expect(consentService.hasConsent(['analytics'])).toBe(false);
+                expect(consentService.hasConsent('analytics')).toBe(false);
 
                 consentService = new ConsentServiceImpl('  DE');
-                expect(consentService.hasConsent(['analytics'])).toBe(false);
+                expect(consentService.hasConsent('analytics')).toBe(false);
 
                 consentService = new ConsentServiceImpl('US  ');
-                expect(consentService.hasConsent(['analytics'])).toBe(true);
+                expect(consentService.hasConsent('analytics')).toBe(true);
             })
 
         })
@@ -183,7 +183,7 @@ describe("ConsentService interface", () => {
         it("Should return false in strict mode when no categories configured", () => {
             const consentService = new ConsentServiceImpl('FR');
 
-            const result = consentService.hasConsent(['analytics']);
+            const result = consentService.hasConsent('analytics');
             expect(result).toBe(false);
         })
 
@@ -193,7 +193,7 @@ describe("ConsentService interface", () => {
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            const result = consentService.hasConsent(['analytics']);
+            const result = consentService.hasConsent('analytics');
             expect(result).toBe(false);
         })
 
@@ -203,39 +203,27 @@ describe("ConsentService interface", () => {
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            const result = consentService.hasConsent(['analytics']);
+            const result = consentService.hasConsent('analytics');
             expect(result).toBe(false);
         })
 
-        it("Should return true when all required categories are true", () => {
+        it("Should return true when category is true", () => {
             const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
-                advertising: true,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            const result = consentService.hasConsent(['analytics', 'advertising']);
+            const result = consentService.hasConsent('analytics');
             expect(result).toBe(true);
         })
 
-        it("Should return false when any required category is false", () => {
-            const initialConsent: ConsentCategoryPreferences = {
-                analytics: true,
-                advertising: false,
-            };
-            const consentService = new ConsentServiceImpl('FR', initialConsent);
-
-            const result = consentService.hasConsent(['analytics', 'advertising']);
-            expect(result).toBe(false);
-        })
-
-        it("Should return false in strict mode when destination categories are empty or undefined", () => {
+        it("Should return false in strict mode when destination category is empty or undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
                 analytics: true,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            expect(consentService.hasConsent([])).toBe(false);
+            expect(consentService.hasConsent('')).toBe(false);
             expect(consentService.hasConsent(undefined)).toBe(false);
             expect(consentService.hasConsent(null)).toBe(false);
         })
@@ -244,7 +232,7 @@ describe("ConsentService interface", () => {
         it("Should return true in relaxed mode when no categories configured", () => {
             const consentService = new ConsentServiceImpl('US');
 
-            const result = consentService.hasConsent(['analytics']);
+            const result = consentService.hasConsent('analytics');
             expect(result).toBe(true);
         })
 
@@ -254,7 +242,7 @@ describe("ConsentService interface", () => {
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
 
-            const result = consentService.hasConsent(['analytics']);
+            const result = consentService.hasConsent('analytics');
             expect(result).toBe(true);
         })
 
@@ -264,29 +252,19 @@ describe("ConsentService interface", () => {
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
 
-            const result = consentService.hasConsent(['analytics']);
+            const result = consentService.hasConsent('analytics');
             expect(result).toBe(false);
         })
 
-        it("Should return true in relaxed mode when destination categories are empty or undefined", () => {
+        it("Should return true in relaxed mode when destination category is empty or undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
                 analytics: false,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
 
-            expect(consentService.hasConsent([])).toBe(true);
+            expect(consentService.hasConsent('')).toBe(true);
             expect(consentService.hasConsent(undefined)).toBe(true);
             expect(consentService.hasConsent(null)).toBe(true);
-        })
-
-        it("Should return true in relaxed mode when some categories are true and others undefined", () => {
-            const initialConsent: ConsentCategoryPreferences = {
-                analytics: true,
-            };
-            const consentService = new ConsentServiceImpl('US', initialConsent);
-
-            const result = consentService.hasConsent(['analytics', 'advertising']);
-            expect(result).toBe(true);
         })
     })
 

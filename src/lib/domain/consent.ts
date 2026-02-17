@@ -32,7 +32,7 @@ export type ConsentState = {
 
 export interface ConsentService {
     updateConsent(categoryPreferences: ConsentCategoryPreferences): void;
-    hasConsent(categories: string[]): boolean;
+    hasConsent(destinationCategory: string): boolean;
     getConsent(): Consent;
 }
 
@@ -70,36 +70,23 @@ export class ConsentServiceImpl implements ConsentService {
         return this.consentState.consent;
     }
 
-    // Method that checks if consent is given for the specified categories
-    public hasConsent(destination_categories: string[]): boolean {
+    // Method that checks if consent is given for the specified category
+    public hasConsent(destinationCategory: string): boolean {
         const consentMode = this.consentState.consentMode;
         const categoryPreferences = this.consentState.consent.categoryPreferences;
 
-        // If destination has no categories configured or consent preferences are undefined or empty
-        if (!destination_categories || destination_categories.length === 0
-            || !categoryPreferences || Object.keys(categoryPreferences).length === 0) {
+        // If destination has no category configured or consent preferences are undefined or empty
+        if (!destinationCategory || !categoryPreferences || Object.keys(categoryPreferences).length === 0) {
             return consentMode === RELAXED_MODE; // Assumes consent in relaxed mode, denies in strict mode
         }
 
-        // Check each required consent category
-        for (const category of destination_categories) {
-            const categoryConsent = categoryPreferences[category];
+        const isCategoryConsentGranted = categoryPreferences[destinationCategory];
 
-            // If category consent is undefined
-            if (categoryConsent === undefined) {
-                if (consentMode === STRICT_MODE) {
-                    return false; // Strict mode requires explicit consent
-                }
-                // Relaxed mode assumes consent when undefined
-                continue;
-            }
-
-            // If category consent is explicitly false
-            if (categoryConsent === false) {
-                return false;
-            }
+        // If category has no explicit consent decision
+        if (isCategoryConsentGranted === undefined) {
+            return consentMode !== STRICT_MODE; // Strict mode requires explicit consent, relaxed mode assumes consent
         }
 
-        return true;
+        return isCategoryConsentGranted;
     }
 }

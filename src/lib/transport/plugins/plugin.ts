@@ -64,7 +64,7 @@ export interface WriteKeySettings {
 export interface Sync {
   id: string;
   destination_app: string;
-  destination_consent_categories?: string[];
+  destination_consent_category?: string;
   settings: SyncSetting[];
   field_mappings: FieldMapping[];
   event_mappings: EventMapping[];

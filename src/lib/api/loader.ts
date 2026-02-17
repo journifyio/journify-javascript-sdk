@@ -117,25 +117,16 @@ export class Loader {
   }
 
   private initSdk() {
-    const sharedDeps = this.createSharedPluginDependencies();
-
     this.plugins = {
       journifyio: new JournifyioPlugin(this.sdkSettings, this.sentryWrapper),
     };
 
-    for (const sync of this.writeKeySettings.syncs) {
-      if (this.consentService.hasConsent(sync.destination_consent_categories)) {
-        const plugin = this.createPlugin(sync, sharedDeps);
-        if (plugin) {
-          this.plugins[sync.id] = plugin;
-        }
-      }
-    }
+    this.initializePlugins();
 
     const pQueue = new OperationsPriorityQueueImpl<Context>(
         DEFAULT_MAX_QUEUE_ATTEMPTS
     );
-    const browser = sharedDeps.browser;
+    const browser = new BrowserImpl();
     const sessionStore = new SessionStore(browser);
     const externalIdsSessionCache = new ExternalIdsSessionCacheImpl(
         browser,
@@ -233,7 +224,7 @@ export class Loader {
   public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
     if (this.consentService) {
       this.consentService.updateConsent(categoryPreferences);
-      this.reinitializePlugins();
+      this.initializePlugins();
     }
   }
 
@@ -280,11 +271,11 @@ export class Loader {
     };
   }
 
-  private reinitializePlugins(): void {
+  private initializePlugins(): void {
     const sharedDeps = this.createSharedPluginDependencies();
 
     for (const sync of this.writeKeySettings.syncs) {
-      const hasConsent = this.consentService.hasConsent(sync.destination_consent_categories);
+      const hasConsent = this.consentService.hasConsent(sync.destination_consent_category);
       const pluginExists = !!this.plugins[sync.id];
 
       if (hasConsent && !pluginExists) {
