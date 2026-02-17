@@ -76,7 +76,7 @@ export class ConsentServiceImpl implements ConsentService {
         const categoryPreferences = this.consentState.consent.categoryPreferences;
 
         // If destination has no category configured or consent preferences are undefined or empty
-        if (!destinationCategory || !categoryPreferences || Object.keys(categoryPreferences).length === 0) {
+        if (!destinationCategory || Object.keys(categoryPreferences || {}).length === 0) {
             return consentMode === RELAXED_MODE; // Assumes consent in relaxed mode, denies in strict mode
         }
 
