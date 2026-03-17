@@ -142,7 +142,10 @@ export class EventFactoryImpl implements EventFactory {
       url: this.browser.canonicalUrl(),
     };
 
-    ctx.consent = this.consentService.getConsent();
+    const consent = this.consentService.getConsent();
+    if (consent?.categoryPreferences && Object.keys(consent.categoryPreferences).length > 0) {
+      ctx.consent = consent;
+    }
 
     // TODO: Refactor StoreGroup to choose which storage you want to use
     const campaign = this.browser.utmCampaign(
