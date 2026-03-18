@@ -75,13 +75,7 @@ jobs:
           headers: |-
             content-type: 'text/javascript; charset=utf-8'
 
-      - name: Publish to npm
-        uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          access: public
-
-  
+      - run: npm publish --access public
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
