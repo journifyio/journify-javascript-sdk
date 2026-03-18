@@ -123,18 +123,35 @@ function matchFilters(event: object, filters: EventFilter[]): boolean {
     return true;
 }
 
+function coerceToType(value: string, target: unknown): unknown {
+    if (target === null || target === undefined) {
+        return value;
+    }
+    switch (typeof target) {
+        case 'number': {
+            const num = Number(value);
+            return isNaN(num) ? value : num;
+        }
+        case 'boolean':
+            return value === 'true' ? true : value === 'false' ? false : value;
+        default:
+            return value;
+    }
+}
+
 function matchFilter(event: object, filter: EventFilter): boolean {
     const eventValue = getValue(event, filter.field);
+    const coercedFilterValue = coerceToType(filter.value, eventValue);
     switch (filter.operator) {
         case FilterOperator.EQUALS:
-            if (filter.value === eventValue) {
+            if (coercedFilterValue === eventValue) {
                 return true;
             }
 
             return filter.value?.includes(eventValue);
 
         case FilterOperator.NOT_EQUALS:
-            return filter.value !== eventValue;
+            return coercedFilterValue !== eventValue;
 
         case FilterOperator.CONTAINS:
             return eventValue?.includes(filter.value);
@@ -149,16 +166,16 @@ function matchFilter(event: object, filter: EventFilter): boolean {
             return eventValue?.endsWith(filter.value);
 
         case FilterOperator.GREATER_THAN:
-            return eventValue > filter.value;
+            return eventValue > coercedFilterValue;
 
         case FilterOperator.GREATER_THAN_OR_EQ:
-            return eventValue >= filter.value;
+            return eventValue >= coercedFilterValue;
 
         case FilterOperator.LESS_THAN:
-            return eventValue < filter.value;
+            return eventValue < coercedFilterValue;
 
         case FilterOperator.LESS_THAN_OR_EQ:
-            return eventValue <= filter.value;
+            return eventValue <= coercedFilterValue;
     }
 
     return false;
