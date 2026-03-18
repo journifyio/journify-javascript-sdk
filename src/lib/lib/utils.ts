@@ -7,7 +7,7 @@ export const parseNumberToString = (value: number | string): string => {
 
 export function normalizePhone(
   phoneNumber: string,
-  countryCode: string
+  countryCode: string,
 ): string {
   // handle empty and sha256 values
   if (!phoneNumber || phoneNumber?.length == 64) {
@@ -68,4 +68,21 @@ export function cleanTraits(obj: unknown): Record<string, unknown> {
   }
 
   return cleanedObj;
+}
+
+// Coerces a string value to the type of the target value (number, boolean, or string)
+export function coerceToType(value: string, target: unknown): unknown {
+  if (target === null || target === undefined) {
+    return value;
+  }
+  switch (typeof target) {
+    case "number": {
+      const num = Number(value);
+      return isNaN(num) ? value : num;
+    }
+    case "boolean":
+      return value === "true" ? true : value === "false" ? false : value;
+    default:
+      return value;
+  }
 }
