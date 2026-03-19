@@ -9,7 +9,10 @@
   "files": [
     "dist/"
   ],
-  "repository": "git@github.com:journifyio/journify-javascript-sdk.git",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/journifyio/journify-javascript-sdk.git"
+  },
   "homepage": "https://github.com/journifyio/journify-javascript-sdk",
   "author": "Journifyio",
   "license": "MIT",
