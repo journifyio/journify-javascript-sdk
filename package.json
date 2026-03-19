@@ -1,6 +1,6 @@
 {
   "name": "@journifyio/js-sdk",
-  "version": "0.0.207",
+  "version": "0.0.208",
   "description": "Journify SDK in JavaScript",
   "main": "dist/lib/es5/index.js",
   "types": "dist/lib/es5/index.d.ts",
@@ -9,8 +9,11 @@
   "files": [
     "dist/"
   ],
-  "repository": "git@github.com:journifyio/javascript-sdk.git",
-  "homepage": "https://github.com/journifyio/javascript-sdk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/journifyio/journify-javascript-sdk.git"
+  },
+  "homepage": "https://github.com/journifyio/journify-javascript-sdk",
   "author": "Journifyio",
   "license": "MIT",
   "keywords": [
