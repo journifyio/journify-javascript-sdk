@@ -76,7 +76,7 @@ jobs:
           headers: |-
             content-type: 'text/javascript; charset=utf-8'
 
-      - run: npm publish --access public
+      - run: npm publish --access public --provenance
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
