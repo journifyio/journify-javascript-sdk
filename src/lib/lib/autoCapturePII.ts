@@ -169,7 +169,7 @@ export class AutoCapturePII {
     return null;
   }
   // Returns an array with the value and the label of the selected option
-  // ex <option value="1" label="male">male</option>
+  // example <option value="1" label="male">male</option>
   private getSelectValues(e: HTMLSelectElement): string[] {
     if (e?.selectedIndex === -1) return [];
     return [e?.value, e?.options[e?.selectedIndex]?.label];
