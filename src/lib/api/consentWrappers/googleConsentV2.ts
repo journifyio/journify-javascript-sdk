@@ -1,4 +1,4 @@
-import { ConsentCategoryPreferences } from "../../domain/consent";
+import { ConsentCategoryPreferences, ConsentPreference } from "../../domain/consent";
 
 /**
  * Google Consent Mode v2 consent signals.
@@ -23,16 +23,14 @@ export type GoogleConsentV2 = {
 };
 
 /**
- * Converts a Google Consent Mode v2 consent value to a boolean.
+ * Converts a Google Consent Mode v2 consent value to a ConsentPreference.
  */
-function toBoolean(value: 'granted' | 'denied' | boolean | undefined): boolean | undefined {
+function toConsentPreference(value: 'granted' | 'denied' | boolean | undefined): ConsentPreference | undefined {
     if (value === undefined) {
         return undefined;
     }
-    if (typeof value === 'boolean') {
-        return value;
-    }
-    return value === 'granted';
+    const granted = typeof value === 'boolean' ? value : value === 'granted';
+    return granted ? ConsentPreference.GRANTED : ConsentPreference.DENIED;
 }
 
 /**
@@ -46,7 +44,7 @@ function toBoolean(value: 'granted' | 'denied' | boolean | undefined): boolean |
  * - personalization: personalization_storage
  *
  * @example
- * ```typescript
+ * ```TypeScript
  * import { fromGoogleConsentV2 } from 'journify';
  *
  * journify.updateConsent(fromGoogleConsentV2({
@@ -61,16 +59,19 @@ function toBoolean(value: 'granted' | 'denied' | boolean | undefined): boolean |
 export function fromGoogleConsentV2(googleConsent: GoogleConsentV2): ConsentCategoryPreferences {
     const preferences: ConsentCategoryPreferences = {};
 
-    const adStorage = toBoolean(googleConsent.ad_storage);
-    const adUserData = toBoolean(googleConsent.ad_user_data);
-    const adPersonalization = toBoolean(googleConsent.ad_personalization);
-    const analyticsStorage = toBoolean(googleConsent.analytics_storage);
-    const functionalityStorage = toBoolean(googleConsent.functionality_storage);
-    const personalizationStorage = toBoolean(googleConsent.personalization_storage);
+    const adStorage = toConsentPreference(googleConsent.ad_storage);
+    const adUserData = toConsentPreference(googleConsent.ad_user_data);
+    const adPersonalization = toConsentPreference(googleConsent.ad_personalization);
+    const analyticsStorage = toConsentPreference(googleConsent.analytics_storage);
+    const functionalityStorage = toConsentPreference(googleConsent.functionality_storage);
+    const personalizationStorage = toConsentPreference(googleConsent.personalization_storage);
 
     // Advertising requires all three: ad_storage, ad_user_data, and ad_personalization
     if (adStorage !== undefined && adUserData !== undefined && adPersonalization !== undefined) {
-        preferences.advertising = adStorage && adUserData && adPersonalization;
+        const allGranted = adStorage === ConsentPreference.GRANTED
+            && adUserData === ConsentPreference.GRANTED
+            && adPersonalization === ConsentPreference.GRANTED;
+        preferences.advertising = allGranted ? ConsentPreference.GRANTED : ConsentPreference.DENIED;
     }
 
     // Analytics maps directly to analytics_storage

@@ -1,4 +1,4 @@
-import {ConsentServiceImpl, ConsentCategoryPreferences} from "../consent";
+import {ConsentServiceImpl, ConsentCategoryPreferences, ConsentPreference} from "../consent";
 
 describe("ConsentServiceImpl class", () => {
     describe("constructor", () => {
@@ -63,8 +63,8 @@ describe("ConsentServiceImpl class", () => {
 
             it("Should apply initialConsent for standard categories", () => {
                 const initialConsent: ConsentCategoryPreferences = {
-                    advertising: false,
-                    analytics: true,
+                    advertising: ConsentPreference.DENIED,
+                    analytics: ConsentPreference.GRANTED,
                 };
                 const consentService = new ConsentServiceImpl('FR', initialConsent);
 
@@ -72,42 +72,42 @@ describe("ConsentServiceImpl class", () => {
 
                 expect(consent).toBeDefined();
                 expect(consent.categoryPreferences).toEqual({
-                    advertising: false,
-                    analytics: true,
+                    advertising: ConsentPreference.DENIED,
+                    analytics: ConsentPreference.GRANTED,
                 });
             })
 
             it("Should apply all standard category types", () => {
                 const initialConsent: ConsentCategoryPreferences = {
-                    advertising: true,
-                    analytics: true,
-                    functional: true,
-                    marketing: false,
-                    personalization: true,
+                    advertising: ConsentPreference.GRANTED,
+                    analytics: ConsentPreference.GRANTED,
+                    functional: ConsentPreference.GRANTED,
+                    marketing: ConsentPreference.DENIED,
+                    personalization: ConsentPreference.GRANTED,
                 };
                 const consentService = new ConsentServiceImpl('FR', initialConsent);
 
                 const consent = consentService.getConsent();
 
                 expect(consent.categoryPreferences).toEqual({
-                    advertising: true,
-                    analytics: true,
-                    functional: true,
-                    marketing: false,
-                    personalization: true,
+                    advertising: ConsentPreference.GRANTED,
+                    analytics: ConsentPreference.GRANTED,
+                    functional: ConsentPreference.GRANTED,
+                    marketing: ConsentPreference.DENIED,
+                    personalization: ConsentPreference.GRANTED,
                 });
             })
 
             it("Should not modify original initialConsent object", () => {
                 const initialConsent: ConsentCategoryPreferences = {
-                    analytics: true,
+                    analytics: ConsentPreference.GRANTED,
                 };
                 const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-                consentService.updateConsent({ analytics: false });
+                consentService.updateConsent({ analytics: ConsentPreference.DENIED });
 
-                expect(initialConsent.analytics).toBe(true);
-                expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+                expect(initialConsent.analytics).toBe(ConsentPreference.GRANTED);
+                expect(consentService.getConsent().categoryPreferences.analytics).toBe(ConsentPreference.DENIED);
             })
         })
     })
@@ -117,63 +117,63 @@ describe("ConsentService interface", () => {
     describe("updateConsent method", () => {
         it("Should update consent values for standard categories", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                advertising: false,
-                analytics: false,
+                advertising: ConsentPreference.DENIED,
+                analytics: ConsentPreference.DENIED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            expect(consentService.getConsent().categoryPreferences.advertising).toBe(false);
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+            expect(consentService.getConsent().categoryPreferences.advertising).toBe(ConsentPreference.DENIED);
+            expect(consentService.getConsent().categoryPreferences.analytics).toBe(ConsentPreference.DENIED);
 
-            consentService.updateConsent({ advertising: true });
+            consentService.updateConsent({ advertising: ConsentPreference.GRANTED });
 
-            expect(consentService.getConsent().categoryPreferences.advertising).toBe(true);
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+            expect(consentService.getConsent().categoryPreferences.advertising).toBe(ConsentPreference.GRANTED);
+            expect(consentService.getConsent().categoryPreferences.analytics).toBe(ConsentPreference.DENIED);
         })
 
         it("Should add new categories that weren't in initial consent", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: true,
+                analytics: ConsentPreference.GRANTED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            consentService.updateConsent({ advertising: true, marketing: false });
+            consentService.updateConsent({ advertising: ConsentPreference.GRANTED, marketing: ConsentPreference.DENIED });
 
             expect(consentService.getConsent().categoryPreferences).toEqual({
-                analytics: true,
-                advertising: true,
-                marketing: false,
+                analytics: ConsentPreference.GRANTED,
+                advertising: ConsentPreference.GRANTED,
+                marketing: ConsentPreference.DENIED,
             });
         })
 
         it("Should update multiple categories at once", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                advertising: false,
-                analytics: false,
-                marketing: false,
+                advertising: ConsentPreference.DENIED,
+                analytics: ConsentPreference.DENIED,
+                marketing: ConsentPreference.DENIED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
             consentService.updateConsent({
-                advertising: true,
-                analytics: true,
+                advertising: ConsentPreference.GRANTED,
+                analytics: ConsentPreference.GRANTED,
             });
 
             expect(consentService.getConsent().categoryPreferences).toEqual({
-                advertising: true,
-                analytics: true,
-                marketing: false,
+                advertising: ConsentPreference.GRANTED,
+                analytics: ConsentPreference.GRANTED,
+                marketing: ConsentPreference.DENIED,
             });
         })
 
         it("Should ignore invalid category names", () => {
-            const consentService = new ConsentServiceImpl('FR', { analytics: true });
+            const consentService = new ConsentServiceImpl('FR', { analytics: ConsentPreference.GRANTED });
 
             // TypeScript would catch this, but testing runtime behavior
-            consentService.updateConsent({ invalid_category: true } as ConsentCategoryPreferences);
+            consentService.updateConsent({ invalid_category: ConsentPreference.GRANTED } as ConsentCategoryPreferences);
 
             expect(consentService.getConsent().categoryPreferences).toEqual({
-                analytics: true,
+                analytics: ConsentPreference.GRANTED,
             });
         })
     })
@@ -189,7 +189,7 @@ describe("ConsentService interface", () => {
 
         it("Should return false in strict mode when category is undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                advertising: true,
+                advertising: ConsentPreference.GRANTED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
@@ -197,9 +197,9 @@ describe("ConsentService interface", () => {
             expect(result).toBe(false);
         })
 
-        it("Should return false when category is explicitly false", () => {
+        it("Should return false when category is explicitly DENIED", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: false,
+                analytics: ConsentPreference.DENIED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
@@ -207,9 +207,9 @@ describe("ConsentService interface", () => {
             expect(result).toBe(false);
         })
 
-        it("Should return true when category is true", () => {
+        it("Should return true when category is GRANTED", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: true,
+                analytics: ConsentPreference.GRANTED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
@@ -217,9 +217,29 @@ describe("ConsentService interface", () => {
             expect(result).toBe(true);
         })
 
+        it("Should return false in strict mode when category is UNSPECIFIED", () => {
+            const initialConsent: ConsentCategoryPreferences = {
+                analytics: ConsentPreference.UNSPECIFIED,
+            };
+            const consentService = new ConsentServiceImpl('FR', initialConsent);
+
+            const result = consentService.hasConsent('analytics');
+            expect(result).toBe(false);
+        })
+
+        it("Should return true in relaxed mode when category is UNSPECIFIED", () => {
+            const initialConsent: ConsentCategoryPreferences = {
+                analytics: ConsentPreference.UNSPECIFIED,
+            };
+            const consentService = new ConsentServiceImpl('US', initialConsent);
+
+            const result = consentService.hasConsent('analytics');
+            expect(result).toBe(true);
+        })
+
         it("Should return false in strict mode when destination category is empty or undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: true,
+                analytics: ConsentPreference.GRANTED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
@@ -238,7 +258,7 @@ describe("ConsentService interface", () => {
 
         it("Should return true in relaxed mode when category is undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                advertising: true,
+                advertising: ConsentPreference.GRANTED,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
 
@@ -246,9 +266,9 @@ describe("ConsentService interface", () => {
             expect(result).toBe(true);
         })
 
-        it("Should return false in relaxed mode when category is explicitly false", () => {
+        it("Should return false in relaxed mode when category is explicitly DENIED", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: false,
+                analytics: ConsentPreference.DENIED,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
 
@@ -258,7 +278,7 @@ describe("ConsentService interface", () => {
 
         it("Should return true in relaxed mode when destination category is empty or undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: false,
+                analytics: ConsentPreference.DENIED,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
 
@@ -271,8 +291,8 @@ describe("ConsentService interface", () => {
     describe("getConsent method", () => {
         it("Should return the current consent object with country", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: true,
-                advertising: false,
+                analytics: ConsentPreference.GRANTED,
+                advertising: ConsentPreference.DENIED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
@@ -280,23 +300,23 @@ describe("ConsentService interface", () => {
 
             expect(consent).toEqual({
                 categoryPreferences: {
-                    analytics: true,
-                    advertising: false,
+                    analytics: ConsentPreference.GRANTED,
+                    advertising: ConsentPreference.DENIED,
                 },
             });
         })
 
         it("Should reflect updates made via updateConsent", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: false,
+                analytics: ConsentPreference.DENIED,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(false);
+            expect(consentService.getConsent().categoryPreferences.analytics).toBe(ConsentPreference.DENIED);
 
-            consentService.updateConsent({ analytics: true });
+            consentService.updateConsent({ analytics: ConsentPreference.GRANTED });
 
-            expect(consentService.getConsent().categoryPreferences.analytics).toBe(true);
+            expect(consentService.getConsent().categoryPreferences.analytics).toBe(ConsentPreference.GRANTED);
         })
     })
 })

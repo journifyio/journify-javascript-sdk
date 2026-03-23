@@ -17,8 +17,14 @@ export const CONSENT_CATEGORIES = ['advertising', 'analytics', 'functional', 'ma
 
 export type ConsentMode = typeof STRICT_MODE | typeof RELAXED_MODE;
 
+export enum ConsentPreference {
+    UNSPECIFIED = 0,
+    GRANTED = 1,
+    DENIED = 2,
+}
+
 export type ConsentCategoryPreferences = {
-    [K in typeof CONSENT_CATEGORIES[number]]?: boolean;
+    [K in typeof CONSENT_CATEGORIES[number]]?: ConsentPreference;
 };
 
 export type Consent = {
@@ -59,9 +65,9 @@ export class ConsentServiceImpl implements ConsentService {
     }
 
     public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
-        for (const [category, granted] of Object.entries(categoryPreferences)) {
+        for (const [category, preference] of Object.entries(categoryPreferences)) {
             if (CONSENT_CATEGORIES.includes(category as typeof CONSENT_CATEGORIES[number])) {
-                this.consentState.consent.categoryPreferences[category] = granted;
+                this.consentState.consent.categoryPreferences[category] = preference;
             }
         }
     }
@@ -80,13 +86,13 @@ export class ConsentServiceImpl implements ConsentService {
             return consentMode === RELAXED_MODE; // Assumes consent in relaxed mode, denies in strict mode
         }
 
-        const isCategoryConsentGranted = categoryPreferences[destinationCategory];
+        const preference = categoryPreferences[destinationCategory];
 
         // If category has no explicit consent decision
-        if (isCategoryConsentGranted === undefined) {
+        if (preference === undefined || preference === ConsentPreference.UNSPECIFIED) {
             return consentMode !== STRICT_MODE; // Strict mode requires explicit consent, relaxed mode assumes consent
         }
 
-        return isCategoryConsentGranted;
+        return preference === ConsentPreference.GRANTED;
     }
 }

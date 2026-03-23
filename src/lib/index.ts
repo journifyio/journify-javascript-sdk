@@ -6,7 +6,7 @@ import {ExternalIds} from "./domain/externalId";
 import {SdkSettings, WriteKeySettings} from "./transport/plugins/plugin";
 import {SentryWrapperImpl} from "./lib/sentry";
 import {cleanTraits} from "./lib/utils";
-import {Consent, ConsentCategoryPreferences} from "./domain/consent";
+import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/consent";
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
@@ -52,7 +52,7 @@ async function fetchRemoteWriteKeySettings(
 ): Promise<WriteKeySettings> {
   const maxRetries = 2;
   const settingsUrl = `${cdnHost}/write_keys/${writeKey}.json`;
-  const countryHeader = "x-client-country";
+  const countryHeader = "X-CLIENT-COUNTRY";
 
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -225,4 +225,4 @@ function updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
   }
 }
 
-export { load, identify, track, page, group, updateConsent, SdkSettings, Consent, ConsentCategoryPreferences, fromGoogleConsentV2, GoogleConsentV2 };
+export { load, identify, track, page, group, updateConsent, SdkSettings, Consent, ConsentCategoryPreferences, ConsentPreference, fromGoogleConsentV2, GoogleConsentV2 };

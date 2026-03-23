@@ -144,6 +144,9 @@ describe("EventFactoryImpl class", () => {
             title,
           },
           campaign: campaign,
+          consent: {
+            categoryPreferences: {},
+          },
         },
       };
 
