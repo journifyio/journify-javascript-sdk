@@ -1,5 +1,8 @@
 type DebugPanelState = "success" | "error";
 const DEBUG_PANEL_ID = "journify-debug-panel";
+const DEBUG_PANEL_HIGHLIGHT_ID = "journify-debug-panel-highlight";
+const DEBUG_PANEL_CLOSE_BUTTON_SELECTOR = "[data-debug-panel-close]";
+const DEBUG_PANEL_FINISH_BUTTON_SELECTOR = "[data-debug-panel-finish]";
 
 const SUCCESS_ICON = `
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -40,7 +43,9 @@ function displayDebugPanelIfNeeded(writeKey: string) {
     return;
   }
 
+  const removeHighlight = createPageHighlight();
   const panel = createDebuggingPanel(debugState);
+  wirePanelHighlightCleanup(panel, removeHighlight);
   document.body?.appendChild(panel);
 }
 
@@ -53,11 +58,16 @@ function createDebuggingPanel(
   panel.setAttribute("aria-live", "polite");
   panel.innerHTML = `
     <div style="background:#f1f3f4;border-bottom:1px solid #dadce0;padding:14px 16px 12px;">
-      <div style="display:flex;align-items:center;gap:4px;color:#202124;font-family:Arial,sans-serif;font-size:14px;font-weight:500;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;color:#202124;font-family:Arial,sans-serif;font-size:14px;font-weight:500;">
+        <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+          <span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 auto;">
+            <img src="https://www.journify.io/images/Logomark.svg" alt="Journify logo" width="28" height="29" style="display:block;width:28px;height:29px;" />
+          </span>
+          <span style="font-size:20px;font-weight:bold;">Journify</span>
+        </div>
         <span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 auto;">
-          <img src="https://www.journify.io/images/Logomark.svg" alt="Journify logo" width="28" height="29" style="display:block;width:28px;height:29px;" />
+          <button type="button" data-debug-panel-close style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;background:transparent;color:#5f6368;cursor:pointer;padding:0;font-size:22px;line-height:1;" aria-label="Close debug panel">×</button>
         </span>
-        <span style="font-size:20px;font-weight:bold;">Journify</span>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;padding:16px 22px 10px;color:#202124;font-family:Arial,sans-serif;font-size:14px;line-height:1.4;">
@@ -67,7 +77,7 @@ function createDebuggingPanel(
       <span style="font-weight:bold;">${PANEL_MESSAGE[state]}</span>
     </div>
     <div style="display:flex;justify-content:flex-end;padding:0 16px 16px 16px;">
-      <button type="button" style="margin-right:0;border:0;border-radius:8px;background:#d9267a;color:#ffffff;cursor:pointer;font-family:Arial,sans-serif;font-size:14px;font-weight:700;line-height:20px;padding:7px 20px;min-width:112px;box-shadow:none;" aria-label="Finish debugging session">Finish</button>
+      <button type="button" data-debug-panel-finish style="margin-right:0;border:0;border-radius:8px;background:#d9267a;color:#ffffff;cursor:pointer;font-family:Arial,sans-serif;font-size:14px;font-weight:700;line-height:20px;padding:7px 20px;min-width:112px;box-shadow:none;" aria-label="Finish debugging session">Finish</button>
     </div>
   `;
 
@@ -85,12 +95,74 @@ function createDebuggingPanel(
     overflow: "hidden",
   });
 
-  const finishButton = panel.querySelector("button");
+  const finishButton = panel.querySelector(
+    DEBUG_PANEL_FINISH_BUTTON_SELECTOR
+  );
   finishButton?.addEventListener("click", () => {
     window.close();
   });
 
   return panel;
+}
+
+function createPageHighlight(): () => void {
+  const existingHighlight = document.getElementById(DEBUG_PANEL_HIGHLIGHT_ID);
+  existingHighlight?.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = DEBUG_PANEL_HIGHLIGHT_ID;
+  Object.assign(overlay.style, {
+    position: "fixed",
+    inset: "0",
+    background: "rgba(0,0,0,0.38)",
+    zIndex: "2147483646",
+    pointerEvents: "auto",
+  });
+
+  document.body?.appendChild(overlay);
+
+  let isRemoved = false;
+  return () => {
+    if (isRemoved) {
+      return;
+    }
+
+    isRemoved = true;
+    overlay.remove();
+  };
+}
+
+function wirePanelHighlightCleanup(
+  panel: HTMLDivElement,
+  removeHighlight: () => void
+) {
+  const handleDocumentPointerDown = (event: MouseEvent) => {
+    if (!panel.contains(event.target as Node)) {
+      removeHighlight();
+      detachHighlightCleanup();
+    }
+  };
+  const closeButton = panel.querySelector(
+    DEBUG_PANEL_CLOSE_BUTTON_SELECTOR
+  ) as HTMLButtonElement | null;
+  const handleCloseButtonClick = (event: MouseEvent) => {
+    event.preventDefault();
+    removeHighlight();
+    panel.remove();
+    detachAllCleanup();
+  };
+
+  function detachHighlightCleanup() {
+    document.removeEventListener("pointerdown", handleDocumentPointerDown);
+  }
+
+  function detachAllCleanup() {
+    detachHighlightCleanup();
+    closeButton?.removeEventListener("click", handleCloseButtonClick);
+  }
+
+  document.addEventListener("pointerdown", handleDocumentPointerDown);
+  closeButton?.addEventListener("click", handleCloseButtonClick);
 }
 
 function getDebugPanelState(writeKey: string): DebugPanelState | null {
