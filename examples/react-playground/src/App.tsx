@@ -1,7 +1,7 @@
 import React, { Fragment, ReactElement } from "react";
 import "./App.css";
 
-// @journifyio/js-sdk is linked using npm link (check `start` script on package.json)
+// if @journifyio/js-sdk not found, run `yarn install` on react-playground then `yarn build-watch` on the root
 import * as journify from "@journifyio/js-sdk";
 
 function App() {

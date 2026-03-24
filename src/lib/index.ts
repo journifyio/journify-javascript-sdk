@@ -6,6 +6,7 @@ import { ExternalIds } from "./domain/externalId";
 import { WriteKeySettings, SdkSettings } from "./transport/plugins/plugin";
 import { SentryWrapperImpl } from "./lib/sentry";
 import { cleanTraits } from "./lib/utils";
+import { displayDebugPanelIfNeeded } from "./debug/debuggingPanel";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 
@@ -19,6 +20,7 @@ async function load(sdkSettings: SdkSettings) {
   try {
     const wKeySettings = await fetchWriteKeySettings(sdkSettings);
     sdk = await loader.load(sdkSettings, wKeySettings);
+    displayDebugPanelIfNeeded(sdkSettings?.writeKey);
     callsBeforeLoad.forEach((call) => call());
   } catch (error) {
     sentryWrapper.captureException(error);
