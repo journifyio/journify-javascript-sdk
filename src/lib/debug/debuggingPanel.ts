@@ -20,7 +20,7 @@ const ERROR_ICON = `
 `;
 
 const PANEL_MESSAGE: Record<DebugPanelState, string> = {
-  success: "Journify source is successfully connected",
+  success: "Journify source is successfully connected.",
   error: "Your website is connected with a different Journify source. Please make sure you are using the right Production key from the source page.",
 };
 
