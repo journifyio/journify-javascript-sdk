@@ -1,4 +1,5 @@
 type DebugPanelState = "success" | "error";
+
 const DEBUG_PANEL_ID = "journify-debug-panel";
 const DEBUG_PANEL_HIGHLIGHT_ID = "journify-debug-panel-highlight";
 const DEBUG_PANEL_CLOSE_BUTTON_SELECTOR = "[data-debug-panel-close]";
@@ -30,11 +31,8 @@ const PANEL_ICON: Record<DebugPanelState, string> = {
 };
 
 function displayDebugPanelIfNeeded(writeKey: string) {
-  if (
-      typeof window === "undefined" ||
-      typeof document === "undefined" ||
-      document.getElementById(DEBUG_PANEL_ID)
-  ) {
+  // if the panel already displayed, do not display anything
+  if (document.getElementById(DEBUG_PANEL_ID)) {
     return;
   }
 
@@ -43,9 +41,9 @@ function displayDebugPanelIfNeeded(writeKey: string) {
     return;
   }
 
-  const removeHighlight = createPageHighlight();
+  const pageHighlight = createPageHighlight();
   const panel = createDebuggingPanel(debugState);
-  wirePanelHighlightCleanup(panel, removeHighlight);
+  wirePanelHighlightCleanup(panel, pageHighlight);
   document.body?.appendChild(panel);
 }
 
@@ -105,7 +103,7 @@ function createDebuggingPanel(
   return panel;
 }
 
-function createPageHighlight(): () => void {
+function createPageHighlight(): HTMLDivElement {
   const existingHighlight = document.getElementById(DEBUG_PANEL_HIGHLIGHT_ID);
   existingHighlight?.remove();
 
@@ -120,25 +118,16 @@ function createPageHighlight(): () => void {
   });
 
   document.body?.appendChild(overlay);
-
-  let isRemoved = false;
-  return () => {
-    if (isRemoved) {
-      return;
-    }
-
-    isRemoved = true;
-    overlay.remove();
-  };
+  return overlay
 }
 
 function wirePanelHighlightCleanup(
   panel: HTMLDivElement,
-  removeHighlight: () => void
+  pageHighlight: HTMLDivElement,
 ) {
   const handleDocumentPointerDown = (event: MouseEvent) => {
     if (!panel.contains(event.target as Node)) {
-      removeHighlight();
+      pageHighlight.remove();
       detachHighlightCleanup();
     }
   };
@@ -147,7 +136,7 @@ function wirePanelHighlightCleanup(
   ) as HTMLButtonElement | null;
   const handleCloseButtonClick = (event: MouseEvent) => {
     event.preventDefault();
-    removeHighlight();
+    pageHighlight.remove();
     panel.remove();
     detachAllCleanup();
   };
