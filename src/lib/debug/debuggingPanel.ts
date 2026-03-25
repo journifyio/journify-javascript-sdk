@@ -36,6 +36,7 @@ function displayDebugPanelIfNeeded(writeKey: string) {
     return;
   }
 
+  // get the debugging state (success or error), if there is none, do not display the panel
   const debugState = getDebugPanelState(writeKey);
   if (!debugState) {
     return;
@@ -141,11 +142,11 @@ function wirePanelHighlightCleanup(
     detachAllCleanup();
   };
 
-  function detachHighlightCleanup() {
+  const detachHighlightCleanup = () => {
     document.removeEventListener("pointerdown", handleDocumentPointerDown);
   }
 
-  function detachAllCleanup() {
+  const detachAllCleanup = () => {
     detachHighlightCleanup();
     closeButton?.removeEventListener("click", handleCloseButtonClick);
   }
