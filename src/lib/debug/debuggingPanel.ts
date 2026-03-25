@@ -20,8 +20,8 @@ const ERROR_ICON = `
 `;
 
 const PANEL_MESSAGE: Record<DebugPanelState, string> = {
-  success: "Journify SDK is successfully connected",
-  error: "Journify SDK is connected with a different write key",
+  success: "Journify source is successfully connected",
+  error: "Your website is connected with a different Journify source. Please make sure you are using the right Production key",
 };
 
 const PANEL_ICON: Record<DebugPanelState, string> = {
