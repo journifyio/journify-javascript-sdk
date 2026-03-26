@@ -36,6 +36,14 @@ function displayDebugPanelIfNeeded(writeKey: string) {
     return;
   }
 
+  const debugParam = new URLSearchParams(window.location.search).get(
+      "journify_debug"
+  );
+
+  if (debugParam) {
+    window.opener.postMessage({ writeKey: writeKey, type: 'DEBUG_SOURCE_WRITE_KEY' }, '*');
+  }
+
   // get the debugging state (success or error), if there is none, do not display the panel
   const debugState = getDebugPanelState(writeKey);
   if (!debugState) {

@@ -1,6 +1,6 @@
 {
   "name": "@journifyio/js-sdk",
-  "version": "0.0.209",
+  "version": "0.0.211",
   "description": "Journify SDK in JavaScript",
   "main": "dist/lib/es5/index.js",
   "types": "dist/lib/es5/index.d.ts",
