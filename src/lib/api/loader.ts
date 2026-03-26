@@ -242,11 +242,19 @@ function isTestingWriteKey(writeKey: string): boolean {
 }
 
 export function getProductionWriteKey(writeKey: string): string {
-  if (isTestingWriteKey(writeKey)) {
-    return writeKey?.replace(WRITE_KEY_TEST_PREFIX, WRITE_KEY_PROD_PREFIX);
+  if (!isTestingWriteKey(writeKey)) {
+    return writeKey;
   }
 
-  return writeKey;
+  return writeKey?.replace(WRITE_KEY_TEST_PREFIX, WRITE_KEY_PROD_PREFIX);
+}
+
+export function getTestingKey(writeKey: string): string {
+  if (isTestingWriteKey(writeKey)) {
+    return writeKey;
+  }
+
+  return writeKey.replace(WRITE_KEY_PROD_PREFIX, WRITE_KEY_TEST_PREFIX);
 }
 
 const DEFAULT_MAX_QUEUE_ATTEMPTS = 2;

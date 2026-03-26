@@ -1,12 +1,11 @@
-import { getProductionWriteKey, Loader } from "./api/loader";
+import {getProductionWriteKey, getTestingKey, Loader} from "./api/loader";
 import { Sdk } from "./api/sdk";
 import { Traits } from "./domain/traits";
 import { Context } from "./transport/context";
 import { ExternalIds } from "./domain/externalId";
 import { WriteKeySettings, SdkSettings } from "./transport/plugins/plugin";
-import { SentryWrapperImpl } from "./lib/sentry";
+import {SentryWrapper, SentryWrapperImpl} from "./lib/sentry";
 import { cleanTraits } from "./lib/utils";
-import { displayDebugPanelIfNeeded } from "./debug/debuggingPanel";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 
@@ -20,7 +19,7 @@ async function load(sdkSettings: SdkSettings) {
   try {
     const wKeySettings = await fetchWriteKeySettings(sdkSettings);
     sdk = await loader.load(sdkSettings, wKeySettings);
-    displayDebugPanelIfNeeded(sdkSettings?.writeKey);
+    await sendDebugEventIfRequested(sentryWrapper, sdkSettings);
     callsBeforeLoad.forEach((call) => call());
   } catch (error) {
     sentryWrapper.captureException(error);
@@ -206,6 +205,25 @@ function recordCallBeforeLoad(call) {
     sentryWrapper.captureException(error);
     console.error(error);
   }
+}
+
+async function sendDebugEventIfRequested(sentryWrapper: SentryWrapper, sdkSettings: SdkSettings) {
+  const debugId = new URLSearchParams(window.location.search).get(
+      "journify_debug"
+  );
+  if (!debugId) {
+    return
+  }
+
+  const testingSettings = {
+    writeKey: getTestingKey(sdkSettings.writeKey),
+    cdnHost: sdkSettings.cdnHost,
+    apiHost: sdkSettings.apiHost,
+    options: sdkSettings.options,
+  }
+  const testingLoader= new Loader(sentryWrapper);
+  const testingSDK = await testingLoader.load(testingSettings, {syncs: []});
+  await testingSDK.track(`debug_event_${debugId}`, {debugId})
 }
 
 export { load, identify, track, page, group, SdkSettings };
