@@ -6,6 +6,7 @@ import { ExternalIds } from "./domain/externalId";
 import { WriteKeySettings, SdkSettings } from "./transport/plugins/plugin";
 import {SentryWrapper, SentryWrapperImpl} from "./lib/sentry";
 import { cleanTraits } from "./lib/utils";
+import { displayConnectingPanelIfSupported } from "./debug/connectingPanel";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 
@@ -208,6 +209,10 @@ function recordCallBeforeLoad(call) {
 }
 
 async function sendDebugEventIfRequested(sentryWrapper: SentryWrapper, sdkSettings: SdkSettings) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search)
   const debugId = params.get("journify_debug");
   const debugTarget = params.get("journify_debug_target");
@@ -230,6 +235,7 @@ async function sendDebugEventIfRequested(sentryWrapper: SentryWrapper, sdkSettin
       eventSourceWriteKey: getProductionWriteKey(sdkSettings.writeKey),
     })
   }, 1000)
+  displayConnectingPanelIfSupported();
 }
 
 export { load, identify, track, page, group, SdkSettings };
