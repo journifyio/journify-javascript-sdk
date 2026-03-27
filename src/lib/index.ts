@@ -229,7 +229,7 @@ async function sendDebugEventIfRequested(sentryWrapper: SentryWrapper, sdkSettin
       debugId,
       eventSourceWriteKey: getProductionWriteKey(sdkSettings.writeKey),
     })
-  }, 2000)
+  }, 1000)
 }
 
 export { load, identify, track, page, group, SdkSettings };
