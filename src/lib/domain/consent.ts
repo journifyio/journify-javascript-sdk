@@ -18,9 +18,8 @@ export const CONSENT_CATEGORIES = ['advertising', 'analytics', 'functional', 'ma
 export type ConsentMode = typeof STRICT_MODE | typeof RELAXED_MODE;
 
 export enum ConsentPreference {
-    UNSPECIFIED = 0,
-    GRANTED = 1,
-    DENIED = 2,
+    GRANTED = "GRANTED",
+    DENIED = "DENIED",
 }
 
 export type ConsentCategoryPreferences = {
@@ -89,7 +88,7 @@ export class ConsentServiceImpl implements ConsentService {
         const preference = categoryPreferences[destinationCategory];
 
         // If category has no explicit consent decision
-        if (preference === undefined || preference === ConsentPreference.UNSPECIFIED) {
+        if (preference === undefined) {
             return consentMode !== STRICT_MODE; // Strict mode requires explicit consent, relaxed mode assumes consent
         }
 

@@ -217,9 +217,9 @@ describe("ConsentService interface", () => {
             expect(result).toBe(true);
         })
 
-        it("Should return false in strict mode when category is UNSPECIFIED", () => {
+        it("Should return false in strict mode when category preference is undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: ConsentPreference.UNSPECIFIED,
+                analytics: undefined,
             };
             const consentService = new ConsentServiceImpl('FR', initialConsent);
 
@@ -227,9 +227,9 @@ describe("ConsentService interface", () => {
             expect(result).toBe(false);
         })
 
-        it("Should return true in relaxed mode when category is UNSPECIFIED", () => {
+        it("Should return true in relaxed mode when category preference is undefined", () => {
             const initialConsent: ConsentCategoryPreferences = {
-                analytics: ConsentPreference.UNSPECIFIED,
+                analytics: undefined,
             };
             const consentService = new ConsentServiceImpl('US', initialConsent);
 
