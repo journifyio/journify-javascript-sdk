@@ -1,4 +1,4 @@
-import { ConsentCategoryPreferences, ConsentPreference } from "../../domain/consent";
+import {ConsentCategoryPreferences, ConsentPreference} from "../../domain/consent";
 
 /**
  * Google Consent Mode v2 consent signals.
@@ -25,9 +25,9 @@ export type GoogleConsentV2 = {
 /**
  * Converts a Google Consent Mode v2 consent value to a ConsentPreference.
  */
-function toConsentPreference(value: 'granted' | 'denied' | boolean | undefined): ConsentPreference | undefined {
+function toConsentPreference(value: 'granted' | 'denied' | boolean | undefined): ConsentPreference {
     if (value === undefined) {
-        return undefined;
+        return ConsentPreference.UNSPECIFIED;
     }
     const granted = typeof value === 'boolean' ? value : value === 'granted';
     return granted ? ConsentPreference.GRANTED : ConsentPreference.DENIED;
@@ -57,42 +57,26 @@ function toConsentPreference(value: 'granted' | 'denied' | boolean | undefined):
  * ```
  */
 export function fromGoogleConsentV2(googleConsent: GoogleConsentV2): ConsentCategoryPreferences {
-    const preferences: ConsentCategoryPreferences = {};
-
     const adStorage = toConsentPreference(googleConsent.ad_storage);
     const adUserData = toConsentPreference(googleConsent.ad_user_data);
     const adPersonalization = toConsentPreference(googleConsent.ad_personalization);
-    const analyticsStorage = toConsentPreference(googleConsent.analytics_storage);
-    const functionalityStorage = toConsentPreference(googleConsent.functionality_storage);
-    const personalizationStorage = toConsentPreference(googleConsent.personalization_storage);
 
     // Advertising requires all three: ad_storage, ad_user_data, and ad_personalization
-    if (adStorage !== undefined && adUserData !== undefined && adPersonalization !== undefined) {
-        const allGranted = adStorage === ConsentPreference.GRANTED
-            && adUserData === ConsentPreference.GRANTED
-            && adPersonalization === ConsentPreference.GRANTED;
-        preferences.advertising = allGranted ? ConsentPreference.GRANTED : ConsentPreference.DENIED;
-    }
+    const noneProvided = (adStorage === ConsentPreference.UNSPECIFIED
+                                                && adUserData === ConsentPreference.UNSPECIFIED
+                                                && adPersonalization === ConsentPreference.UNSPECIFIED);
+    const allGranted = (adStorage === ConsentPreference.GRANTED
+                                                && adUserData === ConsentPreference.GRANTED
+                                                && adPersonalization === ConsentPreference.GRANTED);
+    const advertising = (noneProvided ? ConsentPreference.UNSPECIFIED
+                                                        : (allGranted ? ConsentPreference.GRANTED
+                                                            : ConsentPreference.DENIED));
 
-    // Analytics maps directly to analytics_storage
-    if (analyticsStorage !== undefined) {
-        preferences.analytics = analyticsStorage;
-    }
-
-    // Functional maps to functionality_storage
-    if (functionalityStorage !== undefined) {
-        preferences.functional = functionalityStorage;
-    }
-
-    // Marketing maps to ad_storage
-    if (adStorage !== undefined) {
-        preferences.marketing = adStorage;
-    }
-
-    // Personalization maps to personalization_storage
-    if (personalizationStorage !== undefined) {
-        preferences.personalization = personalizationStorage;
-    }
-
-    return preferences;
+    return {
+        advertising,
+        analytics: toConsentPreference(googleConsent.analytics_storage),
+        functional: toConsentPreference(googleConsent.functionality_storage),
+        marketing: adStorage,
+        personalization: toConsentPreference(googleConsent.personalization_storage),
+    };
 }

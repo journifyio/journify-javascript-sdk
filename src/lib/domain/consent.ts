@@ -18,12 +18,13 @@ export const CONSENT_CATEGORIES = ['advertising', 'analytics', 'functional', 'ma
 export type ConsentMode = typeof STRICT_MODE | typeof RELAXED_MODE;
 
 export enum ConsentPreference {
+    UNSPECIFIED = "CONSENT_PREFERENCE_UNSPECIFIED",
     GRANTED = "GRANTED",
     DENIED = "DENIED",
 }
 
 export type ConsentCategoryPreferences = {
-    [K in typeof CONSENT_CATEGORIES[number]]?: ConsentPreference;
+    [K in typeof CONSENT_CATEGORIES[number]]: ConsentPreference;
 };
 
 export type Consent = {
@@ -41,6 +42,14 @@ export interface ConsentService {
     getConsent(): Consent;
 }
 
+const DEFAULT_CONSENT: ConsentCategoryPreferences = {
+    advertising: ConsentPreference.UNSPECIFIED,
+    analytics: ConsentPreference.UNSPECIFIED,
+    functional: ConsentPreference.UNSPECIFIED,
+    marketing: ConsentPreference.UNSPECIFIED,
+    personalization: ConsentPreference.UNSPECIFIED,
+};
+
 export class ConsentServiceImpl implements ConsentService {
     private readonly consentState: ConsentState;
 
@@ -52,7 +61,7 @@ export class ConsentServiceImpl implements ConsentService {
         this.consentState = {
             consentMode,
             consent: {
-                categoryPreferences: initialConsent ? { ...initialConsent } : {},
+                categoryPreferences: initialConsent ? { ...initialConsent } : { ...DEFAULT_CONSENT },
             }
         };
     }
@@ -80,15 +89,14 @@ export class ConsentServiceImpl implements ConsentService {
         const consentMode = this.consentState.consentMode;
         const categoryPreferences = this.consentState.consent.categoryPreferences;
 
-        // If destination has no category configured or consent preferences are undefined or empty
-        if (!destinationCategory || Object.keys(categoryPreferences || {}).length === 0) {
-            return consentMode === RELAXED_MODE; // Assumes consent in relaxed mode, denies in strict mode
+        if (!destinationCategory) {
+            return consentMode === RELAXED_MODE;
         }
 
         const preference = categoryPreferences[destinationCategory];
 
         // If category has no explicit consent decision
-        if (preference === undefined) {
+        if (preference === ConsentPreference.UNSPECIFIED) {
             return consentMode !== STRICT_MODE; // Strict mode requires explicit consent, relaxed mode assumes consent
         }
 

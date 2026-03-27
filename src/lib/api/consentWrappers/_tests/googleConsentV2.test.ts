@@ -23,9 +23,9 @@ describe("fromGoogleConsentV2", () => {
             expect(result.analytics).toBe(ConsentPreference.DENIED);
         });
 
-        it("should not set analytics when analytics_storage is undefined", () => {
+        it("should set analytics to UNSPECIFIED when analytics_storage is undefined", () => {
             const result = fromGoogleConsentV2({});
-            expect(result.analytics).toBeUndefined();
+            expect(result.analytics).toBe(ConsentPreference.UNSPECIFIED);
         });
     });
 
@@ -40,9 +40,9 @@ describe("fromGoogleConsentV2", () => {
             expect(result.functional).toBe(ConsentPreference.DENIED);
         });
 
-        it("should not set functional when functionality_storage is undefined", () => {
+        it("should set functional to UNSPECIFIED when functionality_storage is undefined", () => {
             const result = fromGoogleConsentV2({});
-            expect(result.functional).toBeUndefined();
+            expect(result.functional).toBe(ConsentPreference.UNSPECIFIED);
         });
     });
 
@@ -57,9 +57,9 @@ describe("fromGoogleConsentV2", () => {
             expect(result.personalization).toBe(ConsentPreference.DENIED);
         });
 
-        it("should not set personalization when personalization_storage is undefined", () => {
+        it("should set personalization to UNSPECIFIED when personalization_storage is undefined", () => {
             const result = fromGoogleConsentV2({});
-            expect(result.personalization).toBeUndefined();
+            expect(result.personalization).toBe(ConsentPreference.UNSPECIFIED);
         });
     });
 
@@ -74,9 +74,9 @@ describe("fromGoogleConsentV2", () => {
             expect(result.marketing).toBe(ConsentPreference.DENIED);
         });
 
-        it("should not set marketing when ad_storage is undefined", () => {
+        it("should set marketing to UNSPECIFIED when ad_storage is undefined", () => {
             const result = fromGoogleConsentV2({ analytics_storage: 'granted' });
-            expect(result.marketing).toBeUndefined();
+            expect(result.marketing).toBe(ConsentPreference.UNSPECIFIED);
         });
     });
 
@@ -126,27 +126,32 @@ describe("fromGoogleConsentV2", () => {
             expect(result.advertising).toBe(ConsentPreference.DENIED);
         });
 
-        it("should not set advertising when any of the three is undefined", () => {
+        it("should set advertising to UNSPECIFIED when all three are missing", () => {
+            const result = fromGoogleConsentV2({});
+            expect(result.advertising).toBe(ConsentPreference.UNSPECIFIED);
+        });
+
+        it("should set advertising to DENIED when only some of the three are provided", () => {
             // Missing ad_user_data
             let result = fromGoogleConsentV2({
                 ad_storage: 'granted',
                 ad_personalization: 'granted'
             });
-            expect(result.advertising).toBeUndefined();
+            expect(result.advertising).toBe(ConsentPreference.DENIED);
 
             // Missing ad_storage
             result = fromGoogleConsentV2({
                 ad_user_data: 'granted',
                 ad_personalization: 'granted'
             });
-            expect(result.advertising).toBeUndefined();
+            expect(result.advertising).toBe(ConsentPreference.DENIED);
 
             // Missing ad_personalization
             result = fromGoogleConsentV2({
                 ad_storage: 'granted',
                 ad_user_data: 'granted'
             });
-            expect(result.advertising).toBeUndefined();
+            expect(result.advertising).toBe(ConsentPreference.DENIED);
         });
 
         it("should handle boolean values for advertising signals", () => {
@@ -203,18 +208,25 @@ describe("fromGoogleConsentV2", () => {
             expect(result.analytics).toBe(ConsentPreference.DENIED);
             expect(result.functional).toBe(ConsentPreference.DENIED);
             expect(result.marketing).toBe(ConsentPreference.GRANTED);
+            expect(result.personalization).toBe(ConsentPreference.UNSPECIFIED);
         });
 
-        it("should return empty object when given empty input", () => {
+        it("should return all UNSPECIFIED when given empty input", () => {
             const result = fromGoogleConsentV2({});
-            expect(result).toEqual({});
+            expect(result).toEqual({
+                advertising: ConsentPreference.UNSPECIFIED,
+                analytics: ConsentPreference.UNSPECIFIED,
+                functional: ConsentPreference.UNSPECIFIED,
+                marketing: ConsentPreference.UNSPECIFIED,
+                personalization: ConsentPreference.UNSPECIFIED,
+            });
         });
 
-        it("should set marketing but not advertising when only ad_storage is provided", () => {
+        it("should set marketing to GRANTED but advertising to DENIED when only ad_storage is provided", () => {
             const result = fromGoogleConsentV2({ ad_storage: 'granted' });
 
             expect(result.marketing).toBe(ConsentPreference.GRANTED);
-            expect(result.advertising).toBeUndefined();
+            expect(result.advertising).toBe(ConsentPreference.DENIED);
         });
     });
 });
