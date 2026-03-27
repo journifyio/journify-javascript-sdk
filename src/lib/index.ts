@@ -20,7 +20,7 @@ async function load(sdkSettings: SdkSettings) {
   try {
     const wKeySettings = await fetchWriteKeySettings(sdkSettings);
     sdk = await loader.load(sdkSettings, wKeySettings);
-    await sendDebugEventIfRequested(sentryWrapper, sdkSettings);
+    await sendDebugEventsIfRequested(sentryWrapper, sdkSettings);
     callsBeforeLoad.forEach((call) => call());
   } catch (error) {
     sentryWrapper.captureException(error);
@@ -208,7 +208,7 @@ function recordCallBeforeLoad(call) {
   }
 }
 
-async function sendDebugEventIfRequested(sentryWrapper: SentryWrapper, sdkSettings: SdkSettings) {
+async function sendDebugEventsIfRequested(sentryWrapper: SentryWrapper, sdkSettings: SdkSettings) {
   if (typeof window === "undefined") {
     return;
   }
