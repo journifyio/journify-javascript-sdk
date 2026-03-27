@@ -40,8 +40,9 @@ export function displayConnectingPanelIfSupported() {
 
   Object.assign(panel.style, {
     position: "fixed",
-    right: "16px",
-    bottom: "16px",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
     width: "460px",
     maxWidth: "calc(100vw - 32px)",
     background: "#ffffff",
