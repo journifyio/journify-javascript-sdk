@@ -1,8 +1,15 @@
-import { Consent, ConsentService, ConsentCategoryPreferences } from "../../lib/domain/consent";
+import {Consent, ConsentCategoryPreferences, ConsentPreference, ConsentService} from "../../lib/domain/consent";
 
 export class ConsentServiceMock implements ConsentService {
     public funcs: ConsentServiceMockFuncs;
-    private consent: Consent = { categoryPreferences: {}};
+    private consent: Consent = {
+        categoryPreferences: {
+            advertising: ConsentPreference.UNSPECIFIED,
+            analytics: ConsentPreference.UNSPECIFIED,
+            marketing: ConsentPreference.UNSPECIFIED,
+            personalization: ConsentPreference.UNSPECIFIED,
+            functional: ConsentPreference.UNSPECIFIED,
+        }};
 
     public constructor(funcs?: ConsentServiceMockFuncs) {
         this.funcs = funcs || {};

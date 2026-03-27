@@ -1,25 +1,19 @@
 import * as uuid from "uuid";
-import { EventFactoryImpl } from "../eventFactory";
-import { UserMock } from "../../../test/mocks/user";
-import { User, UserImpl } from "../../domain/user";
-import { Traits } from "../../domain/traits";
-import {
-  JournifyEvent,
-  JournifyEventType,
-  UtmCampaign,
-} from "../../domain/event";
-import { LIB_VERSION } from "../../generated/libVersion";
-import { StoresGroup } from "../../store/store";
-import { createStoresForTest } from "../../../test/helpers/stores";
-import { BrowserMock } from "../../../test/mocks/browser";
-import {
-  ExternalIds,
-  ExternalIdsSessionCacheImpl,
-} from "../../domain/externalId";
-import { SessionStore } from "../../store/sessionStore";
+import {EventFactoryImpl} from "../eventFactory";
+import {UserMock} from "../../../test/mocks/user";
+import {User, UserImpl} from "../../domain/user";
+import {Traits} from "../../domain/traits";
+import {JournifyEvent, JournifyEventType, UtmCampaign,} from "../../domain/event";
+import {LIB_VERSION} from "../../generated/libVersion";
+import {StoresGroup} from "../../store/store";
+import {createStoresForTest} from "../../../test/helpers/stores";
+import {BrowserMock} from "../../../test/mocks/browser";
+import {ExternalIds, ExternalIdsSessionCacheImpl,} from "../../domain/externalId";
+import {SessionStore} from "../../store/sessionStore";
 
-import { TextEncoder, TextDecoder } from "util";
-import { ConsentServiceMock } from "../../../test/mocks/consentService";
+import {TextDecoder, TextEncoder} from "util";
+import {ConsentServiceMock} from "../../../test/mocks/consentService";
+import {ConsentPreference} from "../../domain/consent";
 
 Object.assign(global, { TextDecoder, TextEncoder });
 
@@ -145,7 +139,13 @@ describe("EventFactoryImpl class", () => {
           },
           campaign: campaign,
           consent: {
-            categoryPreferences: {},
+            categoryPreferences: {
+              advertising: ConsentPreference.UNSPECIFIED,
+              analytics: ConsentPreference.UNSPECIFIED,
+              marketing: ConsentPreference.UNSPECIFIED,
+              personalization: ConsentPreference.UNSPECIFIED,
+              functional: ConsentPreference.UNSPECIFIED,
+            },
           },
         },
       };

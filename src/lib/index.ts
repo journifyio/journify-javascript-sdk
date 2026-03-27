@@ -52,7 +52,7 @@ async function fetchRemoteWriteKeySettings(
 ): Promise<WriteKeySettings> {
   const maxRetries = 2;
   const settingsUrl = `${cdnHost}/write_keys/${writeKey}.json`;
-  const countryHeader = "X-CLIENT-COUNTRY";
+  const countryHeader = "X-Client-Country";
 
   for (let i = 0; i < maxRetries; i++) {
     try {
