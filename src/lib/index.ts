@@ -208,22 +208,25 @@ function recordCallBeforeLoad(call) {
 }
 
 async function sendDebugEventIfRequested(sentryWrapper: SentryWrapper, sdkSettings: SdkSettings) {
-  const debugId = new URLSearchParams(window.location.search).get(
-      "journify_debug"
-  );
-  if (!debugId) {
+  const params = new URLSearchParams(window.location.search)
+  const debugId = params.get("journify_debug");
+  const debugTarget = params.get("journify_debug_target");
+  if (!debugId || !debugTarget) {
     return
   }
 
   const testingSettings = {
-    writeKey: getTestingKey(sdkSettings.writeKey),
+    writeKey: getTestingKey(debugTarget),
     cdnHost: sdkSettings.cdnHost,
     apiHost: sdkSettings.apiHost,
     options: sdkSettings.options,
   }
   const testingLoader= new Loader(sentryWrapper);
   const testingSDK = await testingLoader.load(testingSettings, {syncs: []});
-  await testingSDK.track(`debug_event_${debugId}`, {debugId})
+  await testingSDK.track(`debug_event_${debugId}`, {
+    debugId,
+    eventSourceWriteKey: getProductionWriteKey(sdkSettings.writeKey),
+  })
 }
 
 export { load, identify, track, page, group, SdkSettings };
