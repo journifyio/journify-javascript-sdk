@@ -223,10 +223,13 @@ async function sendDebugEventIfRequested(sentryWrapper: SentryWrapper, sdkSettin
   }
   const testingLoader= new Loader(sentryWrapper);
   const testingSDK = await testingLoader.load(testingSettings, {syncs: []});
-  await testingSDK.track(`debug_event_${debugId}`, {
-    debugId,
-    eventSourceWriteKey: getProductionWriteKey(sdkSettings.writeKey),
-  })
+  // a track event won't appear in the debugger if it's sent before the backend receives the debugger ping event.
+  setInterval(async () => {
+    await testingSDK.track(`debug_event_${debugId}`, {
+      debugId,
+      eventSourceWriteKey: getProductionWriteKey(sdkSettings.writeKey),
+    })
+  }, 2000)
 }
 
 export { load, identify, track, page, group, SdkSettings };
