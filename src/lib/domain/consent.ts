@@ -10,7 +10,9 @@ const GDPR_COUNTRIES = new Set([
     // EEA Countries (non-EU)
     'IS', 'LI', 'NO',
     // UK (post-Brexit but maintains GDPR-equivalent laws)
-    'GB'
+    'GB',
+    // Switzerland (GDPR-equivalent: Federal Act on Data Protection)
+    'CH'
 ]);
 
 export const CONSENT_CATEGORIES = ['advertising', 'analytics', 'functional', 'marketing', 'personalization'] as const;
