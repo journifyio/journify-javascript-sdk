@@ -99,7 +99,7 @@ export class ConsentServiceImpl implements ConsentService {
 
         // If category has no explicit consent decision
         if (preference === ConsentPreference.UNSPECIFIED) {
-            return consentMode !== STRICT_MODE; // Strict mode requires explicit consent, relaxed mode assumes consent
+            return consentMode === RELAXED_MODE; // Strict mode requires explicit consent, relaxed mode assumes consent
         }
 
         return preference === ConsentPreference.GRANTED;
