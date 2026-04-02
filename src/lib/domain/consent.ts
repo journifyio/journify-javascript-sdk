@@ -70,8 +70,9 @@ export class ConsentServiceImpl implements ConsentService {
 
     // Determine consent mode based on country
     private getConsentMode(country?: string): ConsentMode {
-        const normalizedCountry = country?.trim().toUpperCase() || ''
-        return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
+        // const normalizedCountry = country?.trim().toUpperCase() || ''
+        //return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
+        return RELAXED_MODE; // temporarily set every country to relaxed mode
     }
 
     public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
