@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STRICT_MODE = 'strict';
 const RELAXED_MODE = 'relaxed';
 
@@ -19,6 +18,8 @@ const GDPR_COUNTRIES = new Set([
 
 export const CONSENT_CATEGORIES = ['advertising', 'analytics', 'functional', 'marketing', 'personalization'] as const;
 
+export type ConsentCategory = typeof CONSENT_CATEGORIES[number];
+
 export type ConsentMode = typeof STRICT_MODE | typeof RELAXED_MODE;
 
 export enum ConsentPreference {
@@ -28,7 +29,7 @@ export enum ConsentPreference {
 }
 
 export type ConsentCategoryPreferences = {
-    [K in typeof CONSENT_CATEGORIES[number]]: ConsentPreference;
+    [K in typeof CONSENT_CATEGORIES[number]]?: ConsentPreference;
 };
 
 export type Consent = {
@@ -54,28 +55,25 @@ const DEFAULT_CONSENT: ConsentCategoryPreferences = {
     personalization: ConsentPreference.UNSPECIFIED,
 };
 
+export function resolveConsentMode(country?: string, workspaceConsentMode?: ConsentMode): ConsentMode {
+    if (workspaceConsentMode) return workspaceConsentMode;
+    const normalizedCountry = country?.trim().toUpperCase() || '';
+    return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
+}
+
 export class ConsentServiceImpl implements ConsentService {
     private readonly consentState: ConsentState;
 
     constructor(
-        country: string,
+        consentMode: ConsentMode,
         initialConsent?: ConsentCategoryPreferences
     ) {
-        const consentMode = this.getConsentMode(country);
         this.consentState = {
             consentMode,
             consent: {
-                categoryPreferences: initialConsent ? { ...initialConsent } : { ...DEFAULT_CONSENT },
+                categoryPreferences: { ...DEFAULT_CONSENT, ...initialConsent },
             }
         };
-    }
-
-    // Determine consent mode based on country
-    private getConsentMode(country?: string): ConsentMode {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const normalizedCountry = country?.trim().toUpperCase() || ''
-        //return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
-        return RELAXED_MODE; // temporarily set every country to relaxed mode
     }
 
     public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
@@ -101,11 +99,10 @@ export class ConsentServiceImpl implements ConsentService {
 
         const preference = categoryPreferences[destinationCategory];
 
-        // If category has no explicit consent decision
-        if (preference === ConsentPreference.UNSPECIFIED) {
-            return consentMode === RELAXED_MODE; // Strict mode requires explicit consent, relaxed mode assumes consent
-        }
+        if (preference === ConsentPreference.GRANTED) return true;
+        if (preference === ConsentPreference.DENIED) return false;
 
-        return preference === ConsentPreference.GRANTED;
+        // Anything else (UNSPECIFIED or unrecognized value) falls back to mode
+        return consentMode === RELAXED_MODE;
     }
 }

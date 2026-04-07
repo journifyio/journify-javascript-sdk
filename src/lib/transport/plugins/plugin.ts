@@ -6,7 +6,7 @@ import { FieldsMapperFactory } from "./lib/fieldMapping";
 import { HttpCookieOptions } from "../../lib/httpCookieService";
 import { User } from "../../domain/user";
 import { SentryWrapper } from "../../lib/sentry";
-import {ConsentCategoryPreferences} from "../../domain/consent";
+import {ConsentCategoryPreferences, ConsentCategory, ConsentMode} from "../../domain/consent";
 
 export interface Plugin {
   name: string;
@@ -64,7 +64,8 @@ export interface WriteKeySettings {
 export interface Sync {
   id: string;
   destination_app: string;
-  destination_consent_category?: string;
+  destination_consent_category?: ConsentCategory;
+  workspace_consent_mode?: ConsentMode;
   settings: SyncSetting[];
   field_mappings: FieldMapping[];
   event_mappings: EventMapping[];
