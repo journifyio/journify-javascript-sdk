@@ -1,4 +1,4 @@
-import {Consent, ConsentCategoryPreferences, ConsentPreference, ConsentService} from "../../lib/domain/consent";
+import {Consent, ConsentCategory, ConsentCategoryPreferences, ConsentPreference, ConsentService} from "../../lib/domain/consent";
 
 export class ConsentServiceMock implements ConsentService {
     public funcs: ConsentServiceMockFuncs;
@@ -21,7 +21,7 @@ export class ConsentServiceMock implements ConsentService {
         }
     }
 
-    hasConsent(destinationCategory: string): boolean {
+    hasConsent(destinationCategory: ConsentCategory): boolean {
         if (this.funcs?.hasConsent) {
             return this.funcs.hasConsent(destinationCategory);
         }

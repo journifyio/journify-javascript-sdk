@@ -265,7 +265,6 @@ describe("ConsentService interface", () => {
                 };
                 const consentService = new ConsentServiceImpl('strict', initialConsent);
 
-                expect(consentService.hasConsent('')).toBe(false);
                 expect(consentService.hasConsent(undefined)).toBe(false);
                 expect(consentService.hasConsent(null)).toBe(false);
             })
@@ -327,7 +326,6 @@ describe("ConsentService interface", () => {
                 };
                 const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
-                expect(consentService.hasConsent('')).toBe(true);
                 expect(consentService.hasConsent(undefined)).toBe(true);
                 expect(consentService.hasConsent(null)).toBe(true);
             })

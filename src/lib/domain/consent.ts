@@ -43,7 +43,7 @@ export type ConsentState = {
 
 export interface ConsentService {
     updateConsent(categoryPreferences: ConsentCategoryPreferences): void;
-    hasConsent(destinationCategory: string): boolean;
+    hasConsent(destinationCategory: ConsentCategory): boolean;
     getConsent(): Consent;
 }
 
@@ -56,9 +56,13 @@ const DEFAULT_CONSENT: ConsentCategoryPreferences = {
 };
 
 export function resolveConsentMode(country?: string, workspaceConsentMode?: ConsentMode): ConsentMode {
-    if (workspaceConsentMode) return workspaceConsentMode;
+    if (isConsentMode(workspaceConsentMode)) return workspaceConsentMode;
     const normalizedCountry = country?.trim().toUpperCase() || '';
     return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
+}
+
+function isConsentMode(value?: string): value is ConsentMode {
+    return value === STRICT_MODE || value === RELAXED_MODE;
 }
 
 export class ConsentServiceImpl implements ConsentService {
@@ -89,7 +93,7 @@ export class ConsentServiceImpl implements ConsentService {
     }
 
     // Method that checks if consent is given for the specified category
-    public hasConsent(destinationCategory: string): boolean {
+    public hasConsent(destinationCategory: ConsentCategory): boolean {
         const consentMode = this.consentState.consentMode;
         const categoryPreferences = this.consentState.consent.categoryPreferences;
 
