@@ -17,7 +17,7 @@ const GDPR_COUNTRIES = new Set([
 
 export const CONSENT_CATEGORIES = ['ADVERTISING', 'ANALYTICS', 'FUNCTIONAL', 'MARKETING', 'PERSONALIZATION'] as const;
 
-export type ConsentCategory = Lowercase<typeof CONSENT_CATEGORIES[number]>;
+export type ConsentCategory = typeof CONSENT_CATEGORIES[number];
 
 export type ConsentMode = typeof STRICT_MODE | typeof RELAXED_MODE;
 
@@ -28,7 +28,7 @@ export enum ConsentPreference {
 }
 
 export type ConsentCategoryPreferences = {
-    [K in ConsentCategory]: ConsentPreference;
+    [K in Lowercase<ConsentCategory>]: ConsentPreference;
 };
 
 export type Consent = {
@@ -41,8 +41,8 @@ export type ConsentState = {
 }
 
 export interface ConsentService {
-    updateConsent(categoryPreferences: Partial<ConsentCategoryPreferences>): void;
-    hasConsent(destinationCategory: ConsentCategory | null | undefined): boolean;
+    updateConsent(categoryPreferences: ConsentCategoryPreferences): void;
+    hasConsent(destinationCategory: ConsentCategory): boolean;
     getConsent(): Consent;
 }
 
@@ -60,23 +60,17 @@ export function resolveConsentMode(country?: string, workspaceConsentMode?: Cons
     return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
 }
 
-export function normalizeConsentCategory(value?: string): ConsentCategory | undefined {
-    const lower = value?.trim().toLowerCase();
-    return CONSENT_CATEGORIES.includes(lower?.toUpperCase() as typeof CONSENT_CATEGORIES[number])
-        ? lower as ConsentCategory
-        : undefined;
-}
-
-function isValidConsentMode(value?: string): value is ConsentMode {
+function isValidConsentMode(value?: ConsentMode): value is ConsentMode {
     return value === STRICT_MODE || value === RELAXED_MODE;
 }
+
 
 export class ConsentServiceImpl implements ConsentService {
     private readonly consentState: ConsentState;
 
     constructor(
         consentMode: ConsentMode,
-        initialConsent?: Partial<ConsentCategoryPreferences>
+        initialConsent?: ConsentCategoryPreferences
     ) {
         this.consentState = {
             consentMode,
@@ -86,11 +80,10 @@ export class ConsentServiceImpl implements ConsentService {
         };
     }
 
-    public updateConsent(categoryPreferences: Partial<ConsentCategoryPreferences>): void {
+    public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
         for (const [category, preference] of Object.entries(categoryPreferences)) {
-            const normalized = normalizeConsentCategory(category);
-            if (normalized) {
-                this.consentState.consent.categoryPreferences[normalized] = preference;
+            if (CONSENT_CATEGORIES.includes(category.toUpperCase() as ConsentCategory)) {
+                this.consentState.consent.categoryPreferences[category as Lowercase<ConsentCategory>] = preference;
             }
         }
     }
@@ -99,15 +92,13 @@ export class ConsentServiceImpl implements ConsentService {
         return this.consentState.consent;
     }
 
-    public hasConsent(destinationCategory: ConsentCategory | null | undefined): boolean {
+    public hasConsent(destinationCategory: ConsentCategory): boolean {
         const consentMode = this.consentState.consentMode;
         const categoryPreferences = this.consentState.consent.categoryPreferences;
 
-        if (!destinationCategory) {
-            return consentMode === RELAXED_MODE;
-        }
+        if (!destinationCategory) return consentMode === RELAXED_MODE;
 
-        const preference = categoryPreferences[destinationCategory];
+        const preference = categoryPreferences[destinationCategory.toLowerCase() as Lowercase<ConsentCategory>];
 
         if (preference === ConsentPreference.DENIED) return false;
         return preference === ConsentPreference.GRANTED || consentMode === RELAXED_MODE;

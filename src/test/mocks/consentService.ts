@@ -15,13 +15,13 @@ export class ConsentServiceMock implements ConsentService {
         this.funcs = funcs || {};
     }
 
-    updateConsent(categoryPreferences: Partial<ConsentCategoryPreferences>): void {
+    updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
         if (this.funcs?.updateConsent) {
             this.funcs.updateConsent(categoryPreferences);
         }
     }
 
-    hasConsent(destinationCategory: ConsentCategory | null | undefined): boolean {
+    hasConsent(destinationCategory: ConsentCategory): boolean {
         if (this.funcs?.hasConsent) {
             return this.funcs.hasConsent(destinationCategory);
         }

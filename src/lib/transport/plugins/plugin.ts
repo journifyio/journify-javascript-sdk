@@ -46,7 +46,7 @@ type SdkOptions = {
   autoCapturePhoneRegex?: string;
   phoneCountryCode?: string;
   httpCookieServiceOptions?: HttpCookieOptions;
-  initialConsent?: Partial<ConsentCategoryPreferences>;
+  initialConsent?: ConsentCategoryPreferences;
 };
 
 export interface SdkSettings {
