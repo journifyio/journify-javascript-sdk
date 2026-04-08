@@ -43,7 +43,7 @@ export type ConsentState = {
 
 export interface ConsentService {
     updateConsent(categoryPreferences: ConsentCategoryPreferences): void;
-    hasConsent(destinationCategory: ConsentCategory): boolean;
+    hasConsent(destinationCategory: ConsentCategory | null | undefined): boolean;
     getConsent(): Consent;
 }
 

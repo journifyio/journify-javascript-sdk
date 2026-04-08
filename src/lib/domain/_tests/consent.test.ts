@@ -255,15 +255,8 @@ describe("ConsentService interface", () => {
                 expect(consentService.hasConsent('analytics')).toBe(false);
             })
 
-            it("Should return false when destination category is empty or undefined", () => {
-                const initialConsent: ConsentCategoryPreferences = {
-                    advertising: ConsentPreference.UNSPECIFIED,
-                    analytics: ConsentPreference.GRANTED,
-                    functional: ConsentPreference.UNSPECIFIED,
-                    marketing: ConsentPreference.UNSPECIFIED,
-                    personalization: ConsentPreference.UNSPECIFIED,
-                };
-                const consentService = new ConsentServiceImpl('strict', initialConsent);
+            it("Should return false when destination category is null or undefined", () => {
+                const consentService = new ConsentServiceImpl('strict');
 
                 expect(consentService.hasConsent(undefined)).toBe(false);
                 expect(consentService.hasConsent(null)).toBe(false);
@@ -316,15 +309,8 @@ describe("ConsentService interface", () => {
                 expect(consentService.hasConsent('analytics')).toBe(true);
             })
 
-            it("Should return true when destination category is empty or undefined", () => {
-                const initialConsent: ConsentCategoryPreferences = {
-                    advertising: ConsentPreference.UNSPECIFIED,
-                    analytics: ConsentPreference.DENIED,
-                    functional: ConsentPreference.UNSPECIFIED,
-                    marketing: ConsentPreference.UNSPECIFIED,
-                    personalization: ConsentPreference.UNSPECIFIED,
-                };
-                const consentService = new ConsentServiceImpl('relaxed', initialConsent);
+            it("Should return true when destination category is null or undefined", () => {
+                const consentService = new ConsentServiceImpl('relaxed');
 
                 expect(consentService.hasConsent(undefined)).toBe(true);
                 expect(consentService.hasConsent(null)).toBe(true);

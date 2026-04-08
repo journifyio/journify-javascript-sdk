@@ -21,7 +21,7 @@ export class ConsentServiceMock implements ConsentService {
         }
     }
 
-    hasConsent(destinationCategory: ConsentCategory): boolean {
+    hasConsent(destinationCategory: ConsentCategory | null | undefined): boolean {
         if (this.funcs?.hasConsent) {
             return this.funcs.hasConsent(destinationCategory);
         }
