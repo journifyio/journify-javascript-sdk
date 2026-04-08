@@ -29,7 +29,7 @@ export enum ConsentPreference {
 }
 
 export type ConsentCategoryPreferences = {
-    [K in typeof CONSENT_CATEGORIES[number]]?: ConsentPreference;
+    [K in typeof CONSENT_CATEGORIES[number]]: ConsentPreference;
 };
 
 export type Consent = {
@@ -42,7 +42,7 @@ export type ConsentState = {
 }
 
 export interface ConsentService {
-    updateConsent(categoryPreferences: ConsentCategoryPreferences): void;
+    updateConsent(categoryPreferences: Partial<ConsentCategoryPreferences>): void;
     hasConsent(destinationCategory: ConsentCategory | null | undefined): boolean;
     getConsent(): Consent;
 }
@@ -70,7 +70,7 @@ export class ConsentServiceImpl implements ConsentService {
 
     constructor(
         consentMode: ConsentMode,
-        initialConsent?: ConsentCategoryPreferences
+        initialConsent?: Partial<ConsentCategoryPreferences>
     ) {
         this.consentState = {
             consentMode,
@@ -80,7 +80,7 @@ export class ConsentServiceImpl implements ConsentService {
         };
     }
 
-    public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
+    public updateConsent(categoryPreferences: Partial<ConsentCategoryPreferences>): void {
         for (const [category, preference] of Object.entries(categoryPreferences)) {
             if (CONSENT_CATEGORIES.includes(category as typeof CONSENT_CATEGORIES[number])) {
                 this.consentState.consent.categoryPreferences[category] = preference;

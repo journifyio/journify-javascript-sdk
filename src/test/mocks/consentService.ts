@@ -15,7 +15,7 @@ export class ConsentServiceMock implements ConsentService {
         this.funcs = funcs || {};
     }
 
-    updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
+    updateConsent(categoryPreferences: Partial<ConsentCategoryPreferences>): void {
         if (this.funcs?.updateConsent) {
             this.funcs.updateConsent(categoryPreferences);
         }

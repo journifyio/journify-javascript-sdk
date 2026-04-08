@@ -222,7 +222,7 @@ describe("ConsentService interface", () => {
             const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
             // TypeScript would catch this, but testing runtime behavior
-            consentService.updateConsent({ invalid_category: ConsentPreference.GRANTED } as unknown as ConsentCategoryPreferences);
+            consentService.updateConsent({ invalid_category: ConsentPreference.GRANTED } as unknown as Partial<ConsentCategoryPreferences>);
 
             expect(consentService.getConsent().categoryPreferences).toEqual({
                 advertising: ConsentPreference.UNSPECIFIED,
