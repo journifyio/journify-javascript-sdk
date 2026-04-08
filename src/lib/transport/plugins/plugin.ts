@@ -58,14 +58,14 @@ export interface SdkSettings {
 
 export interface WriteKeySettings {
   syncs: Sync[];
-  countryCode?: string;
+  workspace_consent_mode?: ConsentMode;
+  country_code?: string;
 }
 
 export interface Sync {
   id: string;
   destination_app: string;
   destination_consent_category?: ConsentCategory;
-  workspace_consent_mode?: ConsentMode;
   settings: SyncSetting[];
   field_mappings: FieldMapping[];
   event_mappings: EventMapping[];

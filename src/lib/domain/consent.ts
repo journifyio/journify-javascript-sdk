@@ -56,12 +56,12 @@ const DEFAULT_CONSENT: ConsentCategoryPreferences = {
 };
 
 export function resolveConsentMode(country?: string, workspaceConsentMode?: ConsentMode): ConsentMode {
-    if (isConsentMode(workspaceConsentMode)) return workspaceConsentMode;
+    if (isValidConsentMode(workspaceConsentMode)) return workspaceConsentMode;
     const normalizedCountry = country?.trim().toUpperCase() || '';
     return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
 }
 
-function isConsentMode(value?: string): value is ConsentMode {
+function isValidConsentMode(value?: string): value is ConsentMode {
     return value === STRICT_MODE || value === RELAXED_MODE;
 }
 
@@ -103,10 +103,7 @@ export class ConsentServiceImpl implements ConsentService {
 
         const preference = categoryPreferences[destinationCategory];
 
-        if (preference === ConsentPreference.GRANTED) return true;
         if (preference === ConsentPreference.DENIED) return false;
-
-        // Anything else (UNSPECIFIED or unrecognized value) falls back to mode
-        return consentMode === RELAXED_MODE;
+        return preference === ConsentPreference.GRANTED || consentMode === RELAXED_MODE;
     }
 }

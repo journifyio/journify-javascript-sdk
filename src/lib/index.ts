@@ -60,7 +60,7 @@ async function fetchRemoteWriteKeySettings(
       const response = await fetch(settingsUrl);
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
-        settings.countryCode = response.headers.get(countryHeader);
+        settings.country_code = response.headers.get(countryHeader);
         return settings;
       } else if (500 <= response.status && response.status <= 599) {
         if (i < maxRetries - 1) {
