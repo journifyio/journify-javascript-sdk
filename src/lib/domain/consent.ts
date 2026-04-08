@@ -1,8 +1,7 @@
-const STRICT_MODE = 'strict';
-const RELAXED_MODE = 'relaxed';
+const STRICT_MODE = 'STRICT';
+const RELAXED_MODE = 'RELAXED';
 
 // GDPR applies to EU member states plus EEA countries and UK
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const GDPR_COUNTRIES = new Set([
     // EU Member States
     'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
@@ -16,9 +15,9 @@ const GDPR_COUNTRIES = new Set([
     'CH'
 ]);
 
-export const CONSENT_CATEGORIES = ['advertising', 'analytics', 'functional', 'marketing', 'personalization'] as const;
+export const CONSENT_CATEGORIES = ['ADVERTISING', 'ANALYTICS', 'FUNCTIONAL', 'MARKETING', 'PERSONALIZATION'] as const;
 
-export type ConsentCategory = typeof CONSENT_CATEGORIES[number];
+export type ConsentCategory = Lowercase<typeof CONSENT_CATEGORIES[number]>;
 
 export type ConsentMode = typeof STRICT_MODE | typeof RELAXED_MODE;
 
@@ -29,7 +28,7 @@ export enum ConsentPreference {
 }
 
 export type ConsentCategoryPreferences = {
-    [K in typeof CONSENT_CATEGORIES[number]]: ConsentPreference;
+    [K in ConsentCategory]: ConsentPreference;
 };
 
 export type Consent = {
@@ -61,6 +60,13 @@ export function resolveConsentMode(country?: string, workspaceConsentMode?: Cons
     return GDPR_COUNTRIES.has(normalizedCountry) ? STRICT_MODE : RELAXED_MODE;
 }
 
+export function normalizeConsentCategory(value?: string): ConsentCategory | undefined {
+    const lower = value?.trim().toLowerCase();
+    return CONSENT_CATEGORIES.includes(lower?.toUpperCase() as typeof CONSENT_CATEGORIES[number])
+        ? lower as ConsentCategory
+        : undefined;
+}
+
 function isValidConsentMode(value?: string): value is ConsentMode {
     return value === STRICT_MODE || value === RELAXED_MODE;
 }
@@ -82,8 +88,9 @@ export class ConsentServiceImpl implements ConsentService {
 
     public updateConsent(categoryPreferences: Partial<ConsentCategoryPreferences>): void {
         for (const [category, preference] of Object.entries(categoryPreferences)) {
-            if (CONSENT_CATEGORIES.includes(category as typeof CONSENT_CATEGORIES[number])) {
-                this.consentState.consent.categoryPreferences[category] = preference;
+            const normalized = normalizeConsentCategory(category);
+            if (normalized) {
+                this.consentState.consent.categoryPreferences[normalized] = preference;
             }
         }
     }
@@ -92,8 +99,7 @@ export class ConsentServiceImpl implements ConsentService {
         return this.consentState.consent;
     }
 
-    // Method that checks if consent is given for the specified category
-    public hasConsent(destinationCategory: ConsentCategory): boolean {
+    public hasConsent(destinationCategory: ConsentCategory | null | undefined): boolean {
         const consentMode = this.consentState.consentMode;
         const categoryPreferences = this.consentState.consent.categoryPreferences;
 
