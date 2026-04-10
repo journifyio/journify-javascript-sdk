@@ -1,5 +1,5 @@
-const STRICT_MODE = 'STRICT';
-const RELAXED_MODE = 'RELAXED';
+const STRICT_MODE = 'strict';
+const RELAXED_MODE = 'relaxed';
 
 // GDPR applies to EU member states plus EEA countries and UK
 const GDPR_COUNTRIES = new Set([

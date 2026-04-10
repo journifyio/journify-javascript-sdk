@@ -3,43 +3,43 @@ import {ConsentServiceImpl, ConsentCategoryPreferences, ConsentPreference, resol
 describe("resolveConsentMode function", () => {
     describe("workspace consent mode", () => {
         it("Should return workspace consent mode when provided, regardless of country", () => {
-            expect(resolveConsentMode('US', 'STRICT')).toBe('STRICT');
-            expect(resolveConsentMode('FR', 'RELAXED')).toBe('RELAXED');
+            expect(resolveConsentMode('US', 'strict')).toBe('strict');
+            expect(resolveConsentMode('FR', 'relaxed')).toBe('relaxed');
         })
 
         it("Should return workspace consent mode when country is undefined", () => {
-            expect(resolveConsentMode(undefined, 'STRICT')).toBe('STRICT');
-            expect(resolveConsentMode(undefined, 'RELAXED')).toBe('RELAXED');
+            expect(resolveConsentMode(undefined, 'strict')).toBe('strict');
+            expect(resolveConsentMode(undefined, 'relaxed')).toBe('relaxed');
         })
     })
 
     describe("country-based fallback", () => {
-        it("Should return 'STRICT' for GDPR countries", () => {
-            expect(resolveConsentMode('FR')).toBe('STRICT');
-            expect(resolveConsentMode('DE')).toBe('STRICT');
-            expect(resolveConsentMode('GB')).toBe('STRICT');
+        it("Should return 'strict' for GDPR countries", () => {
+            expect(resolveConsentMode('FR')).toBe('strict');
+            expect(resolveConsentMode('DE')).toBe('strict');
+            expect(resolveConsentMode('GB')).toBe('strict');
         })
 
-        it("Should return 'RELAXED' for non-GDPR countries", () => {
-            expect(resolveConsentMode('US')).toBe('RELAXED');
-            expect(resolveConsentMode('SA')).toBe('RELAXED');
+        it("Should return 'relaxed' for non-GDPR countries", () => {
+            expect(resolveConsentMode('US')).toBe('relaxed');
+            expect(resolveConsentMode('SA')).toBe('relaxed');
         })
 
-        it("Should return 'RELAXED' for empty or undefined country", () => {
-            expect(resolveConsentMode('')).toBe('RELAXED');
-            expect(resolveConsentMode(undefined)).toBe('RELAXED');
+        it("Should return 'relaxed' for empty or undefined country", () => {
+            expect(resolveConsentMode('')).toBe('relaxed');
+            expect(resolveConsentMode(undefined)).toBe('relaxed');
         })
 
         it("Should normalize lowercase country codes", () => {
-            expect(resolveConsentMode('fr')).toBe('STRICT');
-            expect(resolveConsentMode('de')).toBe('STRICT');
-            expect(resolveConsentMode('us')).toBe('RELAXED');
+            expect(resolveConsentMode('fr')).toBe('strict');
+            expect(resolveConsentMode('de')).toBe('strict');
+            expect(resolveConsentMode('us')).toBe('relaxed');
         })
 
         it("Should trim whitespace from country codes", () => {
-            expect(resolveConsentMode(' FR ')).toBe('STRICT');
-            expect(resolveConsentMode('  DE')).toBe('STRICT');
-            expect(resolveConsentMode('US  ')).toBe('RELAXED');
+            expect(resolveConsentMode(' FR ')).toBe('strict');
+            expect(resolveConsentMode('  DE')).toBe('strict');
+            expect(resolveConsentMode('US  ')).toBe('relaxed');
         })
     })
 })
@@ -48,7 +48,7 @@ describe("ConsentServiceImpl class", () => {
     describe("constructor", () => {
         describe("initial consent", () => {
             it("Should initialize with all UNSPECIFIED when no initialConsent provided", () => {
-                const consentService = new ConsentServiceImpl('RELAXED');
+                const consentService = new ConsentServiceImpl('relaxed');
 
                 const consent = consentService.getConsent();
 
@@ -70,7 +70,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+                const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
                 expect(consentService.getConsent().categoryPreferences).toEqual({
                     advertising: ConsentPreference.DENIED,
@@ -89,7 +89,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+                const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
                 consentService.updateConsent({
                     advertising: ConsentPreference.UNSPECIFIED,
@@ -114,7 +114,7 @@ describe("ConsentServiceImpl class", () => {
                 marketing: ConsentPreference.UNSPECIFIED,
                 personalization: ConsentPreference.UNSPECIFIED,
             };
-            const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+            const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
             consentService.updateConsent({
                 advertising: ConsentPreference.GRANTED,
@@ -136,7 +136,7 @@ describe("ConsentServiceImpl class", () => {
                 marketing: ConsentPreference.UNSPECIFIED,
                 personalization: ConsentPreference.UNSPECIFIED,
             };
-            const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+            const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
             // TypeScript would catch this, but testing runtime behavior
             consentService.updateConsent({ invalid_category: ConsentPreference.GRANTED } as unknown as ConsentCategoryPreferences);
@@ -154,7 +154,7 @@ describe("ConsentServiceImpl class", () => {
     describe("hasConsent method", () => {
         describe("strict mode", () => {
             it("Should return false when no categories configured", () => {
-                const consentService = new ConsentServiceImpl('STRICT');
+                const consentService = new ConsentServiceImpl('strict');
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(false);
             })
@@ -167,7 +167,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('STRICT', initialConsent);
+                const consentService = new ConsentServiceImpl('strict', initialConsent);
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(false);
             })
@@ -181,7 +181,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('STRICT', initialConsent);
+                const consentService = new ConsentServiceImpl('strict', initialConsent);
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(true);
             })
@@ -194,7 +194,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('STRICT', initialConsent);
+                const consentService = new ConsentServiceImpl('strict', initialConsent);
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(false);
             })
@@ -202,7 +202,7 @@ describe("ConsentServiceImpl class", () => {
 
         describe("relaxed mode", () => {
             it("Should return true when no categories configured", () => {
-                const consentService = new ConsentServiceImpl('RELAXED');
+                const consentService = new ConsentServiceImpl('relaxed');
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(true);
             })
@@ -215,7 +215,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+                const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(true);
             })
@@ -229,7 +229,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+                const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(true);
             })
@@ -242,7 +242,7 @@ describe("ConsentServiceImpl class", () => {
                     marketing: ConsentPreference.UNSPECIFIED,
                     personalization: ConsentPreference.UNSPECIFIED,
                 };
-                const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+                const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
                 expect(consentService.hasConsent('ANALYTICS')).toBe(false);
             })
@@ -258,7 +258,7 @@ describe("ConsentServiceImpl class", () => {
                 marketing: ConsentPreference.UNSPECIFIED,
                 personalization: ConsentPreference.UNSPECIFIED,
             };
-            const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+            const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
             expect(consentService.getConsent()).toEqual({
                 categoryPreferences: {
@@ -279,7 +279,7 @@ describe("ConsentServiceImpl class", () => {
                 marketing: ConsentPreference.UNSPECIFIED,
                 personalization: ConsentPreference.UNSPECIFIED,
             };
-            const consentService = new ConsentServiceImpl('RELAXED', initialConsent);
+            const consentService = new ConsentServiceImpl('relaxed', initialConsent);
 
             consentService.updateConsent({
                 advertising: ConsentPreference.UNSPECIFIED,
