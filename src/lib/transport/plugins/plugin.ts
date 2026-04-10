@@ -58,7 +58,7 @@ export interface SdkSettings {
 
 export interface WriteKeySettings {
   syncs: Sync[];
-  workspace_consent_mode?: ConsentMode;
+  consent_mode?: ConsentMode;
   country_code?: string;
 }
 
