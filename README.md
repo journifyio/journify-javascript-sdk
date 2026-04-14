@@ -37,20 +37,35 @@ document.body?.addEventListener('click', () => {
 ```
 
 ## Using in html page
-Add the following script tag at the top of your `<head>`:
+Add the following script tag at the top of your `<head>`. Replace `<YOUR_WRITE_KEY>` with your actual write key.
 
 ```html
 
 <script>
     !(function () {var journify = (window.journify = window.journify || []);var localJournify; if (!journify.load) { if (journify.invoked) { console.error("Journify snippet included twice."); } else { journify.invoked = !0; journify.methods = ["track", "identify", "group", "track", "page"]; journify.factory = function (methodName) { return function () { var callArgs = Array.prototype.slice.call(arguments); callArgs.unshift(methodName); journify.push(callArgs); return journify }; }; for (var i = 0; i < journify.methods.length; i++) { var methodName = journify.methods[i]; journify[methodName] = journify.factory(methodName); } journify.load = function (loadSettings) { var script = document.createElement("script"); script.type = "text/javascript"; script.async = !0; script.src = "https://unpkg.com/@journifyio/js-sdk@latest/dist/_bundles/journifyio.min.js"; localJournify = journify; script.onload = function () { window.journify.load(loadSettings); for (var i = 0; i < localJournify.length; i++) { var callArgs = localJournify[i]; var methodName = callArgs.shift(); if (!window.journify[methodName]) return; window.journify[methodName].apply(this, callArgs); } }; var firstScript = document.getElementsByTagName("script")[0]; firstScript.parentNode.insertBefore(script, firstScript); };
+
         journify.load({ writeKey: "<YOUR_WRITE_KEY>" });
-        Journify.identify('user-id-1', {email: "user-1@mail.com"}, { id: "001-541-754-3010", type: "phone", collection: "users"})
-        journify.page();
-        journify.track('Order completed', {
-            email: "user-1@mail.com",
-            value: 1000,
-        })
     }}})();
+</script>
+```
+### Usage
+```html
+<script>
+  // Identify a user
+  journify.identify(
+    "user-id-1",
+    { email: "user-1@mail.com" },
+  );
+
+  // Track a page view
+  journify.page();
+
+  // Track an event
+  journify.track("purchase", {
+    value: 1000,
+    currency: "SAR",
+    transaction_id: "1000-abe7f-842537-1372826"
+  });
 </script>
 ```
 
