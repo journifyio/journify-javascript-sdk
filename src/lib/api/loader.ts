@@ -82,8 +82,7 @@ export class Loader {
 
     if (!this.consentService) {
       const initialConsent = sdkConfig.options?.initialConsent;
-      const workspaceConsentMode = writeKeySettings.consent_mode;
-      const consentMode = resolveConsentMode(writeKeySettings.country_code, workspaceConsentMode);
+      const consentMode = resolveConsentMode(writeKeySettings.country_code, writeKeySettings.consent_mode);
       this.consentService = new ConsentServiceImpl(consentMode, initialConsent);
     }
 
