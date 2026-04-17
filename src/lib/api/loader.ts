@@ -39,7 +39,7 @@ import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag"
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
-import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences} from "../domain/consent";
+import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -82,10 +82,8 @@ export class Loader {
 
     if (!this.consentService) {
       const initialConsent = sdkConfig.options?.initialConsent;
-      this.consentService = new ConsentServiceImpl(
-          writeKeySettings.countryCode,
-          initialConsent
-      );
+      const consentMode = resolveConsentMode(writeKeySettings.country_code, writeKeySettings.consent_mode);
+      this.consentService = new ConsentServiceImpl(consentMode, initialConsent);
     }
 
     const browser = new BrowserImpl();
