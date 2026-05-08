@@ -81,7 +81,7 @@ export class TikTokPixel implements Plugin {
       sync.field_mappings,
       () => new Date()
     );
-    this.eventMapper = this.eventMapperFactory.newEventMapper(sync.event_mappings);
+    this.eventMapper = this.eventMapperFactory.newEventMapper(sync.event_mappings, true /* allowUnmappedEvents */);
     this.settings = toSettingsObject(sync.settings);
 
     if (this.testingMode) {
@@ -176,11 +176,19 @@ export class TikTokPixel implements Plugin {
 
     private trackPixelEvent(ctx: Context): Context {
         const event = ctx.getEvent();
+
+        // Only re-fire if this event was triggered by the TikTok wrapper (or has no wrapper source).
+        const sourceWrapper = (event.properties as any)?._sourceWrapper;
+        if (sourceWrapper && sourceWrapper !== 'tiktok') {
+            return ctx;
+        }
+
         const mappedEvent = this.eventMapper.applyEventMapping(event);
         if (!mappedEvent) {
             return ctx;
         }
         const mappedProperties = this.fieldsMapper.mapEvent(event);
+        delete (mappedProperties as any)._sourceWrapper;
         const eventId = mappedProperties.event_id;
         delete mappedProperties.event_id;
 

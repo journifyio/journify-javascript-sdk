@@ -78,12 +78,20 @@ export class SnapchatPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
+
+    // Only re-fire if this event was triggered by the Snapchat wrapper (or has no wrapper source).
+    const sourceWrapper = (event.properties as any)?._sourceWrapper;
+    if (sourceWrapper && sourceWrapper !== 'snapchat') {
+      return ctx;
+    }
+
     const mappedEvent = this.eventMapper.applyEventMapping(event);
     if (!mappedEvent) {
       return ctx;
     }
 
     const mappedProperties = this.fieldsMapper.mapEvent(event);
+    delete (mappedProperties as any)._sourceWrapper;
     const eventName = mappedEvent?.pixelEventName || event.event;
     const properties = this.transformProperties(mappedProperties);
     this.callPixelHelper("track", this.settings.pixel_id, eventName, properties);
@@ -128,7 +136,8 @@ export class SnapchatPixel implements Plugin {
 
   private init(sync: Sync) {
     this.eventMapper = this.eventMapperFactory.newEventMapper(
-      sync.event_mappings
+      sync.event_mappings,
+      true /* allowUnmappedEvents */
     );
     this.fieldsMapper = this.fieldMapperFactory.newFieldMapper(
       sync.field_mappings
