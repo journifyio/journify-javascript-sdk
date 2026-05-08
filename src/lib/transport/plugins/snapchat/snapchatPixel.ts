@@ -156,6 +156,14 @@ export class SnapchatPixel implements Plugin {
         "Will call window.snaptr with the following params in order:",
         [trackingType, pixelId, ...args]
       );
+      return;
+    }
+
+    // Use the bypass reference exposed by the wrapper to avoid re-interception.
+    // Falls back to window.snaptr when the wrapper is not installed.
+    const bypass = (window as any).__jf?.pixels?.snaptr;
+    if (bypass) {
+      bypass(trackingType, pixelId, ...args);
     } else {
       this.browser.window().snaptr(trackingType, pixelId, ...args);
     }

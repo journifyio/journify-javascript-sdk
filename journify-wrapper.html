@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+
+  <!--
+    JOURNIFY PIXEL WRAPPER
+    ======================
+    Load this script BEFORE any pixel SDK (fbq / ttq / snaptr) and BEFORE
+    the Journify SDK snippet below.
+
+    Architecture
+    ------------
+    1. Intercepts customer pixel calls (fbq, ttq.track, snaptr).
+    2. Suppresses the original call so the pixel does not fire directly.
+    3. Forwards the event to journify.track / journify.page instead.
+    4. The Journify SDK routes the event through its plugins; each plugin
+       re-fires its own pixel with the SDK-generated messageId as eventId
+       (enabling server-side deduplication at CAPI).
+
+    Loop prevention — window.__jf.pixels
+    -------------------------------------
+    When a plugin re-fires its pixel (e.g. fbq, snaptr), the wrapper must
+    NOT intercept that call again or we get an infinite loop.
+
+    Solution: before wrapping each pixel function, we capture the original
+    (pre-wrap) reference and expose it under window.__jf.pixels:
+
+      window.__jf.pixels.fbq         → calls original Facebook callMethod directly
+      window.__jf.pixels.snaptr      → the original snaptr function
+      window.__jf.pixels.ttqInstance → returns a raw, unwrapped TikTok instance
+
+    Plugins use these bypass references so their re-fire calls are never seen
+    by this interceptor — no global sentinel flag needed.
+  -->
+  <script>
+    (function () {
+      'use strict';
+
+      // ── Bypass namespace ─────────────────────────────────────────────────────
+      // Journify plugins read window.__jf.pixels.fbq / .snaptr to call the real
+      // pixel function directly, bypassing this interceptor.
+      window.__jf = window.__jf || {};
+      window.__jf.pixels = window.__jf.pixels || {};
+
+
+      // ── Journify dispatch ────────────────────────────────────────────────────
+      // Sends an intercepted pixel event through the Journify SDK.
+      // The Journify snippet below creates window.journify as a stub that queues
+      // calls until the real SDK loads, so no additional buffering is needed here.
+      function dispatchToJournify(method, eventName, props) {
+        var journify = window.journify;
+        if (!journify) return; // wrapper loaded before Journify snippet — rare, call is lost
+        if (typeof journify[method] === 'function') {
+          journify[method](eventName, props);
+        } else {
+          journify.push([method, eventName, props]); // SDK stub queue
+        }
+      }
+
+
+      // ════════════════════════════════════════════════════════════════════════
+      // FACEBOOK  (window.fbq)
+      // ════════════════════════════════════════════════════════════════════════
+      //
+      // Facebook pixel routes all calls through an internal `callMethod` on the
+      // fbq stub. We intercept at that level so we capture both the initial
+      // queue flush (when fbevents.js loads) and all subsequent calls.
+      //
+      // Bypass: window.__jf.pixels.fbq is set to a thin wrapper that calls the
+      // ORIGINAL callMethod directly, skipping our interceptor entirely.
+      // ════════════════════════════════════════════════════════════════════════
+
+      // All fbq methods that represent user-facing tracking calls.
+      var FBQ_TRACK_METHODS = {
+        track: true,
+        trackCustom: true,
+        trackSingle: true,
+        trackSingleCustom: true,
+      };
+
+      // Decide whether to suppress an fbq call and, if so, forward to Journify.
+      // Returns true  → let the call through to the real fbq (init, consent, etc.)
+      // Returns false → suppress (tracking call, forwarded to Journify instead)
+      function shouldPassFbqThrough(args) {
+        var method = args[0];
+
+        if (!FBQ_TRACK_METHODS[method]) {
+          return true; // non-tracking call (init, consent, revokeConsent…) — let through
+        }
+
+        // trackSingle / trackSingleCustom carry an explicit pixelId at args[1],
+        // pushing the event name to args[2]. track / trackCustom have the event
+        // name at args[1].
+        var eventNameIndex = (method === 'trackSingle' || method === 'trackSingleCustom') ? 2 : 1;
+        var eventName = args[eventNameIndex];
+        var props = Object.assign({}, args[eventNameIndex + 1] || {});
+
+        dispatchToJournify('track', eventName, props);
+        return false; // suppress — plugin will re-fire via window.__jf.pixels.fbq
+      }
+
+      // Given the ORIGINAL callMethod, build:
+      //   • the intercepting callMethod (installed on the stub), and
+      //   • the bypass (stored on window.__jf.pixels.fbq).
+      function buildFbqCallMethodInterceptor(fbqStub, originalCallMethod) {
+        // Bypass: calling this invokes the real Facebook SDK without interception.
+        window.__jf.pixels.fbq = function () {
+          return originalCallMethod.apply(fbqStub, arguments);
+        };
+
+        // Intercepting callMethod — replaces stub.callMethod.
+        return function () {
+          var args = Array.prototype.slice.call(arguments);
+          if (shouldPassFbqThrough(args)) {
+            return originalCallMethod.apply(fbqStub, args);
+          }
+          // else: suppressed — Journify plugin re-fires with proper eventId
+        };
+      }
+
+      function wrapFbq(fbqStub) {
+        if (fbqStub.__jfWrapped) return fbqStub;
+
+        if (typeof fbqStub.callMethod === 'function') {
+          // fbevents.js already set callMethod — intercept it now.
+          fbqStub.callMethod = buildFbqCallMethodInterceptor(fbqStub, fbqStub.callMethod);
+        } else {
+          // callMethod will be assigned later by fbevents.js.
+          // Trap the property so we intercept the moment it is set.
+          var interceptingCallMethod; // holds the wrapped version
+          Object.defineProperty(fbqStub, 'callMethod', {
+            configurable: true,
+            enumerable: true,
+            get: function () { return interceptingCallMethod; },
+            set: function (realCallMethod) {
+              interceptingCallMethod = buildFbqCallMethodInterceptor(fbqStub, realCallMethod);
+              // Convert back to a plain writable property — fbevents.js only sets
+              // callMethod once, so we no longer need the defineProperty trap.
+              Object.defineProperty(fbqStub, 'callMethod', {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: interceptingCallMethod,
+              });
+            },
+          });
+        }
+
+        fbqStub.__jfWrapped = true;
+        return fbqStub; // same object, modified in place
+      }
+
+
+      // ════════════════════════════════════════════════════════════════════════
+      // SNAPCHAT  (window.snaptr)
+      // ════════════════════════════════════════════════════════════════════════
+      //
+      // snaptr is a plain function. We replace window.snaptr with a wrapper and
+      // store the original as window.__jf.pixels.snaptr for plugin bypass.
+      //
+      // handleRequest proxy: the Snapchat SDK (scevent.min.js) sets
+      // snaptr.handleRequest on whatever window.snaptr points to at load time
+      // (= our wrapper). We proxy that assignment back to the original so that
+      // when the plugin calls window.__jf.pixels.snaptr(…) the original stub
+      // also has handleRequest and can invoke the real SDK.
+      // ════════════════════════════════════════════════════════════════════════
+
+      function wrapSnaptr(originalSnaptr) {
+        if (originalSnaptr.__jfWrapped) return originalSnaptr;
+
+        // Store original for plugin bypass.
+        window.__jf.pixels.snaptr = originalSnaptr;
+
+        var wrapper = function () {
+          var args = Array.prototype.slice.call(arguments);
+          var method = args[0];
+
+          if (method !== 'track') {
+            // init and other lifecycle calls — pass through to real snaptr.
+            return originalSnaptr.apply(window, args);
+          }
+
+          // Customer track call: snaptr('track', eventName, props)
+          var eventName = args[1] || 'Unknown';
+          var props = Object.assign({}, args[2] || {});
+          dispatchToJournify('track', eventName, props);
+          // Suppress — plugin re-fires via window.__jf.pixels.snaptr(…)
+        };
+
+        // Copy existing own properties from the original (queue, etc.)
+        // so the Snapchat SDK finds them on window.snaptr (= wrapper).
+        for (var key in originalSnaptr) {
+          if (Object.prototype.hasOwnProperty.call(originalSnaptr, key)) {
+            wrapper[key] = originalSnaptr[key];
+          }
+        }
+
+        // Proxy handleRequest: the Snapchat SDK sets this on window.snaptr (= wrapper).
+        // Forward every assignment to the original so plugin bypass calls work correctly.
+        Object.defineProperty(wrapper, 'handleRequest', {
+          configurable: true,
+          enumerable: true,
+          get: function () { return originalSnaptr.handleRequest; },
+          set: function (fn) { originalSnaptr.handleRequest = fn; },
+        });
+
+        wrapper.__jfWrapped = true;
+        return wrapper; // replaces window.snaptr
+      }
+
+
+      // ════════════════════════════════════════════════════════════════════════
+      // TIKTOK  (window.ttq)
+      // ════════════════════════════════════════════════════════════════════════
+      //
+      // We intercept:
+      //   • ttq.track(…) and ttq.page(…)  — top-level calls
+      //   • ttq.instance(pixelCode).track/page(…) — per-pixel sub-object calls
+      //
+      // Bypass — window.__jf.pixels.ttqInstance
+      // The Journify TikTok plugin re-fires via ttq.instance(pixelCode).track(…).
+      // If we wrapped instances without a bypass, the plugin call would be
+      // re-intercepted → journify.track fires again → plugin fires again → ∞ loop.
+      //
+      // Solution: before wrapping ttq.instance, we capture the original function
+      // and expose it as window.__jf.pixels.ttqInstance. When the plugin calls
+      // this bypass, it gets a RAW unwrapped instance whose track/page methods
+      // are not intercepted — so the re-fire reaches the real TikTok SDK directly.
+      //
+      // The _origInstance variable is shared between the bypass closure and the
+      // defineProperty setter: if the TikTok SDK later assigns a new instance
+      // function (ttq.instance = newFn), _origInstance updates automatically and
+      // window.__jf.pixels.ttqInstance continues returning correct raw instances.
+      //
+      // Lazy re-wrap: the TikTok SDK sometimes redefines ttq.track/page via
+      // Object.defineProperty after the stub has been set up. The window.ttq
+      // getter detects this (by comparing stored getter references) and re-applies
+      // our trap automatically.
+      // ════════════════════════════════════════════════════════════════════════
+
+      var TTQ_METHODS_TO_INTERCEPT = ['track', 'page'];
+
+      // Traps a single method on ttqObj using a getter so we can detect
+      // if the TikTok SDK later overwrites it.
+      function trapTtqMethod(ttqObj, method) {
+        // Keep a reference to the underlying real function (updated via setter).
+        var underlyingFn = typeof ttqObj[method] === 'function' ? ttqObj[method] : null;
+
+        function interceptor() {
+          var args = Array.prototype.slice.call(arguments);
+          var isPage = (method === 'page');
+          var eventName = isPage ? 'PageView' : (args[0] || 'Unknown');
+          var props     = isPage ? {} : Object.assign({}, args[1] || {});
+          dispatchToJournify(isPage ? 'page' : 'track', eventName, props);
+          // Suppress — plugin re-fires via window.__jf.pixels.ttqInstance(…)
+        }
+
+        // Use a getter so we can compare it later and detect SDK overwrites.
+        var getterFn = function () { return interceptor; };
+
+        try {
+          Object.defineProperty(ttqObj, method, {
+            configurable: true,
+            enumerable: true,
+            get: getterFn,
+            // Allow the TikTok SDK to update the underlying function via assignment.
+            set: function (newFn) { underlyingFn = newFn; },
+          });
+        } catch (e) {
+          // defineProperty not available — fall back to direct assignment.
+          ttqObj[method] = interceptor;
+          getterFn = null;
+        }
+
+        // Remember the getter so the lazy re-wrap check can detect changes.
+        if (!ttqObj.__jfGetters) ttqObj.__jfGetters = {};
+        ttqObj.__jfGetters[method] = getterFn;
+      }
+
+      // Wraps ttq.instance() so that customer calls to ttq.instance(code).track(…)
+      // are also intercepted. Exposes the original instance function as
+      // window.__jf.pixels.ttqInstance so the plugin can get a raw, unwrapped
+      // instance and re-fire without being intercepted again.
+      function wrapTtqInstance(ttqObj) {
+        if (typeof ttqObj.instance !== 'function') return;
+
+        // _origInstance is shared between the bypass closure and the setter below,
+        // so it stays up-to-date if the TikTok SDK later replaces ttq.instance.
+        var _origInstance = ttqObj.instance;
+
+        // Bypass for the plugin: returns a raw instance whose track/page are not trapped.
+        window.__jf.pixels.ttqInstance = function (pixelCode) {
+          return _origInstance.call(ttqObj, pixelCode);
+        };
+
+        // Intercepting instance() — wraps track/page on each sub-object returned.
+        var wrappedInstanceFn = function (pixelCode) {
+          var rawInstance = _origInstance.call(ttqObj, pixelCode);
+          if (rawInstance && !rawInstance.__jfWrapped) {
+            wrapTtqObject(rawInstance); // trap track/page on this instance
+          }
+          return rawInstance;
+        };
+
+        // Use defineProperty so if TikTok SDK later assigns ttq.instance = newFn,
+        // the setter updates _origInstance and the bypass auto-reflects the new fn.
+        Object.defineProperty(ttqObj, 'instance', {
+          configurable: true,
+          enumerable: true,
+          get: function () { return wrappedInstanceFn; },
+          set: function (newFn) { _origInstance = newFn; },
+        });
+      }
+
+      // Wraps track, page, and instance on a ttq object (top-level or sub-instance).
+      function wrapTtqObject(ttqObj) {
+        TTQ_METHODS_TO_INTERCEPT.forEach(function (method) {
+          trapTtqMethod(ttqObj, method);
+        });
+        wrapTtqInstance(ttqObj);
+        ttqObj.__jfWrapped = true;
+      }
+
+      function installTtqTrap() {
+        var ttqValue = window.ttq; // may be undefined if TikTok snippet not yet run
+
+        // Wrap immediately if ttq.track is already a function, otherwise defer
+        // one tick to let the TikTok stub finish its synchronous setup.
+        function wrapWhenReady(val) {
+          if (typeof val.track === 'function') {
+            wrapTtqObject(val);
+          } else {
+            setTimeout(function () {
+              if (!val.__jfWrapped) wrapTtqObject(val);
+            }, 0);
+          }
+        }
+
+        if (ttqValue && !ttqValue.__jfWrapped) wrapWhenReady(ttqValue);
+
+        // Keep a permanent defineProperty on window.ttq (never release).
+        // The getter performs a lazy re-wrap check every time ttq is accessed:
+        // if the TikTok SDK replaced our getter on track/page (e.g. after its
+        // real script loads), we re-apply the trap transparently.
+        Object.defineProperty(window, 'ttq', {
+          configurable: true,
+          enumerable: true,
+          get: function () {
+            if (ttqValue && ttqValue.__jfGetters) {
+              var needsRewrap = false;
+              for (var method in ttqValue.__jfGetters) {
+                var storedGetter = ttqValue.__jfGetters[method];
+                if (!storedGetter) continue;
+                var descriptor = Object.getOwnPropertyDescriptor(ttqValue, method);
+                // If the descriptor no longer has OUR getter, the SDK overwrote it.
+                if (!descriptor || descriptor.get !== storedGetter) {
+                  needsRewrap = true;
+                  break;
+                }
+              }
+              if (needsRewrap) {
+                ttqValue.__jfWrapped = false;
+                delete ttqValue.__jfGetters;
+                wrapTtqObject(ttqValue);
+              }
+            }
+            return ttqValue;
+          },
+          set: function (newVal) {
+            ttqValue = newVal;
+            if (newVal && !newVal.__jfWrapped) wrapWhenReady(newVal);
+          },
+        });
+      }
+
+
+      // ── Generic window[name] trap ────────────────────────────────────────────
+      // If window[name] already has a value, wrap it immediately.
+      // Otherwise install a defineProperty setter that wraps it on first assignment
+      // and then converts back to a plain writable property (one-shot trap).
+      function installWindowTrap(globalName, wrapFn) {
+        var current = window[globalName];
+        if (current) {
+          window[globalName] = wrapFn(current);
+          return;
+        }
+
+        var wrappedValue;
+        var isTrapped = true;
+        Object.defineProperty(window, globalName, {
+          configurable: true,
+          enumerable: true,
+          get: function () { return wrappedValue; },
+          set: function (newVal) {
+            if (isTrapped && newVal && !newVal.__jfWrapped) {
+              wrappedValue = wrapFn(newVal);
+              wrappedValue.__jfWrapped = true;
+              isTrapped = false;
+              // Release the trap — subsequent assignments go directly.
+              Object.defineProperty(window, globalName, {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: wrappedValue,
+              });
+            } else {
+              wrappedValue = newVal;
+            }
+          },
+        });
+      }
+
+
+      // ── Install all interceptors ─────────────────────────────────────────────
+      installWindowTrap('fbq', wrapFbq);
+      installWindowTrap('snaptr', wrapSnaptr);
+      installTtqTrap();
+
+    })();
+  </script>
+
+  <!--
+    JOURNIFY SDK
+    Replace writeKey / apiHost / cdnHost for your environment.
+    This snippet creates window.journify as a stub that queues track/page/etc.
+    calls until the real SDK loads — so the wrapper above can dispatch to it
+    immediately without waiting.
+  -->
+  <script>
+    !(function () {
+      var journify = (window.journify = window.journify || []); var localJournify;
+      if (!journify.load) {
+        if (journify.invoked) { console.error("Journify snippet included twice."); } else {
+          journify.invoked = !0;
+          journify.methods = ["track","identify","group","page"];
+          journify.factory = function (m) { return function () { var a = Array.prototype.slice.call(arguments); a.unshift(m); journify.push(a); return journify; }; };
+          for (var i = 0; i < journify.methods.length; i++) { var mn = journify.methods[i]; journify[mn] = journify.factory(mn); }
+          journify.load = function (s) {
+            var sc = document.createElement("script"); sc.type = "text/javascript"; sc.async = !0;
+            sc.src = "https://static.journify.io/@journifyio/js-sdk@latest/journifyio.min.js";
+            localJournify = journify;
+            sc.onload = function () {
+              window.journify.load(s);
+              for (var i = 0; i < localJournify.length; i++) {
+                var ca = localJournify[i]; var mn = ca.shift();
+                if (!window.journify[mn]) return;
+                window.journify[mn].apply(this, ca);
+              }
+            };
+            var fs = document.getElementsByTagName("script")[0]; fs.parentNode.insertBefore(sc, fs);
+          };
+          journify.load({ writeKey: "YOUR_WRITE_KEY", apiHost: "https://t.journify.io", cdnHost: "https://static.journify.io" });
+        }
+      }
+    })();
+  </script>
+</head>
+<body>
+</body>
+</html>

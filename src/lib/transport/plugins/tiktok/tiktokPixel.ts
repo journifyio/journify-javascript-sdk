@@ -112,7 +112,12 @@ export class TikTokPixel implements Plugin {
             ...args,
             pixelCode: this.settings.pixel_code,
         };
-        const ttqInstance = window.ttq.instance(event.pixelCode)
+        // Use the bypass exposed by the wrapper to get a raw, unwrapped instance.
+        // Falls back to window.ttq.instance when the wrapper is not installed.
+        const getTtqInstance: ((pixelCode: string) => any) | undefined = (window as any).__jf?.pixels?.ttqInstance;
+        const ttqInstance = getTtqInstance
+            ? getTtqInstance(event.pixelCode)
+            : window.ttq.instance(event.pixelCode);
 
         switch (eventType) {
             case JournifyEventType.IDENTIFY:

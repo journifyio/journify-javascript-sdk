@@ -15,7 +15,7 @@ import { getValue } from "./value";
 import { coerceToType } from "../../../lib/utils";
 
 export interface EventMapperFactory {
-  newEventMapper(eventMappings: EventMapping[]): EventMapper;
+  newEventMapper(eventMappings: EventMapping[], passThroughUnmappedEvents?: boolean): EventMapper;
 }
 
 export interface EventMapper {
@@ -23,8 +23,8 @@ export interface EventMapper {
 }
 
 export class EventMapperFactoryImpl implements EventMapperFactory {
-  public newEventMapper(eventMappings: EventMapping[]): EventMapper {
-    return new EventMapperImpl(eventMappings);
+  public newEventMapper(eventMappings: EventMapping[], passThroughUnmappedEvents: boolean = false): EventMapper {
+    return new EventMapperImpl(eventMappings, passThroughUnmappedEvents);
   }
 }
 
@@ -33,11 +33,11 @@ export class EventMapperImpl implements EventMapper {
   private readonly pageEventsMapping: Record<string, PixelEventMapping[]> = {};
   private readonly trackEventsMapping: Record<string, PixelEventMapping[]> = {};
   private readonly groupEventsMapping: Record<string, PixelEventMapping[]> = {};
-  private readonly identifyEventsMapping: Record<string, PixelEventMapping[]> =
-    {};
-
-  constructor(eventMappings: EventMapping[]) {
+  private readonly identifyEventsMapping: Record<string, PixelEventMapping[]> ={};
+  private readonly passThroughUnmappedEvents: boolean;
+  constructor(eventMappings: EventMapping[], passThroughUnmappedEvents: boolean = false) {
     this.eventMappings = eventMappings;
+    this.passThroughUnmappedEvents = passThroughUnmappedEvents;
     this.init();
   }
 
@@ -65,6 +65,11 @@ export class EventMapperImpl implements EventMapper {
         return null;
     }
 
+    if (this.passThroughUnmappedEvents) {
+      return {
+        pixelEventName: event.event || event.type,
+      };
+    }
     if (!eventMappings || eventMappings.length === 0) {
       return null;
     }
@@ -88,7 +93,7 @@ export class EventMapperImpl implements EventMapper {
 
       const pixelMapping: PixelEventMapping = {
         pixelEventName: mapping.destination_event_key,
-        filters: mapping.filters,
+        filters: mapping.filters
       };
 
       switch (mapping.event_type) {
