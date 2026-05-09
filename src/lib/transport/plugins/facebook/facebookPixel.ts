@@ -77,7 +77,8 @@ export class FacebookPixel implements Plugin {
     );
     this.testingMode = deps.testingWriteKey;
     this.eventMapper = deps.eventMapperFactory.newEventMapper(
-      deps.sync.event_mappings
+      deps.sync.event_mappings,
+      true /* allowUnmappedEvents */
     );
     this.logger = deps.logger;
     this.init(deps.sync);
@@ -119,12 +120,20 @@ export class FacebookPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
+
+    // Only re-fire if this event was triggered by the Facebook wrapper (or has no wrapper source).
+    const sourceWrapper = (event.properties as any)?._sourceWrapper;
+    if (sourceWrapper && sourceWrapper !== 'facebook') {
+      return ctx;
+    }
+
     const mappedEvent = this.eventMapper.applyEventMapping(event);
     if (!mappedEvent) {
       return ctx;
     }
 
     const mappedProperties = this.fieldsMapper.mapEvent(event);
+    delete (mappedProperties as any)._sourceWrapper;
     const eventId = mappedProperties.event_id;
     delete mappedProperties.event_id;
 
@@ -209,8 +218,18 @@ export class FacebookPixel implements Plugin {
       );
       return;
     }
+    console.log("Calling Facebook Pixel with the following params in order:", args);
 
-    this.browser.window().fbq(...args);
+    // Use the bypass reference exposed by the wrapper to avoid re-interception.
+    // Falls back to window.fbq when the wrapper is not installed.
+    const bypass: ((...a: any[]) => void) | undefined = (window as any).__jf?.pixels?.fbq;
+    if (bypass) {
+      console.log("Calling Facebook Pixel bypass with the following params in order:", args);
+      bypass(...args);
+    } else {
+      console.log("Calling window.fbq with the following params in order:", args);
+      this.browser.window().fbq(...args);
+    }
   }
 
   private mapUserData(event: JournifyEvent): object {

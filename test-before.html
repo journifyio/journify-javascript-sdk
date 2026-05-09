@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel Test — Wrapper BEFORE Pixels</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 24px; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #888; margin-bottom: 24px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle; }
+    .badge-before { background: #1a4a1a; color: #4caf50; }
+    .section { margin-bottom: 24px; }
+    .section h2 { font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+    button {
+      padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    .btn-view    { background: #1565c0; color: #fff; }
+    .btn-cart    { background: #6a1b9a; color: #fff; }
+    .btn-checkout{ background: #e65100; color: #fff; }
+    .btn-purchase{ background: #1b5e20; color: #fff; }
+    .btn-search  { background: #37474f; color: #fff; }
+    .btn-page    { background: #263238; color: #ccc; border: 1px solid #444; }
+    .log-panel {
+      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+      padding: 16px; margin-top: 24px;
+    }
+    .log-panel h2 { font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .log-entries { max-height: 420px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    .log-entry { padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #444; }
+    .log-entry.journify { border-left-color: #4caf50; background: #0a1f0a; }
+    .log-entry.fbq      { border-left-color: #1877f2; background: #0a1020; }
+    .log-entry.ttq      { border-left-color: #fe2c55; background: #1a0a10; }
+    .log-entry.snapchat { border-left-color: #fffc00; background: #1a1a00; }
+    .log-entry .time    { color: #666; margin-right: 8px; }
+    .log-entry .source  { font-weight: 700; margin-right: 6px; }
+    .log-entry .eid     { color: #888; font-size: 11px; display: block; margin-top: 2px; }
+    .log-entry .params  { color: #aaa; font-size: 11px; display: block; margin-top: 2px; white-space: pre-wrap; word-break: break-all; }
+    .clear-btn { float: right; background: none; border: 1px solid #444; color: #888; padding: 4px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+    .clear-btn:hover { color: #ccc; border-color: #666; opacity: 1; }
+    .pixel-ids { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-family: monospace; font-size: 12px; }
+    .pixel-ids div { margin-bottom: 6px; color: #888; }
+    .pixel-ids span { color: #e0e0e0; }
+  </style>
+
+<script>
+    (function () {
+      'use strict';
+
+      // ── Bypass namespace ─────────────────────────────────────────────────────
+      // Journify plugins read window.__jf.pixels.fbq / .snaptr to call the real
+      // pixel function directly, bypassing this interceptor.
+      window.__jf = window.__jf || {};
+      window.__jf.pixels = window.__jf.pixels || {};
+
+
+      // ── Journify dispatch ────────────────────────────────────────────────────
+      // Sends an intercepted pixel event through the Journify SDK.
+      // The Journify snippet below creates window.journify as a stub that queues
+      // calls until the real SDK loads, so no additional buffering is needed here.
+      function dispatchToJournify(method, eventName, props) {
+        var journify = window.journify;
+        if (!journify) return; // wrapper loaded before Journify snippet — rare, call is lost
+        if (typeof journify[method] === 'function') {
+          journify[method](eventName, props);
+        } else {
+          journify.push([method, eventName, props]); // SDK stub queue
+        }
+      }
+
+
+      // ════════════════════════════════════════════════════════════════════════
+      // FACEBOOK  (window.fbq)
+      // ════════════════════════════════════════════════════════════════════════
+      //
+      // Facebook pixel routes all calls through an internal `callMethod` on the
+      // fbq stub. We intercept at that level so we capture both the initial
+      // queue flush (when fbevents.js loads) and all subsequent calls.
+      //
+      // Bypass: window.__jf.pixels.fbq is set to a thin wrapper that calls the
+      // ORIGINAL callMethod directly, skipping our interceptor entirely.
+      // ════════════════════════════════════════════════════════════════════════
+
+      // All fbq methods that represent user-facing tracking calls.
+      var FBQ_TRACK_METHODS = {
+        track: true,
+        trackCustom: true,
+        trackSingle: true,
+        trackSingleCustom: true,
+      };
+
+      // Decide whether to suppress an fbq call and, if so, forward to Journify.
+      // Returns true  → let the call through to the real fbq (init, consent, etc.)
+      // Returns false → suppress (tracking call, forwarded to Journify instead)
+      function shouldPassFbqThrough(args) {
+        var method = args[0];
+
+        if (!FBQ_TRACK_METHODS[method]) {
+          return true; // non-tracking call (init, consent, revokeConsent…) — let through
+        }
+
+        // trackSingle / trackSingleCustom carry an explicit pixelId at args[1],
+        // pushing the event name to args[2]. track / trackCustom have the event
+        // name at args[1].
+        var eventNameIndex = (method === 'trackSingle' || method === 'trackSingleCustom') ? 2 : 1;
+        var eventName = args[eventNameIndex];
+        var props = Object.assign({}, args[eventNameIndex + 1] || {});
+
+        dispatchToJournify('track', eventName, props);
+        return false; // suppress — plugin will re-fire via window.__jf.pixels.fbq
+      }
+
+      // Given the ORIGINAL callMethod, build:
+      //   • the intercepting callMethod (installed on the stub), and
+      //   • the bypass (stored on window.__jf.pixels.fbq).
+      function buildFbqCallMethodInterceptor(fbqStub, originalCallMethod) {
+        // Bypass: calling this invokes the real Facebook SDK without interception.
+        window.__jf.pixels.fbq = function () {
+          return originalCallMethod.apply(fbqStub, arguments);
+        };
+
+        // Intercepting callMethod — replaces stub.callMethod.
+        return function () {
+          var args = Array.prototype.slice.call(arguments);
+          if (shouldPassFbqThrough(args)) {
+            return originalCallMethod.apply(fbqStub, args);
+          }
+          // else: suppressed — Journify plugin re-fires with proper eventId
+        };
+      }
+
+      function wrapFbq(fbqStub) {
+        if (fbqStub.__jfWrapped) return fbqStub;
+
+        if (typeof fbqStub.callMethod === 'function') {
+          // fbevents.js already set callMethod — intercept it now.
+          fbqStub.callMethod = buildFbqCallMethodInterceptor(fbqStub, fbqStub.callMethod);
+        } else {
+          // callMethod will be assigned later by fbevents.js.
+          // Trap the property so we intercept the moment it is set.
+          var interceptingCallMethod; // holds the wrapped version
+          Object.defineProperty(fbqStub, 'callMethod', {
+            configurable: true,
+            enumerable: true,
+            get: function () { return interceptingCallMethod; },
+            set: function (realCallMethod) {
+              interceptingCallMethod = buildFbqCallMethodInterceptor(fbqStub, realCallMethod);
+              // Convert back to a plain writable property — fbevents.js only sets
+              // callMethod once, so we no longer need the defineProperty trap.
+              Object.defineProperty(fbqStub, 'callMethod', {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: interceptingCallMethod,
+              });
+            },
+          });
+        }
+
+        fbqStub.__jfWrapped = true;
+        return fbqStub; // same object, modified in place
+      }
+
+
+      // ════════════════════════════════════════════════════════════════════════
+      // SNAPCHAT  (window.snaptr)
+      // ════════════════════════════════════════════════════════════════════════
+      //
+      // snaptr is a plain function. We replace window.snaptr with a wrapper and
+      // store the original as window.__jf.pixels.snaptr for plugin bypass.
+      //
+      // handleRequest proxy: the Snapchat SDK (scevent.min.js) sets
+      // snaptr.handleRequest on whatever window.snaptr points to at load time
+      // (= our wrapper). We proxy that assignment back to the original so that
+      // when the plugin calls window.__jf.pixels.snaptr(…) the original stub
+      // also has handleRequest and can invoke the real SDK.
+      // ════════════════════════════════════════════════════════════════════════
+
+      function wrapSnaptr(originalSnaptr) {
+        if (originalSnaptr.__jfWrapped) return originalSnaptr;
+
+        // Store original for plugin bypass.
+        window.__jf.pixels.snaptr = originalSnaptr;
+
+        var wrapper = function () {
+          var args = Array.prototype.slice.call(arguments);
+          var method = args[0];
+
+          if (method !== 'track') {
+            // init and other lifecycle calls — pass through to real snaptr.
+            return originalSnaptr.apply(window, args);
+          }
+
+          // Customer track call: snaptr('track', eventName, props)
+          var eventName = args[1] || 'Unknown';
+          var props = Object.assign({}, args[2] || {});
+          dispatchToJournify('track', eventName, props);
+          // Suppress — plugin re-fires via window.__jf.pixels.snaptr(…)
+        };
+
+        // Copy existing own properties from the original (queue, etc.)
+        // so the Snapchat SDK finds them on window.snaptr (= wrapper).
+        for (var key in originalSnaptr) {
+          if (Object.prototype.hasOwnProperty.call(originalSnaptr, key)) {
+            wrapper[key] = originalSnaptr[key];
+          }
+        }
+
+        // Proxy handleRequest: the Snapchat SDK sets this on window.snaptr (= wrapper).
+        // Forward every assignment to the original so plugin bypass calls work correctly.
+        Object.defineProperty(wrapper, 'handleRequest', {
+          configurable: true,
+          enumerable: true,
+          get: function () { return originalSnaptr.handleRequest; },
+          set: function (fn) { originalSnaptr.handleRequest = fn; },
+        });
+
+        wrapper.__jfWrapped = true;
+        return wrapper; // replaces window.snaptr
+      }
+
+
+      // ════════════════════════════════════════════════════════════════════════
+      // TIKTOK  (window.ttq)
+      // ════════════════════════════════════════════════════════════════════════
+      //
+      // We intercept:
+      //   • ttq.track(…) and ttq.page(…)  — top-level calls
+      //   • ttq.instance(pixelCode).track/page(…) — per-pixel sub-object calls
+      //
+      // Bypass — window.__jf.pixels.ttqInstance
+      // The Journify TikTok plugin re-fires via ttq.instance(pixelCode).track(…).
+      // If we wrapped instances without a bypass, the plugin call would be
+      // re-intercepted → journify.track fires again → plugin fires again → ∞ loop.
+      //
+      // Solution: before wrapping ttq.instance, we capture the original function
+      // and expose it as window.__jf.pixels.ttqInstance. When the plugin calls
+      // this bypass, it gets a RAW unwrapped instance whose track/page methods
+      // are not intercepted — so the re-fire reaches the real TikTok SDK directly.
+      //
+      // The _origInstance variable is shared between the bypass closure and the
+      // defineProperty setter: if the TikTok SDK later assigns a new instance
+      // function (ttq.instance = newFn), _origInstance updates automatically and
+      // window.__jf.pixels.ttqInstance continues returning correct raw instances.
+      //
+      // Lazy re-wrap: the TikTok SDK sometimes redefines ttq.track/page via
+      // Object.defineProperty after the stub has been set up. The window.ttq
+      // getter detects this (by comparing stored getter references) and re-applies
+      // our trap automatically.
+      // ════════════════════════════════════════════════════════════════════════
+
+      var TTQ_METHODS_TO_INTERCEPT = ['track', 'page'];
+
+      // Traps a single method on ttqObj using a getter so we can detect
+      // if the TikTok SDK later overwrites it.
+      function trapTtqMethod(ttqObj, method) {
+        // Keep a reference to the underlying real function (updated via setter).
+        var underlyingFn = typeof ttqObj[method] === 'function' ? ttqObj[method] : null;
+
+        function interceptor() {
+          var args = Array.prototype.slice.call(arguments);
+          var isPage = (method === 'page');
+          var eventName = isPage ? 'PageView' : (args[0] || 'Unknown');
+          var props     = isPage ? {} : Object.assign({}, args[1] || {});
+          dispatchToJournify(isPage ? 'page' : 'track', eventName, props);
+          // Suppress — plugin re-fires via window.__jf.pixels.ttqInstance(…)
+        }
+
+        // Use a getter so we can compare it later and detect SDK overwrites.
+        var getterFn = function () { return interceptor; };
+
+        try {
+          Object.defineProperty(ttqObj, method, {
+            configurable: true,
+            enumerable: true,
+            get: getterFn,
+            // Allow the TikTok SDK to update the underlying function via assignment.
+            set: function (newFn) { underlyingFn = newFn; },
+          });
+        } catch (e) {
+          // defineProperty not available — fall back to direct assignment.
+          ttqObj[method] = interceptor;
+          getterFn = null;
+        }
+
+        // Remember the getter so the lazy re-wrap check can detect changes.
+        if (!ttqObj.__jfGetters) ttqObj.__jfGetters = {};
+        ttqObj.__jfGetters[method] = getterFn;
+      }
+
+      // Wraps ttq.instance() so that customer calls to ttq.instance(code).track(…)
+      // are also intercepted. Exposes the original instance function as
+      // window.__jf.pixels.ttqInstance so the plugin can get a raw, unwrapped
+      // instance and re-fire without being intercepted again.
+      function wrapTtqInstance(ttqObj) {
+        if (typeof ttqObj.instance !== 'function') return;
+
+        // _origInstance is shared between the bypass closure and the setter below,
+        // so it stays up-to-date if the TikTok SDK later replaces ttq.instance.
+        var _origInstance = ttqObj.instance;
+
+        // Bypass for the plugin: returns a raw instance whose track/page are not trapped.
+        window.__jf.pixels.ttqInstance = function (pixelCode) {
+          return _origInstance.call(ttqObj, pixelCode);
+        };
+
+        // Intercepting instance() — wraps track/page on each sub-object returned.
+        var wrappedInstanceFn = function (pixelCode) {
+          var rawInstance = _origInstance.call(ttqObj, pixelCode);
+          if (rawInstance && !rawInstance.__jfWrapped) {
+            wrapTtqObject(rawInstance); // trap track/page on this instance
+          }
+          return rawInstance;
+        };
+
+        // Use defineProperty so if TikTok SDK later assigns ttq.instance = newFn,
+        // the setter updates _origInstance and the bypass auto-reflects the new fn.
+        Object.defineProperty(ttqObj, 'instance', {
+          configurable: true,
+          enumerable: true,
+          get: function () { return wrappedInstanceFn; },
+          set: function (newFn) { _origInstance = newFn; },
+        });
+      }
+
+      // Wraps track, page, and instance on a ttq object (top-level or sub-instance).
+      function wrapTtqObject(ttqObj) {
+        TTQ_METHODS_TO_INTERCEPT.forEach(function (method) {
+          trapTtqMethod(ttqObj, method);
+        });
+        wrapTtqInstance(ttqObj);
+        ttqObj.__jfWrapped = true;
+      }
+
+      function installTtqTrap() {
+        var ttqValue = window.ttq; // may be undefined if TikTok snippet not yet run
+
+        // Wrap immediately if ttq.track is already a function, otherwise defer
+        // one tick to let the TikTok stub finish its synchronous setup.
+        function wrapWhenReady(val) {
+          if (typeof val.track === 'function') {
+            wrapTtqObject(val);
+          } else {
+            setTimeout(function () {
+              if (!val.__jfWrapped) wrapTtqObject(val);
+            }, 0);
+          }
+        }
+
+        if (ttqValue && !ttqValue.__jfWrapped) wrapWhenReady(ttqValue);
+
+        // Keep a permanent defineProperty on window.ttq (never release).
+        // The getter performs a lazy re-wrap check every time ttq is accessed:
+        // if the TikTok SDK replaced our getter on track/page (e.g. after its
+        // real script loads), we re-apply the trap transparently.
+        Object.defineProperty(window, 'ttq', {
+          configurable: true,
+          enumerable: true,
+          get: function () {
+            if (ttqValue && ttqValue.__jfGetters) {
+              var needsRewrap = false;
+              for (var method in ttqValue.__jfGetters) {
+                var storedGetter = ttqValue.__jfGetters[method];
+                if (!storedGetter) continue;
+                var descriptor = Object.getOwnPropertyDescriptor(ttqValue, method);
+                // If the descriptor no longer has OUR getter, the SDK overwrote it.
+                if (!descriptor || descriptor.get !== storedGetter) {
+                  needsRewrap = true;
+                  break;
+                }
+              }
+              if (needsRewrap) {
+                ttqValue.__jfWrapped = false;
+                delete ttqValue.__jfGetters;
+                wrapTtqObject(ttqValue);
+              }
+            }
+            return ttqValue;
+          },
+          set: function (newVal) {
+            ttqValue = newVal;
+            if (newVal && !newVal.__jfWrapped) wrapWhenReady(newVal);
+          },
+        });
+      }
+
+
+      // ── Generic window[name] trap ────────────────────────────────────────────
+      // If window[name] already has a value, wrap it immediately.
+      // Otherwise install a defineProperty setter that wraps it on first assignment
+      // and then converts back to a plain writable property (one-shot trap).
+      function installWindowTrap(globalName, wrapFn) {
+        var current = window[globalName];
+        if (current) {
+          window[globalName] = wrapFn(current);
+          return;
+        }
+
+        var wrappedValue;
+        var isTrapped = true;
+        Object.defineProperty(window, globalName, {
+          configurable: true,
+          enumerable: true,
+          get: function () { return wrappedValue; },
+          set: function (newVal) {
+            if (isTrapped && newVal && !newVal.__jfWrapped) {
+              wrappedValue = wrapFn(newVal);
+              wrappedValue.__jfWrapped = true;
+              isTrapped = false;
+              // Release the trap — subsequent assignments go directly.
+              Object.defineProperty(window, globalName, {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: wrappedValue,
+              });
+            } else {
+              wrappedValue = newVal;
+            }
+          },
+        });
+      }
+
+
+      // ── Install all interceptors ─────────────────────────────────────────────
+      installWindowTrap('fbq', wrapFbq);
+      installWindowTrap('snaptr', wrapSnaptr);
+      installTtqTrap();
+
+    })();
+  </script>
+
+   <!-- ═══════════════════════════════════════════════════════
+       JOURNIFY SDK
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    !(function () {
+      var journify = (window.journify = window.journify || []); var localJournify;
+      if (!journify.load) {
+        if (journify.invoked) { console.error("Journify snippet included twice."); } else {
+          journify.invoked = !0;
+          journify.methods = ["track","identify","group","page"];
+          journify.factory = function (m) { return function () { var a = Array.prototype.slice.call(arguments); a.unshift(m); journify.push(a); return journify; }; };
+          for (var i = 0; i < journify.methods.length; i++) { var mn = journify.methods[i]; journify[mn] = journify.factory(mn); }
+          journify.load = function (s) {
+            var sc = document.createElement("script"); sc.type = "text/javascript"; sc.async = !0;
+            sc.src = "https://rely-bounding-gummy.ngrok-free.dev/journifyio.js";
+            localJournify = journify;
+            sc.onload = function () {
+              window.journify.load(s);
+              for (var i = 0; i < localJournify.length; i++) {
+                var ca = localJournify[i]; var mn = ca.shift();
+                if (!window.journify[mn]) return;
+                window.journify[mn].apply(this, ca);
+              }
+            };
+            var fs = document.getElementsByTagName("script")[0]; fs.parentNode.insertBefore(sc, fs);
+          };
+          journify.load({ writeKey: "wk_3DLPMilfDm3FFj1FU7Pm16fxbRm", apiHost: "https://t.journify.dev", cdnHost: "https://static.journify.dev" });
+        }
+      }
+    })();
+  </script>
+ 
+
+
+   <!-- ═══════════════════════════════════════════════════════
+       FACEBOOK PIXEL — loaded BEFORE wrapper
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1038277150730483');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1038277150730483&ev=PageView&noscript=1"/></noscript>
+
+
+    
+  <!-- ═══════════════════════════════════════════════════════
+       LOG INTERCEPTOR — patches journify.track to surface calls
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      var _origTrack;
+      function patchJournify() {
+        var j = window.journify;
+        if (!j || _origTrack) return;
+        if (typeof j.track === 'function') {
+          _origTrack = j.track;
+          j.track = function (name, props, opts) {
+            logJournify(name, props, opts);
+            return _origTrack.apply(j, arguments);
+          };
+        }
+      }
+
+      // Also intercept the queue push to catch pre-SDK calls
+      var origPush = Array.prototype.push;
+      (function tryQueuePatch() {
+        var j = window.journify;
+        if (j && Array.isArray(j)) {
+          var _p = j.push.bind(j);
+          j.push = function () {
+            for (var i = 0; i < arguments.length; i++) {
+              var a = arguments[i];
+              if (Array.isArray(a) && a[0] === 'track') {
+                logJournify(a[1], a[2], a[3]);
+              }
+            }
+            return _p.apply(j, arguments);
+          };
+        }
+      })();
+
+      window.addEventListener('load', patchJournify);
+      setTimeout(patchJournify, 500);
+
+      function logJournify(name, props, opts) {
+        addLog('journify', 'Journify', name, props, opts && opts.eventId);
+      }
+
+      window.__jfLog = function (source, label, name, props, eventId) {
+        addLog(source, label, name, props, eventId);
+      };
+
+      function addLog(cls, label, name, props, eventId) {
+        var container = document.getElementById('log-entries');
+        if (!container) return;
+        var el = document.createElement('div');
+        el.className = 'log-entry ' + cls;
+        var t = new Date().toISOString().slice(11, 23);
+        el.innerHTML =
+          '<span class="time">' + t + '</span>' +
+          '<span class="source">[' + label + ']</span>' +
+          '<strong>' + (name || '—') + '</strong>' +
+          (eventId ? '<span class="eid">eventId: ' + eventId + '</span>' : '') +
+          (props && Object.keys(props).length ? '<span class="params">' + JSON.stringify(props, null, 2) + '</span>' : '');
+        container.insertBefore(el, container.firstChild);
+      }
+
+      // Intercept raw pixel calls for visibility
+      var _origFbq, _origTtqTrack, _origSnaptr;
+      document.addEventListener('DOMContentLoaded', function () {
+        // fbq
+        if (window.fbq) {
+          var fbqRef = window.fbq;
+          var _ocm = fbqRef.callMethod;
+          if (_ocm) {
+            fbqRef.callMethod = function () {
+              var a = Array.prototype.slice.call(arguments);
+              if (a[0] === 'track' || a[0] === 'trackCustom') {
+                addLog('fbq', 'fbq', a[1], a[2], a[3] && a[3].eventID);
+              }
+              return _ocm.apply(fbqRef, a);
+            };
+          }
+        }
+      });
+    })();
+  </script>
+</head>
+<body>
+
+  <h1>Pixel Test <span class="badge badge-before">WRAPPER BEFORE PIXELS</span></h1>
+  <p class="subtitle">Wrapper loaded first → defineProperty traps catch pixel stubs as they initialize</p>
+
+  <div class="pixel-ids">
+    <div>Facebook: <span>1038277150730483</span></div>
+    <div>TikTok: <span>D2ON31RC77UFEEV3G770</span></div>
+    <div>Snapchat: <span>336c365f-45fd-47f1-8e89-652fd0dbd37c</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Ecommerce Events</h2>
+    <div class="buttons">
+      <button class="btn-view" onclick="fireViewContent()">ViewContent</button>
+      <button class="btn-cart" onclick="fireAddToCart()">AddToCart</button>
+      <button class="btn-checkout" onclick="fireInitiateCheckout()">InitiateCheckout</button>
+      <button class="btn-purchase" onclick="firePurchase()">Purchase</button>
+      <button class="btn-search" onclick="fireSearch()">Search</button>
+      <button class="btn-page" onclick="firePageView()">PageView</button>
+    </div>
+  </div>
+
+  <div class="log-panel">
+    <h2>
+      Event Log
+      <button class="clear-btn" onclick="document.getElementById('log-entries').innerHTML=''">Clear</button>
+    </h2>
+    <div class="log-entries" id="log-entries">
+      <div style="color:#555;font-size:12px;font-family:monospace;padding:8px 10px;">Waiting for events…</div>
+    </div>
+  </div>
+
+  <script>
+    function fireViewContent() {
+      var params = { content_ids: ['SKU-001'], content_name: 'Test Product', value: 29.99, currency: 'USD' };
+      fbq('track', 'ViewContent', params);
+      // ttq.track('ViewContent', { content_id: 'SKU-001', content_name: 'Test Product', value: 29.99, currency: 'USD' });
+      // snaptr('track', 'VIEW_CONTENT', { price: 29.99, currency: 'USD', item_ids: ['SKU-001'] });
+    }
+
+    function fireAddToCart() {
+      var params = { content_ids: ['SKU-001'], content_name: 'Test Product', value: 29.99, currency: 'USD' };
+      fbq('track', 'AddToCart', params);
+      // ttq.track('AddToCart', { content_id: 'SKU-001', content_name: 'Test Product', value: 29.99, currency: 'USD' });
+      // snaptr('track', 'ADD_CART', { price: 29.99, currency: 'USD', item_ids: ['SKU-001'] });
+    }
+
+    function fireInitiateCheckout() {
+      var params = { content_ids: ['SKU-001'], num_items: 1, value: 29.99, currency: 'USD' };
+      fbq('track', 'InitiateCheckout', params);
+      // ttq.track('InitiateCheckout', { value: 29.99, currency: 'USD' });
+      // snaptr('track', 'START_CHECKOUT', { price: 29.99, currency: 'USD', item_ids: ['SKU-001'] });
+    }
+
+    function firePurchase() {
+      var params = { content_ids: ['SKU-001'], value: 49.99, currency: 'USD', order_id: 'ORD-' + Date.now() };
+      fbq('track', 'Purchase', params);
+      // ttq.track('CompletePayment', { content_id: 'SKU-001', value: 49.99, currency: 'USD' });
+      // snaptr('track', 'PURCHASE', { price: 49.99, currency: 'USD', transaction_id: 'ORD-' + Date.now() });
+    }
+
+    function fireSearch() {
+      fbq('track', 'Search', { search_string: 'test query' });
+      // ttq.track('Search', { query: 'test query' });
+      // snaptr('track', 'SEARCH', { search_string: 'test query' });
+    }
+
+    function firePageView() {
+      fbq('track', 'PageView');
+      // ttq.page();
+      // snaptr('track', 'PAGE_VIEW');
+    }
+  </script>
+</body>
+</html>

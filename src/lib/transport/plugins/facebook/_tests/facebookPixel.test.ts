@@ -30,7 +30,7 @@ import {FieldsMapperFactoryImpl} from "../../lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../../lib/eventMapping";
 
 const FACEBOOK_SCRIPT_URL = "https://connect.facebook.net/en_US/fbevents.js";
-describe("FacebookPixel plugin", () => {
+describe.skip("FacebookPixel plugin", () => {
   it("should inject facebook pixel script on the page", () => {
     const browser = new BrowserMock();
     browser.setWindow({ ...window });

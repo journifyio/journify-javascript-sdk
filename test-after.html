@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel Test — Wrapper AFTER Pixels</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; padding: 24px; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    .subtitle { font-size: 12px; color: #888; margin-bottom: 24px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle; }
+    .badge-after { background: #4a1a00; color: #ff7043; }
+    .section { margin-bottom: 24px; }
+    .section h2 { font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+    button {
+      padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    .btn-view    { background: #1565c0; color: #fff; }
+    .btn-cart    { background: #6a1b9a; color: #fff; }
+    .btn-checkout{ background: #e65100; color: #fff; }
+    .btn-purchase{ background: #1b5e20; color: #fff; }
+    .btn-search  { background: #37474f; color: #fff; }
+    .btn-page    { background: #263238; color: #ccc; border: 1px solid #444; }
+    .log-panel {
+      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+      padding: 16px; margin-top: 24px;
+    }
+    .log-panel h2 { font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .log-entries { max-height: 420px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    .log-entry { padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #444; }
+    .log-entry.journify { border-left-color: #4caf50; background: #0a1f0a; }
+    .log-entry.fbq      { border-left-color: #1877f2; background: #0a1020; }
+    .log-entry.ttq      { border-left-color: #fe2c55; background: #1a0a10; }
+    .log-entry.snapchat { border-left-color: #fffc00; background: #1a1a00; }
+    .log-entry .time    { color: #666; margin-right: 8px; }
+    .log-entry .source  { font-weight: 700; margin-right: 6px; }
+    .log-entry .eid     { color: #888; font-size: 11px; display: block; margin-top: 2px; }
+    .log-entry .params  { color: #aaa; font-size: 11px; display: block; margin-top: 2px; white-space: pre-wrap; word-break: break-all; }
+    .clear-btn { float: right; background: none; border: 1px solid #444; color: #888; padding: 4px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+    .clear-btn:hover { color: #ccc; border-color: #666; opacity: 1; }
+    .pixel-ids { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-family: monospace; font-size: 12px; }
+    .pixel-ids div { margin-bottom: 6px; color: #888; }
+    .pixel-ids span { color: #e0e0e0; }
+  </style>
+
+  <!-- ═══════════════════════════════════════════════════════
+       FACEBOOK PIXEL — loaded BEFORE wrapper
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+    document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1038277150730483');
+    fbq('track', 'PageView');
+  </script>
+  <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1038277150730483&ev=PageView&noscript=1"/></noscript>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TIKTOK PIXEL — loaded BEFORE wrapper
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    !function (w, d, t) {
+      w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+      ttq.load('D2ON31RC77UFEEV3G770');
+      ttq.page();
+    }(window, document, 'ttq');
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SNAPCHAT PIXEL — loaded BEFORE wrapper
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    (function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function(){a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};a.queue=[];var s='script';r=t.createElement(s);r.async=!0;r.src=n;var u=t.getElementsByTagName(s)[0];u.parentNode.insertBefore(r,u);})(window,document,'https://sc-static.net/scevent.min.js');
+    snaptr('init', '336c365f-45fd-47f1-8e89-652fd0dbd37c', { 'user_email': '__INSERT_USER_EMAIL__' });
+    snaptr('track', 'PAGE_VIEW');
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       JOURNIFY WRAPPER — loaded AFTER pixel stubs
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      'use strict';
+
+      function generateEventId() {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+          return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = (Math.random() * 16) | 0;
+          var v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+      }
+
+      function sendToJournify(pixelName, method, eventName, params, eventId) {
+        var journify = window.journify;
+        if (!journify) return;
+        var properties = Object.assign({}, params || {}, {
+          _pixelSource: pixelName,
+          _pixelMethod: method,
+        });
+        var options = { eventId: eventId };
+        if (typeof journify.track === 'function') {
+          journify.track(eventName, properties, options);
+        } else {
+          journify.push(['track', eventName, properties, options]);
+        }
+      }
+
+      var FBQ_METHODS = { track: 1, trackCustom: 1, trackSingle: 1, trackSingleCustom: 1 };
+
+      function wrapFbq(realFbq) {
+        if (realFbq.__journifyWrapped) return realFbq;
+        if (typeof realFbq.callMethod === 'function') {
+          var originalCallMethod = realFbq.callMethod;
+          realFbq.callMethod = function () {
+            var args = Array.prototype.slice.call(arguments);
+            interceptFbqArgs(args);
+            return originalCallMethod.apply(realFbq, args);
+          };
+        } else {
+          var originalPush = realFbq.queue && realFbq.queue.push;
+          if (realFbq.queue) {
+            realFbq.queue.push = function () {
+              for (var i = 0; i < arguments.length; i++) {
+                var args = Array.prototype.slice.call(arguments[i]);
+                interceptFbqArgs(args);
+              }
+              return originalPush.apply(realFbq.queue, arguments);
+            };
+          }
+          var _cm = realFbq.callMethod;
+          Object.defineProperty(realFbq, 'callMethod', {
+            configurable: true, enumerable: true,
+            get: function () { return _cm; },
+            set: function (fn) {
+              _cm = function () {
+                var args = Array.prototype.slice.call(arguments);
+                interceptFbqArgs(args);
+                return fn.apply(realFbq, args);
+              };
+              Object.defineProperty(realFbq, 'callMethod', {
+                configurable: true, enumerable: true, writable: true, value: _cm,
+              });
+            },
+          });
+        }
+        realFbq.__journifyWrapped = true;
+        return realFbq;
+      }
+
+      function interceptFbqArgs(args) {
+        var method = args[0];
+        if (!FBQ_METHODS[method]) return;
+        var offset = (method === 'trackSingle' || method === 'trackSingleCustom') ? 2 : 1;
+        var eventName = args[offset];
+        var params = args[offset + 1] || {};
+        var fbOptions = args[offset + 2] || {};
+        var eventId = (fbOptions && fbOptions.eventID) ? fbOptions.eventID : generateEventId();
+        fbOptions.eventID = eventId;
+        args[offset + 2] = fbOptions;
+        try {
+          sendToJournify('fbq', method, eventName, params, eventId);
+        } catch (e) {
+          console.warn('[Journify Wrapper] fbq interception error:', e);
+        }
+      }
+
+      var TTQ_INTERCEPT_METHODS = ['track', 'page'];
+
+      function trapTtqMethod(realTtq, method) {
+        var _fn = (typeof realTtq[method] === 'function') ? realTtq[method] : null;
+
+        function interceptor() {
+          var args = Array.prototype.slice.call(arguments);
+          try { handleTtqCall(method, args); } catch (e) {
+            console.warn('[Journify Wrapper] ttq.' + method + ' interception error:', e);
+          }
+          if (_fn) return _fn.apply(realTtq, args);
+        }
+
+        var getterFn = function () { return interceptor; };
+
+        try {
+          Object.defineProperty(realTtq, method, {
+            configurable: true,
+            enumerable: true,
+            get: getterFn,
+            set: function (newFn) { _fn = newFn; },
+          });
+        } catch (e) {
+          var orig = realTtq[method];
+          realTtq[method] = function () {
+            var args = Array.prototype.slice.call(arguments);
+            try { handleTtqCall(method, args); } catch (ex) {}
+            return orig.apply(realTtq, args);
+          };
+          getterFn = null;
+        }
+
+        if (!realTtq.__jfGetters) realTtq.__jfGetters = {};
+        realTtq.__jfGetters[method] = getterFn;
+      }
+
+      function wrapTtqObject(realTtq) {
+        TTQ_INTERCEPT_METHODS.forEach(function (method) {
+          trapTtqMethod(realTtq, method);
+        });
+        if (typeof realTtq.instance === 'function') {
+          var originalInstance = realTtq.instance;
+          realTtq.instance = function () {
+            var inst = originalInstance.apply(realTtq, arguments);
+            if (inst && !inst.__journifyWrapped) { wrapTtqObject(inst); inst.__journifyWrapped = true; }
+            return inst;
+          };
+        }
+        realTtq.__journifyWrapped = true;
+      }
+
+      function handleTtqCall(method, args) {
+        var eventName, params;
+        if (method === 'page') {
+          eventName = 'PageView'; params = {};
+        } else {
+          eventName = args[0] || 'Unknown';
+          params = args[1] || {};
+        }
+        var eventId = (params && params.event_id) ? params.event_id : generateEventId();
+        if (args[1] && typeof args[1] === 'object') {
+          args[1].event_id = eventId;
+        } else if (method === 'track') {
+          args[1] = { event_id: eventId };
+        }
+        sendToJournify('ttq', method, eventName, params, eventId);
+      }
+
+      function wrapSnaptr(realSnaptr) {
+        var wrapped = function () {
+          var args = Array.prototype.slice.call(arguments);
+          var method = args[0];
+          if (method === 'track') return handleSnaptrCall(realSnaptr, args);
+          return realSnaptr.apply(window, args);
+        };
+        for (var key in realSnaptr) {
+          if (realSnaptr.hasOwnProperty(key)) wrapped[key] = realSnaptr[key];
+        }
+        return wrapped;
+      }
+
+      function handleSnaptrCall(realSnaptr, args) {
+        var eventName = args[1] || 'Unknown';
+        var params = args[2] || {};
+        var eventId = (params && params.client_dedup_id) ? params.client_dedup_id : generateEventId();
+        if (typeof args[2] === 'object') {
+          args[2].client_dedup_id = eventId;
+        } else {
+          args[2] = { client_dedup_id: eventId };
+        }
+        try {
+          sendToJournify('snaptr', 'track', eventName, params, eventId);
+        } catch (e) {
+          console.warn('[Journify Wrapper] snaptr interception error:', e);
+        }
+        return realSnaptr.apply(window, args);
+      }
+
+      function installTrap(globalName, wrapFn) {
+        var currentValue = window[globalName];
+        if (currentValue) { window[globalName] = wrapFn(currentValue); return; }
+        var _inner = undefined;
+        var trapped = true;
+        Object.defineProperty(window, globalName, {
+          configurable: true, enumerable: true,
+          get: function () { return _inner; },
+          set: function (newVal) {
+            if (trapped && newVal && !newVal.__journifyWrapped) {
+              _inner = wrapFn(newVal);
+              _inner.__journifyWrapped = true;
+              trapped = false;
+              Object.defineProperty(window, globalName, {
+                configurable: true, enumerable: true, writable: true, value: _inner,
+              });
+            } else {
+              _inner = newVal;
+            }
+          },
+        });
+      }
+
+      function installTtqTrap() {
+        var currentValue = window.ttq;
+
+        var _inner = currentValue || undefined;
+
+        function wrapOrDefer(val) {
+          if (typeof val.track === 'function') {
+            wrapTtqObject(val);
+          } else {
+            setTimeout(function () {
+              if (!val.__journifyWrapped) wrapTtqObject(val);
+            }, 0);
+          }
+        }
+
+        if (currentValue && !currentValue.__journifyWrapped) {
+          wrapOrDefer(currentValue);
+        }
+
+        // Permanent trap — never release. Lazy re-wrap in getter handles the case
+        // where TikTok's real SDK overrides ttq.track via Object.defineProperty.
+        Object.defineProperty(window, 'ttq', {
+          configurable: true, enumerable: true,
+          get: function () {
+            if (_inner && _inner.__jfGetters) {
+              var needsRewrap = false;
+              for (var m in _inner.__jfGetters) {
+                var expectedGetter = _inner.__jfGetters[m];
+                if (!expectedGetter) continue;
+                var desc = Object.getOwnPropertyDescriptor(_inner, m);
+                if (!desc || !desc.get || desc.get !== expectedGetter) {
+                  needsRewrap = true;
+                  break;
+                }
+              }
+              if (needsRewrap) {
+                _inner.__journifyWrapped = false;
+                delete _inner.__jfGetters;
+                wrapTtqObject(_inner);
+              }
+            }
+            return _inner;
+          },
+          set: function (newVal) {
+            _inner = newVal;
+            if (newVal && !newVal.__journifyWrapped) {
+              wrapOrDefer(newVal);
+            }
+          },
+        });
+      }
+
+      installTrap('fbq', wrapFbq);
+      installTtqTrap();
+      installTrap('snaptr', wrapSnaptr);
+    })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════
+       JOURNIFY SDK
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+    !(function () {
+      var journify = (window.journify = window.journify || []); var localJournify;
+      if (!journify.load) {
+        if (journify.invoked) { console.error("Journify snippet included twice."); } else {
+          journify.invoked = !0;
+          journify.methods = ["track","identify","group","page"];
+          journify.factory = function (m) { return function () { var a = Array.prototype.slice.call(arguments); a.unshift(m); journify.push(a); return journify; }; };
+          for (var i = 0; i < journify.methods.length; i++) { var mn = journify.methods[i]; journify[mn] = journify.factory(mn); }
+          journify.load = function (s) {
+            var sc = document.createElement("script"); sc.type = "text/javascript"; sc.async = !0;
+            sc.src = "https://static.journify.io/@journifyio/js-sdk@latest/journifyio.min.js";
+            localJournify = journify;
+            sc.onload = function () {
+              window.journify.load(s);
+              for (var i = 0; i < localJournify.length; i++) {
+                var ca = localJournify[i]; var mn = ca.shift();
+                if (!window.journify[mn]) return;
+                window.journify[mn].apply(this, ca);
+              }
+            };
+            var fs = document.getElementsByTagName("script")[0]; fs.parentNode.insertBefore(sc, fs);
+          };
+          journify.load({ writeKey: "wk_3DLPMilfDm3FFj1FU7Pm16fxbRm", apiHost: "https://t.journify.dev", cdnHost: "https://static.journify.dev" });
+        }
+      }
+    })();
+  </script>
+
+  <!-- Log interceptor -->
+  <script>
+    (function () {
+      var _origTrack;
+      function patchJournify() {
+        var j = window.journify;
+        if (!j || _origTrack) return;
+        if (typeof j.track === 'function') {
+          _origTrack = j.track;
+          j.track = function (name, props, opts) {
+            logJournify(name, props, opts);
+            return _origTrack.apply(j, arguments);
+          };
+        }
+      }
+      (function tryQueuePatch() {
+        var j = window.journify;
+        if (j && Array.isArray(j)) {
+          var _p = j.push.bind(j);
+          j.push = function () {
+            for (var i = 0; i < arguments.length; i++) {
+              var a = arguments[i];
+              if (Array.isArray(a) && a[0] === 'track') {
+                logJournify(a[1], a[2], a[3]);
+              }
+            }
+            return _p.apply(j, arguments);
+          };
+        }
+      })();
+      window.addEventListener('load', patchJournify);
+      setTimeout(patchJournify, 500);
+      function logJournify(name, props, opts) {
+        addLog('journify', 'Journify', name, props, opts && opts.eventId);
+      }
+      function addLog(cls, label, name, props, eventId) {
+        var container = document.getElementById('log-entries');
+        if (!container) return;
+        var el = document.createElement('div');
+        el.className = 'log-entry ' + cls;
+        var t = new Date().toISOString().slice(11, 23);
+        el.innerHTML =
+          '<span class="time">' + t + '</span>' +
+          '<span class="source">[' + label + ']</span>' +
+          '<strong>' + (name || '—') + '</strong>' +
+          (eventId ? '<span class="eid">eventId: ' + eventId + '</span>' : '') +
+          (props && Object.keys(props).length ? '<span class="params">' + JSON.stringify(props, null, 2) + '</span>' : '');
+        container.insertBefore(el, container.firstChild);
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <h1>Pixel Test <span class="badge badge-after">WRAPPER AFTER PIXELS</span></h1>
+  <p class="subtitle">Pixels load first → wrapper finds stubs already on window and wraps them immediately</p>
+
+  <div class="pixel-ids">
+    <div>Facebook: <span>1038277150730483</span></div>
+    <div>TikTok: <span>D2ON31RC77UFEEV3G770</span></div>
+    <div>Snapchat: <span>336c365f-45fd-47f1-8e89-652fd0dbd37c</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Ecommerce Events</h2>
+    <div class="buttons">
+      <button class="btn-view" onclick="fireViewContent()">ViewContent</button>
+      <button class="btn-cart" onclick="fireAddToCart()">AddToCart</button>
+      <button class="btn-checkout" onclick="fireInitiateCheckout()">InitiateCheckout</button>
+      <button class="btn-purchase" onclick="firePurchase()">Purchase</button>
+      <button class="btn-search" onclick="fireSearch()">Search</button>
+      <button class="btn-page" onclick="firePageView()">PageView</button>
+    </div>
+  </div>
+
+  <div class="log-panel">
+    <h2>
+      Event Log
+      <button class="clear-btn" onclick="document.getElementById('log-entries').innerHTML=''">Clear</button>
+    </h2>
+    <div class="log-entries" id="log-entries">
+      <div style="color:#555;font-size:12px;font-family:monospace;padding:8px 10px;">Waiting for events…</div>
+    </div>
+  </div>
+
+  <script>
+    function fireViewContent() {
+      var params = { content_ids: ['SKU-001'], content_name: 'Test Product', value: 29.99, currency: 'USD' };
+      fbq('track', 'ViewContent', params);
+      ttq.track('ViewContent', { content_id: 'SKU-001', content_name: 'Test Product', value: 29.99, currency: 'USD' });
+      snaptr('track', 'VIEW_CONTENT', { price: 29.99, currency: 'USD', item_ids: ['SKU-001'] });
+    }
+
+    function fireAddToCart() {
+      var params = { content_ids: ['SKU-001'], content_name: 'Test Product', value: 29.99, currency: 'USD' };
+      fbq('track', 'AddToCart', params);
+      ttq.track('AddToCart', { content_id: 'SKU-001', content_name: 'Test Product', value: 29.99, currency: 'USD' });
+      snaptr('track', 'ADD_CART', { price: 29.99, currency: 'USD', item_ids: ['SKU-001'] });
+    }
+
+    function fireInitiateCheckout() {
+      var params = { content_ids: ['SKU-001'], num_items: 1, value: 29.99, currency: 'USD' };
+      fbq('track', 'InitiateCheckout', params);
+      ttq.track('InitiateCheckout', { value: 29.99, currency: 'USD' });
+      snaptr('track', 'START_CHECKOUT', { price: 29.99, currency: 'USD', item_ids: ['SKU-001'] });
+    }
+
+    function firePurchase() {
+      var params = { content_ids: ['SKU-001'], value: 49.99, currency: 'USD', order_id: 'ORD-' + Date.now() };
+      fbq('track', 'Purchase', params);
+      ttq.track('CompletePayment', { content_id: 'SKU-001', value: 49.99, currency: 'USD' });
+      snaptr('track', 'PURCHASE', { price: 49.99, currency: 'USD', transaction_id: 'ORD-' + Date.now() });
+    }
+
+    function fireSearch() {
+      fbq('track', 'Search', { search_string: 'test query' });
+      ttq.track('Search', { query: 'test query' });
+      snaptr('track', 'SEARCH', { search_string: 'test query' });
+    }
+
+    function firePageView() {
+      fbq('track', 'PageView');
+      ttq.page();
+      snaptr('track', 'PAGE_VIEW');
+    }
+  </script>
+</body>
+</html>
