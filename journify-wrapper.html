@@ -78,12 +78,15 @@
       // FACEBOOK  (window.fbq)
       // ════════════════════════════════════════════════════════════════════════
       //
-      // Facebook pixel routes all calls through an internal `callMethod` on the
-      // fbq stub. We intercept at that level so we capture both the initial
-      // queue flush (when fbevents.js loads) and all subsequent calls.
+      // We replace window.fbq with a wrapper function that intercepts ALL calls
+      // at the stub entry point — before they can be queued. This ensures we
+      // capture fbq('track', 'PageView') even when it fires before fbevents.js
+      // loads (the callMethod-level approach misses those because fbevents.js
+      // flushes the queue via a local variable reference, bypassing callMethod).
       //
-      // Bypass: window.__jf.pixels.fbq is set to a thin wrapper that calls the
-      // ORIGINAL callMethod directly, skipping our interceptor entirely.
+      // Bypass: window.__jf.pixels.fbq calls wrapper.callMethod (= the real
+      // fbevents.js implementation set after load) directly, so plugin re-fires
+      // reach the real SDK without being re-intercepted.
       // ════════════════════════════════════════════════════════════════════════
 
       // All fbq methods that represent user-facing tracking calls.
@@ -119,57 +122,80 @@
         return false; // suppress — plugin will re-fire via window.__jf.pixels.fbq
       }
 
-      // Given the ORIGINAL callMethod, build:
-      //   • the intercepting callMethod (installed on the stub), and
-      //   • the bypass (stored on window.__jf.pixels.fbq).
-      function buildFbqCallMethodInterceptor(fbqStub, originalCallMethod) {
-        console.log('[JF:FB] buildFbqCallMethodInterceptor — installing bypass and intercepting callMethod');
-        // Bypass: calling this invokes the real Facebook SDK without interception.
-        window.__jf.pixels.fbq = function () {
-          return originalCallMethod.apply(fbqStub, arguments);
-        };
-
-        // Intercepting callMethod — replaces stub.callMethod.
-        return function () {
-          var args = Array.prototype.slice.call(arguments);
-          if (shouldPassFbqThrough(args)) {
-            return originalCallMethod.apply(fbqStub, args);
-          }
-          // else: suppressed — Journify plugin re-fires with proper eventId
-        };
-      }
-
+      // Intercept at the stub function level, not at callMethod level.
+      //
+      // Why not callMethod: fbevents.js flushes the pre-load queue using a LOCAL
+      // variable reference to the real callMethod, not via fbq.callMethod. So any
+      // defineProperty trap on callMethod is bypassed for queued events (e.g. the
+      // initial PageView fired before fbevents.js loads).
+      //
+      // By replacing window.fbq with our wrapper, ALL calls to fbq('track', ...)
+      // go through us BEFORE they can be queued. Tracking calls are suppressed here
+      // so they never enter the stub queue — no queue replay interception needed.
+      //
+      // Non-tracking calls (init, consent, etc.) are forwarded to the original stub.
+      // After fbevents.js loads and sets wrapper.callMethod, non-tracking calls that
+      // arrive during queue replay use wrapper.callMethod (= real impl) directly.
+      //
+      // Bypass: the Journify Facebook plugin re-fires via window.__jf.pixels.fbq,
+      // which calls wrapper.callMethod (= real impl set by fbevents.js) directly.
       function wrapFbq(fbqStub) {
         console.log('[JF:FB] wrapFbq called — already wrapped:', !!fbqStub.__jfWrapped, '| has callMethod:', typeof fbqStub.callMethod);
         if (fbqStub.__jfWrapped) return fbqStub;
 
-        if (typeof fbqStub.callMethod === 'function') {
-          // fbevents.js already set callMethod — intercept it now.
-          fbqStub.callMethod = buildFbqCallMethodInterceptor(fbqStub, fbqStub.callMethod);
-        } else {
-          // callMethod will be assigned later by fbevents.js.
-          // Trap the property so we intercept the moment it is set.
-          var interceptingCallMethod; // holds the wrapped version
-          Object.defineProperty(fbqStub, 'callMethod', {
-            configurable: true,
-            enumerable: true,
-            get: function () { return interceptingCallMethod; },
-            set: function (realCallMethod) {
-              interceptingCallMethod = buildFbqCallMethodInterceptor(fbqStub, realCallMethod);
-              // Convert back to a plain writable property — fbevents.js only sets
-              // callMethod once, so we no longer need the defineProperty trap.
-              Object.defineProperty(fbqStub, 'callMethod', {
-                configurable: true,
-                enumerable: true,
-                writable: true,
-                value: interceptingCallMethod,
-              });
-            },
-          });
-        }
+        var wrapper = function () {
+          console.log('[JF:FB] wrapper received call — arguments:', arguments);
+          var args = Array.prototype.slice.call(arguments);
+          if (!shouldPassFbqThrough(args)) return; // tracking call: suppressed, dispatched to Journify
+          // Fe (callMethod) is the main dispatch function and handles all methods including init.
+          // Route through it when available; otherwise queue directly on wrapper so fbevents.js
+          // finds the call (going through fbqStub risks pushing to a detached queue after
+          // fbevents.js resets f.queue).
+          if (typeof wrapper.callMethod === 'function') {
+            console.log('[JF:FB] wrapper: calling wrapper.callMethod — method:', args[0], '| arguments:', args);
+            return wrapper.callMethod.apply(wrapper, args);
+          }
+          if (!Array.isArray(wrapper.queue)) wrapper.queue = [];
+          wrapper.queue.push(args);
+        };
 
-        fbqStub.__jfWrapped = true;
-        return fbqStub; // same object, modified in place
+        // Copy all own properties from fbqStub (queue, loaded, version, push, …)
+        // so fbevents.js finds them on window.fbq (= wrapper).
+        Object.getOwnPropertyNames(fbqStub).forEach(function (key) {
+          try {
+            var desc = Object.getOwnPropertyDescriptor(fbqStub, key);
+            if (desc) Object.defineProperty(wrapper, key, desc);
+          } catch (e) {
+            try { wrapper[key] = fbqStub[key]; } catch (e2) { /* ignore non-writable */ }
+          }
+        });
+
+        // Restore push = self invariant. The original stub has n.push = n, so
+        // copying gives wrapper.push = fbqStub. Fix it: wrapper.push must = wrapper
+        // so fbq.push(...) routes through our interceptor, not the unwrapped stub.
+        wrapper.push = wrapper;
+
+        // Bypass: plugin re-fires reach the real SDK without re-interception.
+        window.__jf.pixels.fbq = function () {
+          console.log('[JF:FB] bypass called — arguments:', arguments);
+          if (typeof wrapper.callMethod === 'function') {
+            console.log('[JF:FB] bypass: calling wrapper.callMethod — method:', arguments[0], '| arguments:', arguments);
+            return wrapper.callMethod.apply(wrapper, arguments);
+          }
+          console.log('[JF:FB] bypass: callMethod not set yet, queuing');
+          if (!Array.isArray(wrapper.queue)) wrapper.queue = [];
+          wrapper.queue.push(Array.prototype.slice.call(arguments));
+        };
+
+        // Keep _fbq in sync. Facebook detects "Multiple pixels with conflicting
+        // versions" when window.fbq !== window._fbq. The customer snippet sets
+        // _fbq = original stub; update it to our wrapper.
+        try {
+          if (!window._fbq || window._fbq === fbqStub) window._fbq = wrapper;
+        } catch (e) { /* ignore in restricted environments */ }
+
+        wrapper.__jfWrapped = true;
+        return wrapper; // replaces window.fbq
       }
 
 
@@ -279,6 +305,39 @@
 
       var TTQ_METHODS_TO_INTERCEPT = ['track', 'page'];
 
+      // Intercepts ttqObj.push so that queue items written before the real SDK
+      // loads (e.g. ['page', ...] or ['track', eventName, props]) are captured
+      // and forwarded to Journify. Without this, items pushed into the array
+      // before our method getters are active would be replayed by the TikTok SDK
+      // without ever passing through our interceptors.
+      function interceptTtqQueue(ttqObj) {
+        if (!ttqObj || ttqObj.__jfQueueIntercepted) return;
+        var origPush = ttqObj.push;
+        ttqObj.push = function () {
+          var item = arguments[0];
+          if (Array.isArray(item)) {
+            var method = item[0];
+            if (method === 'page') {
+              console.log('[JF:TTQ] queue push intercepted — page, dispatching to journify');
+              dispatchToJournify('page', 'PageView', { _sourceWrapper: 'tiktok' });
+              return;
+            } else if (method === 'track') {
+              var eventName = item[1] || 'Unknown';
+              var props = Object.assign({}, item[2] || {});
+              props._sourceWrapper = 'tiktok';
+              console.log('[JF:TTQ] queue push intercepted — track:', eventName);
+              dispatchToJournify('track', eventName, props);
+              return;
+            }
+          }
+          return origPush
+            ? origPush.apply(this, arguments)
+            : Array.prototype.push.apply(this, arguments);
+        };
+        ttqObj.__jfQueueIntercepted = true;
+        console.log('[JF:TTQ] push interceptor installed');
+      }
+
       // Traps a single method on ttqObj using a getter so we can detect
       // if the TikTok SDK later overwrites it.
       function trapTtqMethod(ttqObj, method) {
@@ -351,6 +410,7 @@
         };
 
         function wrapWhenReady(val) {
+          interceptTtqQueue(val);
           if (typeof val.track === 'function') {
             console.log('[JF:TTQ] wrapWhenReady — track is a function, wrapping now');
             wrapTtqObject(val);
@@ -367,7 +427,10 @@
           }
         }
 
-        if (ttqValue && !ttqValue.__jfWrapped) wrapWhenReady(ttqValue);
+        if (ttqValue) {
+          interceptTtqQueue(ttqValue);
+          if (!ttqValue.__jfWrapped) wrapWhenReady(ttqValue);
+        }
 
         Object.defineProperty(window, 'ttq', {
           configurable: true,
@@ -398,7 +461,10 @@
           set: function (newVal) {
             console.log('[JF:TTQ] window.ttq reassigned — wrapping if needed');
             ttqValue = newVal;
-            if (newVal && !newVal.__jfWrapped) wrapWhenReady(newVal);
+            if (newVal) {
+              interceptTtqQueue(newVal);
+              if (!newVal.__jfWrapped) wrapWhenReady(newVal);
+            }
           },
         });
 
