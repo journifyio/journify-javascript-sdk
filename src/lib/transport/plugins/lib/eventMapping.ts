@@ -23,7 +23,7 @@ export interface EventMapper {
 }
 
 export class EventMapperFactoryImpl implements EventMapperFactory {
-  public newEventMapper(eventMappings: EventMapping[], passThroughUnmappedEvents: boolean = false): EventMapper {
+  public newEventMapper(eventMappings: EventMapping[], passThroughUnmappedEvents = false): EventMapper {
     return new EventMapperImpl(eventMappings, passThroughUnmappedEvents);
   }
 }
@@ -35,7 +35,7 @@ export class EventMapperImpl implements EventMapper {
   private readonly groupEventsMapping: Record<string, PixelEventMapping[]> = {};
   private readonly identifyEventsMapping: Record<string, PixelEventMapping[]> ={};
   private readonly passThroughUnmappedEvents: boolean;
-  constructor(eventMappings: EventMapping[], passThroughUnmappedEvents: boolean = false) {
+  constructor(eventMappings: EventMapping[], passThroughUnmappedEvents = false) {
     this.eventMappings = eventMappings;
     this.passThroughUnmappedEvents = passThroughUnmappedEvents;
     this.init();
