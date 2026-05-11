@@ -1,8 +1,8 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import { Plugin, PluginDependencies, Logger, Sync } from "../plugin";
 import { Context } from "../../context";
-import { FieldsMapper } from "../lib/fieldMapping";
-import { EventMapper } from "../lib/eventMapping";
+import { FieldsMapper, FieldsMapperFactory } from "../lib/fieldMapping";
+import { EventMapper, EventMapperFactory } from "../lib/eventMapping";
 import { Browser } from "../../browser";
 import { toSettingsObject } from "../lib/settings";
 
@@ -25,26 +25,37 @@ const STANDARD_EVENTS = new Set<string>([
   "trial_started",
 ]);
 
+const EVENT_TYPE_MAP: Record<string, string> = {
+  page_viewed: "contents",
+  contents_viewed: "contents",
+  items_added: "contents",
+  checkout_started: "contents",
+  order_created: "contents",
+  lead_created: "customer_action",
+  registration_completed: "customer_action",
+  appointment_scheduled: "customer_action",
+  subscription_created: "plan_enrollment",
+  trial_started: "plan_enrollment",
+};
+
 const OPENAI_SCRIPT_URL = "https://bzrcdn.openai.com/sdk/oaiq.min.js";
 
 export class OpenAIPixel implements Plugin {
   public readonly name = "openai_pixel";
   private settings: Record<string, string> = {};
   private readonly browser: Browser;
-  private readonly fieldsMapper: FieldsMapper;
-  private readonly eventMapper: EventMapper;
+  private readonly fieldMapperFactory: FieldsMapperFactory;
+  private readonly eventMapperFactory: EventMapperFactory;
   private readonly testingMode: boolean;
   private readonly logger: Logger;
+  private fieldsMapper!: FieldsMapper;
+  private eventMapper!: EventMapper;
 
   public constructor(deps: PluginDependencies) {
     this.browser = deps.browser;
-    this.fieldsMapper = deps.fieldMapperFactory.newFieldMapper(
-      deps.sync.field_mappings
-    );
+    this.fieldMapperFactory = deps.fieldMapperFactory;
+    this.eventMapperFactory = deps.eventMapperFactory;
     this.testingMode = deps.testingWriteKey;
-    this.eventMapper = deps.eventMapperFactory.newEventMapper(
-      deps.sync.event_mappings
-    );
     this.logger = deps.logger;
     this.init(deps.sync);
   }
@@ -84,14 +95,19 @@ export class OpenAIPixel implements Plugin {
     const eventName = mappedEvent?.pixelEventName || event.event || "";
 
     if (isStandardEvent(eventName)) {
-      this.callPixelHelper("measure", eventName, mappedProperties, {
-        event_id: eventId,
-      });
+      mappedProperties.type = EVENT_TYPE_MAP[eventName];
+      const eventOptions: Record<string, any> = {};
+      if (eventId !== undefined) {
+        eventOptions.event_id = eventId;
+      }
+      this.callPixelHelper("measure", eventName, mappedProperties, eventOptions);
     } else {
-      this.callPixelHelper("measure", "custom", mappedProperties, {
-        event_id: eventId,
-        custom_event_name: eventName,
-      });
+      mappedProperties.type = "custom";
+      const eventOptions: Record<string, any> = { custom_event_name: eventName };
+      if (eventId !== undefined) {
+        eventOptions.event_id = eventId;
+      }
+      this.callPixelHelper("measure", "custom", mappedProperties, eventOptions);
     }
 
     return ctx;
@@ -99,6 +115,9 @@ export class OpenAIPixel implements Plugin {
 
   private init(sync: Sync) {
     this.settings = toSettingsObject(sync.settings);
+    this.fieldsMapper = this.fieldMapperFactory.newFieldMapper(sync.field_mappings);
+    this.eventMapper = this.eventMapperFactory.newEventMapper(sync.event_mappings);
+
     if (this.testingMode) {
       this.logger.log(
         `OpenAI Pixel ${this.settings.pixel_id} is detected, but script is not injected because you are using a testing write key.`
