@@ -405,14 +405,14 @@ function testSendingEvent(
       expect(method).toBe("measure");
       if (isStandardEvent) {
         expect(arg1).toBe(openaiEventName);
-        expect(arg2).toEqual({ value: 1000 });
+        expect(arg2).toMatchObject({ value: 1000, type: expect.any(String) });
         expect(arg3).toEqual({ event_id: eventDeduplicationId });
       } else {
         expect(arg1).toBe("custom");
-        expect(arg2).toEqual({ value: 1000 });
+        expect(arg2).toEqual({ value: 1000, type: "custom" });
         expect(arg3).toEqual({
-          event_id: eventDeduplicationId,
           custom_event_name: openaiEventName,
+          event_id: eventDeduplicationId,
         });
       }
     }
@@ -607,15 +607,15 @@ function testLoggingEvent(
     expect(logger.log).nthCalledWith(expectInitCall ? 2 : 1, logPrefix, [
       "measure",
       openaiEventName,
+      { type: expect.any(String) },
       {},
-      { event_id: undefined },
     ]);
   } else {
     expect(logger.log).nthCalledWith(expectInitCall ? 2 : 1, logPrefix, [
       "measure",
       "custom",
-      {},
-      { event_id: undefined, custom_event_name: openaiEventName },
+      { type: "custom" },
+      { custom_event_name: openaiEventName },
     ]);
   }
 }
