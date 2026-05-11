@@ -97,14 +97,14 @@ export class OpenAIPixel implements Plugin {
     if (isStandardEvent(eventName)) {
       mappedProperties.type = EVENT_TYPE_MAP[eventName];
       const eventOptions: Record<string, any> = {};
-      if (eventId !== undefined) {
+      if (eventId != null) {
         eventOptions.event_id = eventId;
       }
       this.callPixelHelper("measure", eventName, mappedProperties, eventOptions);
     } else {
       mappedProperties.type = "custom";
       const eventOptions: Record<string, any> = { custom_event_name: eventName };
-      if (eventId !== undefined) {
+      if (eventId != null) {
         eventOptions.event_id = eventId;
       }
       this.callPixelHelper("measure", "custom", mappedProperties, eventOptions);
