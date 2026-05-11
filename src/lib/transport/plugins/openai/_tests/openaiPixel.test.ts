@@ -1,9 +1,6 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 import { OpenAIPixel } from "../openaiPixel";
 import {
-  EventMapping,
-  FieldMapping,
-  FieldMappingSourceType,
   FilterOperator,
   PluginDependencies,
   TrackingEventType,
@@ -16,7 +13,6 @@ import {
 } from "../../../../../test/mocks/mapping";
 import { JournifyEvent, JournifyEventType } from "../../../../domain/event";
 import { randomUUID } from "node:crypto";
-import { User } from "../../../../domain/user";
 import { ContextFactoryImpl } from "../../../context";
 import { FieldsMapperFactoryImpl } from "../../lib/fieldMapping";
 import { EventMapperFactoryImpl } from "../../lib/eventMapping";

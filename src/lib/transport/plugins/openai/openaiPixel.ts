@@ -3,11 +3,8 @@ import { Plugin, PluginDependencies, Logger, Sync } from "../plugin";
 import { Context } from "../../context";
 import { FieldsMapper } from "../lib/fieldMapping";
 import { EventMapper } from "../lib/eventMapping";
-import { JournifyEvent, JournifyEventType } from "../../../domain/event";
-import { User } from "../../../domain/user";
 import { Browser } from "../../browser";
 import { toSettingsObject } from "../lib/settings";
-import { getStoredIdentify } from "../lib/identify";
 
 declare global {
   interface Window {
@@ -33,7 +30,6 @@ const OPENAI_SCRIPT_URL = "https://bzrcdn.openai.com/sdk/oaiq.min.js";
 export class OpenAIPixel implements Plugin {
   public readonly name = "openai_pixel";
   private settings: Record<string, string> = {};
-  private readonly user: User;
   private readonly browser: Browser;
   private readonly fieldsMapper: FieldsMapper;
   private readonly eventMapper: EventMapper;
@@ -41,7 +37,6 @@ export class OpenAIPixel implements Plugin {
   private readonly logger: Logger;
 
   public constructor(deps: PluginDependencies) {
-    this.user = deps.user;
     this.browser = deps.browser;
     this.fieldsMapper = deps.fieldMapperFactory.newFieldMapper(
       deps.sync.field_mappings
@@ -67,20 +62,7 @@ export class OpenAIPixel implements Plugin {
   }
 
   identify(ctx: Context): Context {
-    const newEvent = ctx.getEvent();
-    const storedEvent = getStoredIdentify(this.user);
-
-    const event = {
-      type: JournifyEventType.IDENTIFY,
-      userId: newEvent.userId || storedEvent.userId,
-      anonymousId: newEvent.anonymousId || storedEvent.anonymousId,
-      traits: {
-        ...(storedEvent.traits || {}),
-        ...(newEvent.traits || {}),
-      },
-    };
-
-    this.initPixel(event);
+    this.initPixel();
     return this.trackPixelEvent(ctx);
   }
 
@@ -125,8 +107,7 @@ export class OpenAIPixel implements Plugin {
       this.loadScript();
     }
 
-    const event = getStoredIdentify(this.user);
-    this.initPixel(event);
+    this.initPixel();
   }
 
   private loadScript(): void {
@@ -145,7 +126,7 @@ export class OpenAIPixel implements Plugin {
     this.browser.injectScript(OPENAI_SCRIPT_URL, { async: true });
   }
 
-  private initPixel(_identifyEvent: JournifyEvent) {
+  private initPixel() {
     this.callPixelHelper("init", { pixelId: this.settings.pixel_id });
   }
 
