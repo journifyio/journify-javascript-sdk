@@ -148,7 +148,7 @@ describe("OpenAIPixel plugin", () => {
     testSendingEvent(
       TrackingEventType.TRACK_EVENT,
       "order_created",
-      true,
+      "contents",
       "purchase"
     );
   });
@@ -157,28 +157,41 @@ describe("OpenAIPixel plugin", () => {
     testSendingEvent(
       TrackingEventType.TRACK_EVENT,
       "my_custom_event",
-      false,
+      "custom",
       "custom_track"
     );
   });
 
   it("should send a standard page event to openai pixel when mapped", () => {
-    testSendingEvent(TrackingEventType.PAGE_EVENT, "page_viewed", true);
+    testSendingEvent(TrackingEventType.PAGE_EVENT, "page_viewed", "contents");
   });
 
   it("should send a custom page event to openai pixel when mapped", () => {
-    testSendingEvent(TrackingEventType.PAGE_EVENT, "custom_page_123", false);
+    testSendingEvent(TrackingEventType.PAGE_EVENT, "custom_page_123", "custom");
   });
 
   it("should send a standard group event to openai pixel when mapped", () => {
-    testSendingEvent(TrackingEventType.GROUP_EVENT, "lead_created", true);
+    testSendingEvent(
+      TrackingEventType.GROUP_EVENT,
+      "lead_created",
+      "customer_action"
+    );
   });
 
   it("should send a custom group event to openai pixel when mapped", () => {
     testSendingEvent(
       TrackingEventType.GROUP_EVENT,
       "custom_group_event",
-      false
+      "custom"
+    );
+  });
+
+  it("should send a plan enrollment type for subscription events", () => {
+    testSendingEvent(
+      TrackingEventType.TRACK_EVENT,
+      "subscription_created",
+      "plan_enrollment",
+      "subscribe"
     );
   });
 
@@ -305,7 +318,7 @@ describe("OpenAIPixel plugin", () => {
     testLoggingEvent(
       TrackingEventType.TRACK_EVENT,
       "order_created",
-      true,
+      "contents",
       "purchase"
     );
   });
@@ -314,17 +327,79 @@ describe("OpenAIPixel plugin", () => {
     testLoggingEvent(
       TrackingEventType.TRACK_EVENT,
       "my_custom_event",
-      false,
+      "custom",
       "custom_track"
     );
   });
 
   it("[Standard event] should log the page event in testing mode", () => {
-    testLoggingEvent(TrackingEventType.PAGE_EVENT, "page_viewed", true);
+    testLoggingEvent(TrackingEventType.PAGE_EVENT, "page_viewed", "contents");
   });
 
   it("[Custom event] should log the page event in testing mode", () => {
-    testLoggingEvent(TrackingEventType.PAGE_EVENT, "custom_page_event", false);
+    testLoggingEvent(
+      TrackingEventType.PAGE_EVENT,
+      "custom_page_event",
+      "custom"
+    );
+  });
+
+  it("should omit null event_id from event options", () => {
+    const generatedPixelId = generatePixelId();
+    const fieldsMapper = new FieldsMapperMock(() => ({}));
+    const fieldMapperFactory = new FieldsMapperFactoryMock(() => fieldsMapper);
+    const browser = new BrowserMock();
+    const win = { ...window };
+    const oaiqFunc = jest.fn();
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [
+          {
+            enabled: true,
+            destination_event_key: "order_created",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "purchase",
+          },
+        ],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory,
+      browser,
+      testingWriteKey: false,
+      logger: console,
+    });
+
+    fieldsMapper.setMapEventFunc(() => ({ value: 1000, event_id: null }));
+    oaiqFunc.mockClear();
+
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "purchase",
+        properties: { value: 1000 },
+      })
+    );
+
+    expect(oaiqFunc).toHaveBeenCalledWith(
+      "measure",
+      "order_created",
+      { value: 1000, type: "contents" },
+      {}
+    );
   });
 });
 
@@ -335,7 +410,7 @@ function generatePixelId(): string {
 function testSendingEvent(
   eventType: TrackingEventType,
   openaiEventName: string,
-  isStandardEvent: boolean,
+  expectedType: string,
   sourceEventName?: string
 ) {
   const generatedPixelId = generatePixelId();
@@ -403,9 +478,9 @@ function testSendingEvent(
       arg3?: object
     ) => {
       expect(method).toBe("measure");
-      if (isStandardEvent) {
+      if (expectedType !== "custom") {
         expect(arg1).toBe(openaiEventName);
-        expect(arg2).toMatchObject({ value: 1000, type: expect.any(String) });
+        expect(arg2).toEqual({ value: 1000, type: expectedType });
         expect(arg3).toEqual({ event_id: eventDeduplicationId });
       } else {
         expect(arg1).toBe("custom");
@@ -518,7 +593,7 @@ function testPageFiltering(matchFilter: boolean) {
 function testLoggingEvent(
   eventType: TrackingEventType,
   openaiEventName: string,
-  isStandardEvent: boolean,
+  expectedType: string,
   sourceEventName?: string
 ) {
   const generatedPixelId = generatePixelId();
@@ -603,11 +678,11 @@ function testLoggingEvent(
     ]);
   }
 
-  if (isStandardEvent) {
+  if (expectedType !== "custom") {
     expect(logger.log).nthCalledWith(expectInitCall ? 2 : 1, logPrefix, [
       "measure",
       openaiEventName,
-      { type: expect.any(String) },
+      { type: expectedType },
       {},
     ]);
   } else {
