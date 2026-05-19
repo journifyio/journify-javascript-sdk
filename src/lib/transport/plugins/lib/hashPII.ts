@@ -1,11 +1,12 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 export async function hashPII(
-  obj: Record<string, any> = {}
+  obj: Record<string, any> = {}, piiKeys: string[] = [],
 ): Promise<Record<string, any>> {
+  const piiKeysSet = new Set([...PII_DEFAULT_KEYS, ...piiKeys]);
   const newObj = {};
   for (const key in obj) {
     let value = obj[key];
-    if (value && PII_KEYS.has(key)) {
+    if (value && piiKeysSet.has(key)) {
       value = (value + "").toLowerCase().trim();
       newObj[key] = await sha256Hash(value);
     } else {
@@ -38,7 +39,7 @@ function isSHA256Hash(input: string): boolean {
   return sha256Regex.test(input);
 }
 
-const PII_KEYS = new Set([
+const PII_DEFAULT_KEYS = [
   "email",
   "phone",
   "name",
@@ -52,4 +53,4 @@ const PII_KEYS = new Set([
   "country",
   "country_code",
   "gender",
-]);
+];
