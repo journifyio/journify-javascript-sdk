@@ -213,7 +213,6 @@ function recordCallBeforeLoad(call) {
 function updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
   try {
     if (!sdk) {
-      console.warn('[Journify] SDK not loaded yet. Consent will be updated once SDK loads.');
       recordCallBeforeLoad(() => updateConsent(categoryPreferences));
       return;
     }
