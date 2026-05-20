@@ -30,8 +30,8 @@ export class JournifyioPlugin implements Plugin {
     const event = ctx.getEvent();
 
     if (this.sdkSettings?.options?.enableHashing === true) {
-      event.traits = await hashPII(event.traits);
-      event.externalIds = await hashPII(event.externalIds);
+      event.traits = await hashPII(event.traits, this.sdkSettings?.options?.piiKeys);
+      event.externalIds = await hashPII(event.externalIds, this.sdkSettings?.options?.piiKeys);
     }
 
     if (event.traits?.hashed_email && !event.traits.email) {
