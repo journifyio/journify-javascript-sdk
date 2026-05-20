@@ -73,4 +73,47 @@ describe("hashPII", () => {
       name: "94890005f3b2117a353da7260259531878cae4f541bf59998511887d1f0221a5",
     });
   });
+
+  it("should hash custom PII keys passed as second argument", async () => {
+    const input = {
+      user_id: "abc123",
+      session_token: "secret-token",
+      age: 30,
+    };
+
+    const result = await hashPII(input, ["user_id", "session_token"]);
+
+    expect(result.user_id).toHaveLength(64);
+    expect(result.user_id).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.session_token).toHaveLength(64);
+    expect(result.session_token).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.age).toBe(30);
+  });
+
+  it("should hash both default and custom PII keys", async () => {
+    const input = {
+      email: "test@example.com",
+      custom_field: "sensitive-value",
+      non_pii: "public",
+    };
+
+    const result = await hashPII(input, ["custom_field"]);
+
+    expect(result.email).toBe("973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b");
+    expect(result.custom_field).toHaveLength(64);
+    expect(result.custom_field).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.non_pii).toBe("public");
+  });
+
+  it("should not hash extra fields when empty piiKeys array passed", async () => {
+    const input = {
+      custom_field: "not-sensitive",
+      email: "test@example.com",
+    };
+
+    const result = await hashPII(input, []);
+
+    expect(result.custom_field).toBe("not-sensitive");
+    expect(result.email).toBe("973dfe463ec85785f5f95af5ba3906eedb2d931c24e69824a89ea65dba4e813b");
+  });
 });
