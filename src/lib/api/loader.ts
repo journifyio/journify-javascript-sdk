@@ -40,6 +40,7 @@ import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_t
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
+import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -49,6 +50,7 @@ const INTEGRATION_PLUGINS = {
   google_ads_gtag: GoogleAdsGtag,
   linkedin_ads_insight_tag: LinkedinAdsInsightTag,
   pinterest_tag: PinterestTag,
+  reddit_pixel: RedditPixel,
   snapchat_pixel: SnapchatPixel,
   tiktok_pixel: TikTokPixel,
   x_pixel: XPixel,
