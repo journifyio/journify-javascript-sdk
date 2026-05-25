@@ -123,7 +123,7 @@ export class RedditPixel implements Plugin {
 
     const rdt: RedditPixelQueue = function (...args: any[]) {
       if (rdt.sendEvent) {
-        rdt.sendEvent.apply(rdt, args);
+        rdt.sendEvent(...args);
       } else {
         rdt.callQueue.push(args);
       }
