@@ -8,15 +8,25 @@ export function applyTransformations(
 ): any {
   let v = value;
   for (const transformation of transformations) {
-    v = transformation(v);
+    try {
+      v = transformation(v);
+    } catch (error) {
+      // Ignore transformation errors
+    }
   }
 
   return v;
 }
 
 export function toDigitsOnlyPhone(phone: string): string {
-  if (!phone) {
-    return phone;
+  switch (typeof phone) {
+    case "string":
+      break;
+    case "number":
+      phone = parseInt(phone).toString();
+      break;
+    default:
+      return phone;
   }
 
   return phone.replace(/\D/g, "");
