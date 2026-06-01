@@ -91,6 +91,8 @@ export class OpenAIPixel implements Plugin {
     const mappedProperties = this.fieldsMapper.mapEvent(event);
     const eventId = mappedProperties.event_id;
     delete mappedProperties.event_id;
+    const customEventName = mappedProperties.custom_event_name;
+    delete mappedProperties.custom_event_name;
 
     const eventName = mappedEvent?.pixelEventName || event.event || "";
 
@@ -103,7 +105,9 @@ export class OpenAIPixel implements Plugin {
       this.callPixelHelper("measure", eventName, mappedProperties, eventOptions);
     } else {
       mappedProperties.type = "custom";
-      const eventOptions: Record<string, any> = { custom_event_name: eventName };
+      const eventOptions: Record<string, any> = {
+        custom_event_name: getCustomEventName(customEventName, event.event),
+      };
       if (eventId != null) {
         eventOptions.event_id = eventId;
       }
@@ -164,4 +168,22 @@ export class OpenAIPixel implements Plugin {
 
 function isStandardEvent(eventName: string): boolean {
   return STANDARD_EVENTS.has(eventName);
+}
+
+function getCustomEventName(
+  mappedCustomEventName: unknown,
+  fallbackEventName?: string
+): string {
+  if (
+    typeof mappedCustomEventName === "string" &&
+    mappedCustomEventName.trim().length > 0
+  ) {
+    return mappedCustomEventName;
+  }
+
+  if (typeof fallbackEventName === "string" && fallbackEventName.trim().length > 0) {
+    return fallbackEventName;
+  }
+
+  return "custom";
 }

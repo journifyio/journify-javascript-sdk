@@ -156,7 +156,7 @@ describe("OpenAIPixel plugin", () => {
   it("should send a custom track event to openai pixel when mapped", () => {
     testSendingEvent(
       TrackingEventType.TRACK_EVENT,
-      "my_custom_event",
+      "custom",
       "custom",
       "custom_track"
     );
@@ -167,7 +167,7 @@ describe("OpenAIPixel plugin", () => {
   });
 
   it("should send a custom page event to openai pixel when mapped", () => {
-    testSendingEvent(TrackingEventType.PAGE_EVENT, "custom_page_123", "custom");
+    testSendingEvent(TrackingEventType.PAGE_EVENT, "custom", "custom");
   });
 
   it("should send a standard group event to openai pixel when mapped", () => {
@@ -179,11 +179,7 @@ describe("OpenAIPixel plugin", () => {
   });
 
   it("should send a custom group event to openai pixel when mapped", () => {
-    testSendingEvent(
-      TrackingEventType.GROUP_EVENT,
-      "custom_group_event",
-      "custom"
-    );
+    testSendingEvent(TrackingEventType.GROUP_EVENT, "custom", "custom");
   });
 
   it("should send a plan enrollment type for subscription events", () => {
@@ -326,7 +322,7 @@ describe("OpenAIPixel plugin", () => {
   it("[Custom event] should log the track event in testing mode", () => {
     testLoggingEvent(
       TrackingEventType.TRACK_EVENT,
-      "my_custom_event",
+      "custom",
       "custom",
       "custom_track"
     );
@@ -337,11 +333,7 @@ describe("OpenAIPixel plugin", () => {
   });
 
   it("[Custom event] should log the page event in testing mode", () => {
-    testLoggingEvent(
-      TrackingEventType.PAGE_EVENT,
-      "custom_page_event",
-      "custom"
-    );
+    testLoggingEvent(TrackingEventType.PAGE_EVENT, "custom", "custom");
   });
 
   it("should omit null event_id from event options", () => {
@@ -465,6 +457,14 @@ function testSendingEvent(
 
   const mapEventFunc = jest.fn((eventParam: JournifyEvent) => {
     expect(eventParam).toBe(ctx.getEvent());
+    if (expectedType === "custom") {
+      return {
+        value: 1000,
+        event_id: eventDeduplicationId,
+        custom_event_name: sourceEventName || "custom_event_name",
+      };
+    }
+
     return { value: 1000, event_id: eventDeduplicationId };
   });
   fieldsMapper.setMapEventFunc(mapEventFunc);
@@ -486,7 +486,7 @@ function testSendingEvent(
         expect(arg1).toBe("custom");
         expect(arg2).toEqual({ value: 1000, type: "custom" });
         expect(arg3).toEqual({
-          custom_event_name: openaiEventName,
+          custom_event_name: sourceEventName || "custom_event_name",
           event_id: eventDeduplicationId,
         });
       }
@@ -690,7 +690,7 @@ function testLoggingEvent(
       "measure",
       "custom",
       { type: "custom" },
-      { custom_event_name: openaiEventName },
+      { custom_event_name: sourceEventName || "custom" },
     ]);
   }
 }
