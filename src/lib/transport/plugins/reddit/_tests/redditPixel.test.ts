@@ -45,7 +45,6 @@ describe("RedditPixel plugin", () => {
     });
     expect(rdtFunc).toHaveBeenCalledTimes(1);
     expect(rdtFunc).toHaveBeenCalledWith("init", "pixel-123", {
-      useDecimalCurrencyValues: true,
     });
   });
 
@@ -117,7 +116,7 @@ describe("RedditPixel plugin", () => {
     );
     expect(logger.log).toHaveBeenCalledWith(
       "Will call window.rdt with the following params in order:",
-      ["init", "pixel-123", { useDecimalCurrencyValues: true }]
+      ["init", "pixel-123", {}]
     );
   });
 
@@ -134,6 +133,7 @@ describe("RedditPixel plugin", () => {
       {
         email: "User@Example.com",
         external_id: "external-user-id",
+        phone: "+1 (650) 555-1234",
       },
       {}
     );
@@ -150,7 +150,7 @@ describe("RedditPixel plugin", () => {
     expect(rdtFunc).toHaveBeenCalledWith("init", "pixel-123", {
       email: "user@example.com",
       externalId: "external-user-id",
-      useDecimalCurrencyValues: true,
+      phoneNumber: "+16505551234",
     });
   });
 
@@ -219,13 +219,10 @@ describe("RedditPixel plugin", () => {
 
     expect(rdtFunc).toHaveBeenNthCalledWith(1, "init", "pixel-123", {
       email: "new@example.com",
-      useDecimalCurrencyValues: true,
     });
     expect(rdtFunc).toHaveBeenNthCalledWith(2, "track", "Lead", {
       email: "new@example.com",
-      event_id: "dedup-1",
       conversionId: "dedup-1",
-      client_dedup_id: "dedup-1",
     });
   });
 
@@ -239,7 +236,16 @@ describe("RedditPixel plugin", () => {
     const plugin = newPlugin({
       browser,
       user: new UserMock(randomUUID(), randomUUID(), {}, {}),
-      fieldMappings: [],
+      fieldMappings: [
+        {
+          source: {
+            type: FieldMappingSourceType.TEMPLATE,
+            value:
+              "{{ record.properties.client_dedup_id | default: record.messageId }}",
+          },
+          target: { name: "event_id" },
+        },
+      ],
       eventMappings: [
         {
           enabled: true,
@@ -256,12 +262,14 @@ describe("RedditPixel plugin", () => {
       event: "PAGE_EVENT_KEY",
       properties: {
         path: "/pricing",
+        client_dedup_id: "page-1",
       },
     });
 
     plugin.page(ctx);
     expect(rdtFunc).toHaveBeenCalledWith("track", "PageVisit", {
       path: "/pricing",
+      conversionId: "page-1",
     });
   });
 
@@ -336,9 +344,7 @@ describe("RedditPixel plugin", () => {
       value: 149.99,
       currency: "USD",
       products: [{ id: "sku-1" }],
-      event_id: "purchase-1",
       conversionId: "purchase-1",
-      client_dedup_id: "purchase-1",
     });
   });
 
@@ -494,6 +500,13 @@ function identifyFieldMappings(): FieldMapping[] {
         value: "traits.external_id",
       },
       target: { name: "externalId" },
+    },
+    {
+      source: {
+        type: FieldMappingSourceType.FIELD,
+        value: "traits.phone",
+      },
+      target: { name: "phoneNumber" },
     },
   ];
 }

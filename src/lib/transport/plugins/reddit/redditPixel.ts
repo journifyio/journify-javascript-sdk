@@ -6,7 +6,7 @@ import { getStoredIdentify } from "../lib/identify";
 import { Browser } from "../../browser";
 import { User } from "../../../domain/user";
 import { JournifyEvent, JournifyEventType } from "../../../domain/event";
-import { toLowerCase, trim } from "../lib/tranformations";
+import { toE164, toLowerCase, trim } from "../lib/tranformations";
 import { FieldsMapper, FieldsMapperFactory } from "../lib/fieldMapping";
 import { EventMapper, EventMapperFactory } from "../lib/eventMapping";
 
@@ -136,18 +136,14 @@ export class RedditPixel implements Plugin {
 
   private initPixel(identifyEvent: JournifyEvent) {
     const userData = this.mapUserData(identifyEvent);
-    this.callPixelHelper("init", this.settings.pixel_id, {
-      ...userData,
-      useDecimalCurrencyValues: true,
-    });
+    this.callPixelHelper("init", this.settings.pixel_id, userData);
   }
 
   private mapUserData(event: JournifyEvent): object {
     const transformationsMap: Record<string, ((val: string) => string)[]> = {
       email: [trim, toLowerCase],
       externalId: [trim],
-      idfa: [trim],
-      aaid: [trim],
+      phoneNumber: [trim, toE164],
     };
 
     return this.fieldsMapper.mapEvent(event, transformationsMap, {
@@ -166,6 +162,8 @@ export class RedditPixel implements Plugin {
     if (mappedProperties.event_id && !mappedProperties.conversionId) {
       mappedProperties.conversionId = mappedProperties.event_id;
     }
+    delete mappedProperties.event_id;
+    delete mappedProperties.client_dedup_id;
 
     const eventName = mappedEvent.pixelEventName || event.event;
     if (STANDARD_EVENTS.has(eventName)) {
