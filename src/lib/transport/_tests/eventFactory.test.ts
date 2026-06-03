@@ -430,7 +430,7 @@ describe("EventFactoryImpl class", () => {
           currency: "USD",
         },
         {
-          userId: "user-from-traits-789", // userId in traits
+          userId: 123, // userId in traits
           email: "subscriber@example.com",
           firstname: "Mike",
           lastname: "Johnson",
@@ -441,7 +441,7 @@ describe("EventFactoryImpl class", () => {
 
       expect(actualEvent.type).toEqual(JournifyEventType.TRACK);
       expect(actualEvent.event).toEqual("subscription_started");
-      expect(actualEvent.userId).toEqual("user-from-traits-789");
+      expect(actualEvent.userId).toEqual("123");
 
       expect(actualEvent.properties).toEqual({
         plan_type: "premium",
@@ -449,9 +449,9 @@ describe("EventFactoryImpl class", () => {
         amount: 19.99,
         currency: "USD",
       });
-      expect(actualEvent.userId).toEqual("user-from-traits-789");
+      expect(actualEvent.userId).toEqual("123");
       expect(actualEvent.traits).toEqual({
-        userId: "user-from-traits-789",
+        userId: 123,
         email: "subscriber@example.com",
         firstname: "Mike",
         lastname: "Johnson",

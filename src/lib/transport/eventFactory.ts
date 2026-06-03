@@ -182,6 +182,10 @@ export class EventFactoryImpl implements EventFactory {
       context: ctx,
     };
 
+    if (normalizedEvent.userId) {
+      normalizedEvent.userId = "" + normalizedEvent.userId;
+    }
+
     return normalizedEvent;
   }
 
