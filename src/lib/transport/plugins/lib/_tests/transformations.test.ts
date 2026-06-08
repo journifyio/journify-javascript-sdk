@@ -31,6 +31,47 @@ describe("Transformations", () => {
       const result = applyTransformations(value, []);
       expect(result).toEqual(value);
     });
+    it("should return the transformed phone number with only digits", () => {
+      const value = 5555555555;
+      const transformations = [toDigitsOnlyPhone];
+      const result = applyTransformations(value, transformations);
+      expect(result).toBe("5555555555");
+    });
+    it("should return empty string if the phone number is null", () => {
+      const value = null;
+      const transformations = [toDigitsOnlyPhone];
+      const result = applyTransformations(value, transformations);
+      expect(result).toBeNull();
+    });
+    it("should return empty undefined if the phone number is undefined", () => {
+      const value = undefined;
+      const transformations = [toDigitsOnlyPhone];
+      const result = applyTransformations(value, transformations);
+      expect(result).toBeUndefined();
+    });
+    it("should return empty string if the phone number is empty string", () => {
+      const value = "";
+      const transformations = [toDigitsOnlyPhone];
+      const result = applyTransformations(value, transformations);
+      expect(result).toBe("");
+    });
+    it("should not throw exception if any of the transformations throws an exception", () => {
+      const firstTrans = jest.fn().mockImplementation(() => {
+        throw new Error("Test error");
+      });
+      const secondTrans = jest.fn().mockReturnValue("test2");
+      const value = randomUUID();
+      const transformations = [firstTrans, secondTrans];
+
+      const result = applyTransformations(value, transformations);
+
+      expect(result).toBe("test2");
+      expect(firstTrans).toHaveBeenCalledTimes(1);
+      expect(secondTrans).toHaveBeenCalledTimes(1);
+
+      expect(firstTrans).toHaveBeenCalledWith(value);
+      expect(secondTrans).toHaveBeenCalledWith(value);
+    });
   });
 
   describe("toDigitsOnlyPhone", () => {
@@ -47,6 +88,9 @@ describe("Transformations", () => {
 
     it("should return null if the input is null", () => {
       const result = toDigitsOnlyPhone(null);
+      expect(result).toBeNull();
+    });
+    it("should return null if the input is undefined", () => {      const result = toDigitsOnlyPhone(null);
       expect(result).toBeNull();
     });
   });
