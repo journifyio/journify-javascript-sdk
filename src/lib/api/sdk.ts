@@ -68,6 +68,8 @@ export class Sdk extends EmitterImpl {
       throw new Error("Event name is missing");
     }
 
+    await this.user.setTraits(traits as Traits);
+
     const event = await this.eventFactory.newTrackEvent(
       eventName,
       properties as JournifyEvent["properties"],
@@ -95,6 +97,8 @@ export class Sdk extends EmitterImpl {
     if (isNonValidString(pageName)) {
       pageName = document.title;
     }
+
+    await this.user.setTraits(traits as Traits);
 
     const event = await this.eventFactory.newPageEvent(
       pageName,
