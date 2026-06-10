@@ -31,6 +31,7 @@ export class ExternalIdsSessionCacheImpl implements ExternalIdsSessionCache {
       pinterest_click_id: urlParams.get("epik"),
       microsoft_click_id: urlParams.get("msclkid"),
       linkedin_click_id: urlParams.get("li_fat_id"),
+      openai_click_id: urlParams.get("oppref"),
     };
     const currentIds = Object.entries(potentialIds).reduce(
       (accumulator, [key, value]) => {

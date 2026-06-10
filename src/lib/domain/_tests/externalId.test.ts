@@ -17,8 +17,9 @@ describe("External ID cache", () => {
     const tiktokClickID = "tiktok-click-id-KJGJKfdsjf";
     const twitterClickID = "twitter-click-id-UH3JKH3KJH";
     const pinterestClickID = "pinterest-click-id-8jfskldfjk";
+    const openaiClickID = "openai-oppref-0af83bce";
     const locationMock = { ...document.location };
-    locationMock.search = `?ScCid=${snapClickID}&ttclid=${tiktokClickID}&twclid=${twitterClickID}&epik=${pinterestClickID}&wbraid=${googleWbraid}&gbraid=${googleGbraid}&gclid=${googleClickID}&li_fat_id=${linkedinClickID}`;
+    locationMock.search = `?ScCid=${snapClickID}&ttclid=${tiktokClickID}&twclid=${twitterClickID}&epik=${pinterestClickID}&wbraid=${googleWbraid}&gbraid=${googleGbraid}&gclid=${googleClickID}&li_fat_id=${linkedinClickID}&oppref=${openaiClickID}`;
     const browser = new BrowserMock();
     browser.setLocation(locationMock);
 
@@ -36,6 +37,7 @@ describe("External ID cache", () => {
         google_wbraid: googleWbraid,
         google_gbraid: googleGbraid,
         linkedin_click_id: linkedinClickID,
+        openai_click_id: openaiClickID,
       }
     );
   });
@@ -59,8 +61,9 @@ describe("External ID cache", () => {
     const tiktokClickID = "tiktok-click-id-KJGJKfdsjf";
     const googleClickID = "google-click-id-UH3JKH3KJH";
     const pinterestClickID = "pinterest-click-id-8jfskldfjlsdkjflkdsj";
+    const openaiClickID = "openai-oppref-9d21fa4c";
     const locationMock = { ...document.location };
-    locationMock.search = `?gclid=${googleClickID}&ttclid=${tiktokClickID}&ScCid=${snapClickID}&epik=${pinterestClickID}&wbraid=${googleWbraid}&gbraid=${googleGbraid}&li_fat_id=${linkedinClickID}`;
+    locationMock.search = `?gclid=${googleClickID}&ttclid=${tiktokClickID}&ScCid=${snapClickID}&epik=${pinterestClickID}&wbraid=${googleWbraid}&gbraid=${googleGbraid}&li_fat_id=${linkedinClickID}&oppref=${openaiClickID}`;
     const browser = new BrowserMock();
     browser.setLocation(locationMock);
 
@@ -78,6 +81,7 @@ describe("External ID cache", () => {
       google_wbraid: googleWbraid,
       google_gbraid: googleGbraid,
       linkedin_click_id: linkedinClickID,
+      openai_click_id: openaiClickID,
     });
 
     // simulate page redirect
@@ -104,6 +108,7 @@ describe("External ID cache", () => {
       google_wbraid: googleWbraid,
       google_gbraid: googleGbraid,
       linkedin_click_id: newLinkedinClickID,
+      openai_click_id: openaiClickID,
     });
   });
 });
