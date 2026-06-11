@@ -239,6 +239,7 @@ export class EventFactoryImpl implements EventFactory {
       tiktok_ttp: this.cookiesStore.get("_ttp"),
       microsoft_click_id: this.cookiesStore.get("_uetmsclkid"),
       linkedin_click_id: this.cookiesStore.get("li_fat_id"),
+      openai_click_id: this.cookiesStore.get("__oppref"),
       google_click_id: this.getGoogleClickId(),
       twitter_click_id: this.getTwitterClickId(),
       snapchat_advertiser_cookie_1:
