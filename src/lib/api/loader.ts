@@ -37,6 +37,7 @@ import {SentryWrapper} from "../lib/sentry";
 import {BingAdsTag} from "../transport/plugins/bing_ads_tag/bing_ads_tag";
 import {GoogleAdsGtag} from "../transport/plugins/google_ads_gtag/googleAdsGtag";
 import {LinkedinAdsInsightTag} from "../transport/plugins/linkedin_ads_insight_tag/linkedinAdsInsightTag";
+import {OpenAIPixel} from "../transport/plugins/openai/openaiPixel";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
@@ -48,6 +49,7 @@ const INTEGRATION_PLUGINS = {
   ga4_pixel: GA4Pixel,
   google_ads_gtag: GoogleAdsGtag,
   linkedin_ads_insight_tag: LinkedinAdsInsightTag,
+  openai_pixel: OpenAIPixel,
   pinterest_tag: PinterestTag,
   snapchat_pixel: SnapchatPixel,
   tiktok_pixel: TikTokPixel,

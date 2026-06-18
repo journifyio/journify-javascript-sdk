@@ -48,8 +48,9 @@ describe("EventFactoryImpl class", () => {
       };
       browser.setDocument(document);
 
+      const openaiUrlOppref = "openai-oppref-from-url-7f3a";
       const sq =
-        "?ttclid=tiktok-click-id-93893&ScCid=snap-click-id-87388&utm_source=campaign-source-123&utm_medium=campaign-medium-123&utm_campaign=campaign-name-123&utm_id=campaign-id-123&utm_term=campaign-term-123&utm_content=campaign-content-123";
+        `?ttclid=tiktok-click-id-93893&ScCid=snap-click-id-87388&oppref=${openaiUrlOppref}&utm_source=campaign-source-123&utm_medium=campaign-medium-123&utm_campaign=campaign-name-123&utm_id=campaign-id-123&utm_term=campaign-term-123&utm_content=campaign-content-123`;
       const location: Location = {
         ...global.location,
         search: sq,
@@ -99,6 +100,10 @@ describe("EventFactoryImpl class", () => {
         testStores.memory
       );
 
+      // The OpenAI pixel persists oppref to a first-party __oppref cookie. A fresh
+      // oppref URL param (above) should take precedence over this stored cookie value.
+      testStores.cookies.set("__oppref", "openai-oppref-from-cookie-stale");
+
       const consentService = new ConsentServiceMock();
 
       const eventFactory = new EventFactoryImpl(
@@ -120,6 +125,7 @@ describe("EventFactoryImpl class", () => {
           username: "joe-doe",
           snapchat_click_id: "snap-click-id-87388",
           tiktok_click_id: "tiktok-click-id-93893",
+          openai_click_id: openaiUrlOppref,
           snapchat_advertiser_cookie_1: initialAnonymousId,
         },
         context: {
@@ -430,7 +436,7 @@ describe("EventFactoryImpl class", () => {
           currency: "USD",
         },
         {
-          userId: "user-from-traits-789", // userId in traits
+          userId: 123, // userId in traits
           email: "subscriber@example.com",
           firstname: "Mike",
           lastname: "Johnson",
@@ -441,7 +447,7 @@ describe("EventFactoryImpl class", () => {
 
       expect(actualEvent.type).toEqual(JournifyEventType.TRACK);
       expect(actualEvent.event).toEqual("subscription_started");
-      expect(actualEvent.userId).toEqual("user-from-traits-789");
+      expect(actualEvent.userId).toEqual("123");
 
       expect(actualEvent.properties).toEqual({
         plan_type: "premium",
@@ -449,9 +455,9 @@ describe("EventFactoryImpl class", () => {
         amount: 19.99,
         currency: "USD",
       });
-      expect(actualEvent.userId).toEqual("user-from-traits-789");
+      expect(actualEvent.userId).toEqual("123");
       expect(actualEvent.traits).toEqual({
-        userId: "user-from-traits-789",
+        userId: 123,
         email: "subscriber@example.com",
         firstname: "Mike",
         lastname: "Johnson",
