@@ -2,7 +2,8 @@
 export async function hashPII(
   obj: Record<string, any> = {}, piiKeys: string[] = [],
 ): Promise<Record<string, any>> {
-  const piiKeysSet = new Set([...PII_DEFAULT_KEYS, ...piiKeys]);
+
+  const piiKeysSet = piiKeys?.length > 0 ? new Set([...PII_DEFAULT_KEYS, ...piiKeys]) : PII_DEFAULT_SET;
   const newObj = {};
   for (const key in obj) {
     let value = obj[key];
@@ -54,3 +55,4 @@ const PII_DEFAULT_KEYS = [
   "country_code",
   "gender",
 ];
+const PII_DEFAULT_SET = new Set(PII_DEFAULT_KEYS);
