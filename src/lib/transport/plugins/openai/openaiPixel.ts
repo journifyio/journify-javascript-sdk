@@ -105,9 +105,11 @@ export class OpenAIPixel implements Plugin {
       this.callPixelHelper("measure", eventName, mappedProperties, eventOptions);
     } else {
       mappedProperties.type = "custom";
-      const eventOptions: Record<string, any> = {
-        custom_event_name: getCustomEventName(customEventName, event.event),
-      };
+      const eventOptions: Record<string, any> = {};
+      const customName = getCustomEventName(customEventName, eventName);
+      if (customName) {
+        eventOptions.custom_event_name = customName;
+      }
       if (eventId != null) {
         eventOptions.event_id = eventId;
       }
@@ -181,9 +183,13 @@ function getCustomEventName(
     return mappedCustomEventName;
   }
 
-  if (typeof fallbackEventName === "string" && fallbackEventName.trim().length > 0) {
+  if (
+    typeof fallbackEventName === "string" &&
+    fallbackEventName.trim().length > 0 &&
+    fallbackEventName !== "custom"
+  ) {
     return fallbackEventName;
   }
 
-  return "custom";
+  return "";
 }

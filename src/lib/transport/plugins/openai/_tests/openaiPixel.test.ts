@@ -162,6 +162,17 @@ describe("OpenAIPixel plugin", () => {
     );
   });
 
+  it("should prefer a mapped custom_event_name over the destination event key", () => {
+    // Destination key is "add_to_wishlist" but the field mapper supplies an
+    // explicit custom_event_name ("wishlist_added") which must win.
+    testSendingEvent(
+      TrackingEventType.TRACK_EVENT,
+      "add_to_wishlist",
+      "custom",
+      "wishlist_added"
+    );
+  });
+
   it("should send a standard page event to openai pixel when mapped", () => {
     testSendingEvent(TrackingEventType.PAGE_EVENT, "page_viewed", "contents");
   });
@@ -322,6 +333,15 @@ describe("OpenAIPixel plugin", () => {
   it("[Custom event] should log the track event in testing mode", () => {
     testLoggingEvent(
       TrackingEventType.TRACK_EVENT,
+      "add_to_wishlist",
+      "custom",
+      "custom_track"
+    );
+  });
+
+  it("[Custom event] should omit custom_event_name when the destination key is the reserved 'custom'", () => {
+    testLoggingEvent(
+      TrackingEventType.TRACK_EVENT,
       "custom",
       "custom",
       "custom_track"
@@ -333,7 +353,7 @@ describe("OpenAIPixel plugin", () => {
   });
 
   it("[Custom event] should log the page event in testing mode", () => {
-    testLoggingEvent(TrackingEventType.PAGE_EVENT, "custom", "custom");
+    testLoggingEvent(TrackingEventType.PAGE_EVENT, "add_to_wishlist", "custom");
   });
 
   it("should omit null event_id from event options", () => {
@@ -686,11 +706,16 @@ function testLoggingEvent(
       {},
     ]);
   } else {
+    // No field mappings are configured here, so custom_event_name falls back to
+    // the mapped destination event key (openaiEventName). The reserved "custom"
+    // keyword is never sent, so the option is omitted in that case.
+    const expectedOptions =
+      openaiEventName === "custom" ? {} : { custom_event_name: openaiEventName };
     expect(logger.log).nthCalledWith(expectInitCall ? 2 : 1, logPrefix, [
       "measure",
       "custom",
       { type: "custom" },
-      { custom_event_name: sourceEventName || "custom" },
+      expectedOptions,
     ]);
   }
 }
