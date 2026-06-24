@@ -49,6 +49,7 @@ export class RedditPixel implements Plugin {
   private settings: Record<string, string>;
   private fieldsMapper: FieldsMapper;
   private eventMapper: EventMapper;
+  private initializedPixelId: string | null = null;
 
   public constructor(deps: PluginDependencies) {
     this.user = deps.user;
@@ -131,12 +132,19 @@ export class RedditPixel implements Plugin {
 
     rdt.callQueue = [];
     localWindow.rdt = rdt;
-    this.browser.injectScript(REDDIT_PIXEL_SCRIPT_URL, { async: true });
+    const scriptUrl = new URL(REDDIT_PIXEL_SCRIPT_URL);
+    scriptUrl.searchParams.set("pixel_id", this.settings.pixel_id);
+    this.browser.injectScript(scriptUrl.toString(), { async: true });
   }
 
   private initPixel(identifyEvent: JournifyEvent) {
+    if (this.initializedPixelId === this.settings.pixel_id) {
+      return;
+    }
+
     const userData = this.mapUserData(identifyEvent);
     this.callPixelHelper("init", this.settings.pixel_id, userData);
+    this.initializedPixelId = this.settings.pixel_id;
   }
 
   private mapUserData(event: JournifyEvent): object {

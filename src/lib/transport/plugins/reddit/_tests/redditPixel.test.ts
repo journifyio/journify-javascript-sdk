@@ -16,7 +16,8 @@ import { FieldsMapperFactoryImpl } from "../../lib/fieldMapping";
 import { EventMapperFactoryImpl } from "../../lib/eventMapping";
 import { Loader } from "../../../../api/loader";
 
-const REDDIT_PIXEL_SCRIPT_URL = "https://www.redditstatic.com/ads/pixel.js";
+const REDDIT_PIXEL_SCRIPT_URL =
+  "https://www.redditstatic.com/ads/pixel.js?pixel_id=pixel-123";
 
 describe("RedditPixel plugin", () => {
   it("should inject reddit pixel script on the page", () => {
@@ -154,7 +155,7 @@ describe("RedditPixel plugin", () => {
     });
   });
 
-  it("should identify the user and then track the mapped identify event", () => {
+  it("should track the mapped identify event without re-initializing the pixel", () => {
     const browser = new BrowserMock();
     const rdtFunc = jest.fn();
     const localWindow = window as Window & { rdt?: any };
@@ -217,10 +218,8 @@ describe("RedditPixel plugin", () => {
       )
     );
 
-    expect(rdtFunc).toHaveBeenNthCalledWith(1, "init", "pixel-123", {
-      email: "new@example.com",
-    });
-    expect(rdtFunc).toHaveBeenNthCalledWith(2, "track", "Lead", {
+    expect(rdtFunc).toHaveBeenCalledTimes(1);
+    expect(rdtFunc).toHaveBeenNthCalledWith(1, "track", "Lead", {
       email: "new@example.com",
       conversionId: "dedup-1",
     });
