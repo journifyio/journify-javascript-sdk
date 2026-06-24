@@ -192,15 +192,11 @@ export class RedditPixel implements Plugin {
       return ctx;
     }
 
-    if (STANDARD_EVENTS.has(eventName)) {
-      this.callPixelHelper("track", eventName, mappedProperties);
+    if (!eventName || !STANDARD_EVENTS.has(eventName)) {
       return ctx;
     }
 
-    this.callPixelHelper("track", CUSTOM_EVENT_KEY, {
-      ...mappedProperties,
-      customEventName: eventName,
-    });
+    this.callPixelHelper("track", eventName, mappedProperties);
     return ctx;
   }
 

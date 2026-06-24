@@ -347,7 +347,7 @@ describe("RedditPixel plugin", () => {
     });
   });
 
-  it("should send custom reddit events through the Custom channel", () => {
+  it("should no-op for non-standard events that are not mapped to Custom", () => {
     const browser = new BrowserMock();
     const rdtFunc = jest.fn();
     const localWindow = window as Window & { rdt?: any };
@@ -380,10 +380,7 @@ describe("RedditPixel plugin", () => {
     });
 
     plugin.track(ctx);
-    expect(rdtFunc).toHaveBeenCalledWith("track", "Custom", {
-      value: 42,
-      customEventName: "demo_booked",
-    });
+    expect(rdtFunc).not.toHaveBeenCalled();
   });
 
   it("should use properties.custom_event_name when destination event is Custom", () => {
