@@ -37,6 +37,7 @@ const STANDARD_EVENTS = new Set<string>([
   "Lead",
   "SignUp",
 ]);
+const CUSTOM_EVENT_KEY = "Custom";
 
 export class RedditPixel implements Plugin {
   public readonly name = "reddit_pixel";
@@ -174,12 +175,29 @@ export class RedditPixel implements Plugin {
     delete mappedProperties.client_dedup_id;
 
     const eventName = mappedEvent.pixelEventName || event.event;
+    if (eventName === CUSTOM_EVENT_KEY) {
+      const customEventName = mappedProperties.custom_event_name;
+      if (typeof customEventName !== "string" || customEventName.trim() === "") {
+        this.logger.log(
+          "Reddit Pixel custom events require properties.custom_event_name when destination_event_key is Custom."
+        );
+        return ctx;
+      }
+
+      delete mappedProperties.custom_event_name;
+      this.callPixelHelper("track", CUSTOM_EVENT_KEY, {
+        ...mappedProperties,
+        customEventName,
+      });
+      return ctx;
+    }
+
     if (STANDARD_EVENTS.has(eventName)) {
       this.callPixelHelper("track", eventName, mappedProperties);
       return ctx;
     }
 
-    this.callPixelHelper("track", "Custom", {
+    this.callPixelHelper("track", CUSTOM_EVENT_KEY, {
       ...mappedProperties,
       customEventName: eventName,
     });

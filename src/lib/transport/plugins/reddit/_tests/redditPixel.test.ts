@@ -386,6 +386,105 @@ describe("RedditPixel plugin", () => {
     });
   });
 
+  it("should use properties.custom_event_name when destination event is Custom", () => {
+    const browser = new BrowserMock();
+    const rdtFunc = jest.fn();
+    const localWindow = window as Window & { rdt?: any };
+    localWindow.rdt = rdtFunc as any;
+    browser.setWindow(localWindow);
+
+    const fieldMappings: FieldMapping[] = [
+      {
+        source: {
+          type: FieldMappingSourceType.FIELD,
+          value: "properties.value",
+        },
+        target: { name: "value" },
+      },
+      {
+        source: {
+          type: FieldMappingSourceType.FIELD,
+          value: "properties.custom_event_name",
+        },
+        target: { name: "custom_event_name" },
+      },
+    ];
+    const eventMappings: EventMapping[] = [
+      {
+        enabled: true,
+        destination_event_key: "Custom",
+        event_type: TrackingEventType.TRACK_EVENT,
+        event_name: "custom",
+      },
+    ];
+
+    const plugin = newPlugin({
+      browser,
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      fieldMappings,
+      eventMappings,
+    });
+
+    rdtFunc.mockClear();
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "custom",
+        properties: {
+          value: 42,
+          custom_event_name: "wishlist_added",
+        },
+      })
+    );
+
+    expect(rdtFunc).toHaveBeenCalledWith("track", "Custom", {
+      value: 42,
+      customEventName: "wishlist_added",
+    });
+  });
+
+  it("should no-op when destination event is Custom without properties.custom_event_name", () => {
+    const browser = new BrowserMock();
+    const rdtFunc = jest.fn();
+    const localWindow = window as Window & { rdt?: any };
+    localWindow.rdt = rdtFunc as any;
+    browser.setWindow(localWindow);
+
+    const logger = {
+      log: jest.fn(),
+    };
+    const eventMappings: EventMapping[] = [
+      {
+        enabled: true,
+        destination_event_key: "Custom",
+        event_type: TrackingEventType.TRACK_EVENT,
+        event_name: "custom",
+      },
+    ];
+
+    const plugin = newPlugin({
+      browser,
+      logger,
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      fieldMappings: [],
+      eventMappings,
+    });
+
+    rdtFunc.mockClear();
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "custom",
+        properties: { value: 42 },
+      })
+    );
+
+    expect(rdtFunc).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      "Reddit Pixel custom events require properties.custom_event_name when destination_event_key is Custom."
+    );
+  });
+
   it("should no-op when the event mapping is missing", () => {
     const browser = new BrowserMock();
     const rdtFunc = jest.fn();
