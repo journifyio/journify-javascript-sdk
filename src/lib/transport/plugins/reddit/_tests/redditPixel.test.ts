@@ -155,7 +155,7 @@ describe("RedditPixel plugin", () => {
     });
   });
 
-  it("should track the mapped identify event without re-initializing the pixel", () => {
+  it("should re-initialize the pixel with updated match keys then track the mapped identify event", () => {
     const browser = new BrowserMock();
     const rdtFunc = jest.fn();
     const localWindow = window as Window & { rdt?: any };
@@ -218,10 +218,84 @@ describe("RedditPixel plugin", () => {
       )
     );
 
-    expect(rdtFunc).toHaveBeenCalledTimes(1);
-    expect(rdtFunc).toHaveBeenNthCalledWith(1, "track", "Lead", {
+    expect(rdtFunc).toHaveBeenCalledTimes(2);
+    expect(rdtFunc).toHaveBeenNthCalledWith(1, "init", "pixel-123", {
+      email: "new@example.com",
+    });
+    expect(rdtFunc).toHaveBeenNthCalledWith(2, "track", "Lead", {
       email: "new@example.com",
       conversionId: "dedup-1",
+    });
+  });
+
+  it("should not re-initialize the pixel when identify match keys are unchanged", () => {
+    const browser = new BrowserMock();
+    const rdtFunc = jest.fn();
+    const localWindow = window as Window & { rdt?: any };
+    localWindow.rdt = rdtFunc as any;
+    browser.setWindow(localWindow);
+
+    const user = new UserMock(
+      randomUUID(),
+      randomUUID(),
+      { email: "stored@example.com" },
+      {}
+    );
+
+    const eventMappings: EventMapping[] = [
+      {
+        enabled: true,
+        destination_event_key: "Lead",
+        event_type: TrackingEventType.IDENTIFY_EVENT,
+      },
+    ];
+
+    const plugin = newPlugin({
+      browser,
+      user,
+      fieldMappings: identifyFieldMappings(),
+      eventMappings,
+    });
+
+    const identifyCtx = () =>
+      new ContextFactoryImpl().newContext(
+        {
+          type: JournifyEventType.IDENTIFY,
+          traits: { email: "first@example.com" },
+        },
+        randomUUID()
+      );
+
+    rdtFunc.mockClear();
+    plugin.identify(identifyCtx());
+
+    // First identify introduces a new match key, so it re-inits then tracks.
+    expect(rdtFunc).toHaveBeenNthCalledWith(1, "init", "pixel-123", {
+      email: "first@example.com",
+    });
+
+    rdtFunc.mockClear();
+    plugin.identify(identifyCtx());
+
+    // Second identify carries the same match keys, so no extra init is sent.
+    expect(rdtFunc).not.toHaveBeenCalledWith("init", "pixel-123", {
+      email: "first@example.com",
+    });
+
+    rdtFunc.mockClear();
+    plugin.identify(
+      new ContextFactoryImpl().newContext(
+        {
+          type: JournifyEventType.IDENTIFY,
+          traits: { email: "updated@example.com" },
+        },
+        randomUUID()
+      )
+    );
+
+    // Updated match key triggers another init with the new user data.
+    expect(rdtFunc).toHaveBeenCalledWith("init", "pixel-123", {
+      email: "updated@example.com",
     });
   });
 

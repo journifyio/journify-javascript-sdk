@@ -51,6 +51,7 @@ export class RedditPixel implements Plugin {
   private fieldsMapper: FieldsMapper;
   private eventMapper: EventMapper;
   private initializedPixelId: string | null = null;
+  private initializedUserData: string | null = null;
 
   public constructor(deps: PluginDependencies) {
     this.user = deps.user;
@@ -139,13 +140,24 @@ export class RedditPixel implements Plugin {
   }
 
   private initPixel(identifyEvent: JournifyEvent) {
-    if (this.initializedPixelId === this.settings.pixel_id) {
+    const userData = this.mapUserData(identifyEvent);
+    const userDataKey = JSON.stringify(userData);
+
+    // Reddit allows match keys to be added/updated by making another init call;
+    // user actions after that call are shared using the new parameters. So we
+    // re-init whenever the mapped user data changes, while still skipping
+    // redundant init calls when nothing changed.
+    // https://business.reddithelp.com/s/article/about-match-keys
+    if (
+      this.initializedPixelId === this.settings.pixel_id &&
+      this.initializedUserData === userDataKey
+    ) {
       return;
     }
 
-    const userData = this.mapUserData(identifyEvent);
     this.callPixelHelper("init", this.settings.pixel_id, userData);
     this.initializedPixelId = this.settings.pixel_id;
+    this.initializedUserData = userDataKey;
   }
 
   private mapUserData(event: JournifyEvent): object {
