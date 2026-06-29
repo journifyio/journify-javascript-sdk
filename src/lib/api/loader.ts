@@ -41,6 +41,7 @@ import {OpenAIPixel} from "../transport/plugins/openai/openaiPixel";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
+import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -51,6 +52,7 @@ const INTEGRATION_PLUGINS = {
   linkedin_ads_insight_tag: LinkedinAdsInsightTag,
   openai_pixel: OpenAIPixel,
   pinterest_tag: PinterestTag,
+  reddit_pixel: RedditPixel,
   snapchat_pixel: SnapchatPixel,
   tiktok_pixel: TikTokPixel,
   x_pixel: XPixel,
