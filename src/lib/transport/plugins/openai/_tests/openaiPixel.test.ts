@@ -67,6 +67,66 @@ describe("OpenAIPixel plugin", () => {
     expect(oaiqFunc).toHaveBeenCalledWith("init", { pixelId: generatedPixelId });
   });
 
+  it("should include first-party user data in init when traits are available", () => {
+    const browser = new BrowserMock();
+    const oaiqFunc = jest.fn();
+    const win = { ...window };
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const generatedPixelId = generatePixelId();
+    const fieldMapper = new FieldsMapperMock(() => ({}));
+    const user = new UserMock(
+      randomUUID(),
+      randomUUID(),
+      {
+        hashed_email:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country_code: "US",
+        city: "San Francisco",
+        postal_code: "94107",
+      },
+      {}
+    );
+
+    new OpenAIPixel({
+      sync: {
+        id: "sync_id",
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [],
+      },
+      user,
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
+      browser,
+      testingWriteKey: false,
+      logger: console,
+    });
+
+    expect(oaiqFunc).toHaveBeenCalledWith("init", {
+      pixelId: generatedPixelId,
+      user: {
+        email_sha256:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country: "US",
+        city: "San Francisco",
+        zip_code: "94107",
+      },
+    });
+  });
+
   it("should not re-inject script if oaiq already exists on window", () => {
     const browser = new BrowserMock();
     const oaiqFunc = jest.fn();
@@ -310,6 +370,75 @@ describe("OpenAIPixel plugin", () => {
     // identify calls initPixel again (re-init with updated user data)
     expect(oaiqFunc).toHaveBeenCalledWith("init", {
       pixelId: generatedPixelId,
+    });
+  });
+
+  it("should re-init with first-party user data on identify", () => {
+    const generatedPixelId = generatePixelId();
+    const oaiqFunc = jest.fn();
+
+    const user = new UserMock(
+      randomUUID(),
+      randomUUID(),
+      {
+        email_sha256:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country: "US",
+        city: "San Francisco",
+        zip_code: "94107",
+      },
+      {}
+    );
+
+    const browser = new BrowserMock();
+    const win = { ...window };
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const fieldMapper = new FieldsMapperMock(() => ({}));
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [],
+      },
+      user,
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
+      browser,
+      testingWriteKey: false,
+      logger: console,
+    });
+
+    oaiqFunc.mockClear();
+    plugin.identify(
+      new ContextFactoryImpl().newContext(
+        { type: JournifyEventType.IDENTIFY },
+        randomUUID()
+      )
+    );
+
+    expect(oaiqFunc).toHaveBeenCalledWith("init", {
+      pixelId: generatedPixelId,
+      user: {
+        email_sha256:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country: "US",
+        city: "San Francisco",
+        zip_code: "94107",
+      },
     });
   });
 
