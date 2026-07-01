@@ -5,6 +5,10 @@ import { FieldsMapper, FieldsMapperFactory } from "../lib/fieldMapping";
 import { EventMapper, EventMapperFactory } from "../lib/eventMapping";
 import { Browser } from "../../browser";
 import { toSettingsObject } from "../lib/settings";
+import { JournifyEvent, JournifyEventType } from "../../../domain/event";
+import { User } from "../../../domain/user";
+import { getStoredIdentify } from "../lib/identify";
+import { trim, toUpperCase} from "../lib/tranformations";
 
 declare global {
   interface Window {
@@ -39,10 +43,12 @@ const EVENT_TYPE_MAP: Record<string, string> = {
 };
 
 const OPENAI_SCRIPT_URL = "https://bzrcdn.openai.com/sdk/oaiq.min.js";
+const USER_DATA_FIELDS = new Set<string>(["country", "city", "zip_code"]);
 
 export class OpenAIPixel implements Plugin {
   public readonly name = "openai_pixel";
   private settings: Record<string, string> = {};
+  private readonly user: User;
   private readonly browser: Browser;
   private readonly fieldMapperFactory: FieldsMapperFactory;
   private readonly eventMapperFactory: EventMapperFactory;
@@ -52,6 +58,7 @@ export class OpenAIPixel implements Plugin {
   private eventMapper!: EventMapper;
 
   public constructor(deps: PluginDependencies) {
+    this.user = deps.user;
     this.browser = deps.browser;
     this.fieldMapperFactory = deps.fieldMapperFactory;
     this.eventMapperFactory = deps.eventMapperFactory;
@@ -73,7 +80,20 @@ export class OpenAIPixel implements Plugin {
   }
 
   identify(ctx: Context): Context {
-    this.initPixel();
+    const newEvent = ctx.getEvent();
+    const storedEvent = getStoredIdentify(this.user);
+
+    const event = {
+      type: JournifyEventType.IDENTIFY,
+      userId: newEvent.userId || storedEvent.userId,
+      anonymousId: newEvent.anonymousId || storedEvent.anonymousId,
+      traits: {
+        ...(storedEvent.traits || {}),
+        ...(newEvent.traits || {}),
+      },
+    };
+
+    this.initPixel(event);
     return this.trackPixelEvent(ctx);
   }
 
@@ -95,23 +115,24 @@ export class OpenAIPixel implements Plugin {
     delete mappedProperties.custom_event_name;
 
     const eventName = mappedEvent?.pixelEventName || event.event || "";
+    const properties = this.removeUserData(mappedProperties);
 
     if (isStandardEvent(eventName)) {
-      mappedProperties.type = EVENT_TYPE_MAP[eventName];
+      properties.type = EVENT_TYPE_MAP[eventName];
       const eventOptions: Record<string, any> = {};
       if (eventId != null) {
         eventOptions.event_id = eventId;
       }
-      this.callPixelHelper("measure", eventName, mappedProperties, eventOptions);
+      this.callPixelHelper("measure", eventName, properties, eventOptions);
     } else {
-      mappedProperties.type = "custom";
+      properties.type = "custom";
       const eventOptions: Record<string, any> = {
         custom_event_name: getCustomEventName(customEventName, event.event),
       };
       if (eventId != null) {
         eventOptions.event_id = eventId;
       }
-      this.callPixelHelper("measure", "custom", mappedProperties, eventOptions);
+      this.callPixelHelper("measure", "custom", properties, eventOptions);
     }
 
     return ctx;
@@ -130,7 +151,8 @@ export class OpenAIPixel implements Plugin {
       this.loadScript();
     }
 
-    this.initPixel();
+    const event = getStoredIdentify(this.user);
+    this.initPixel(event);
   }
 
   private loadScript(): void {
@@ -149,8 +171,41 @@ export class OpenAIPixel implements Plugin {
     this.browser.injectScript(OPENAI_SCRIPT_URL, { async: true });
   }
 
-  private initPixel() {
-    this.callPixelHelper("init", { pixelId: this.settings.pixel_id });
+  private removeUserData(properties: Record<string, any>): Record<string, any> {
+    const output: Record<string, any> = {};
+    for (const key in properties) {
+      if (USER_DATA_FIELDS.has(key)) {
+        continue;
+      }
+
+      output[key] = properties[key];
+    }
+
+    return output;
+  }
+
+  private initPixel(identifyEvent: JournifyEvent) {
+    const payload: Record<string, any> = {
+      pixelId: this.settings.pixel_id,
+    };
+    const userData = this.mapUserData(identifyEvent);
+    if (Object.keys(userData).length > 0) {
+      payload.user = userData;
+    }
+
+    this.callPixelHelper("init", payload);
+  }
+
+  private mapUserData(event: JournifyEvent): Record<string, any> {
+    const transformationsMap: Record<string, ((val: string) => string)[]> = {
+      country: [trim, toUpperCase],
+      city: [trim],
+      zip_code: [trim],
+    };
+
+    return this.fieldsMapper.mapEvent(event, transformationsMap, {
+      ignoreUnmappedProperties: true,
+    });
   }
 
   private callPixelHelper(...args: any[]) {
@@ -165,6 +220,8 @@ export class OpenAIPixel implements Plugin {
     this.browser.window().oaiq?.(...args);
   }
 }
+
+
 
 function isStandardEvent(eventName: string): boolean {
   return STANDARD_EVENTS.has(eventName);

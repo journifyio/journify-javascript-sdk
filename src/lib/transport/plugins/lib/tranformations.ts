@@ -55,6 +55,17 @@ export function toLowerCase(str: string): string {
 
   return str.toLowerCase() || null;
 }
+export function toUpperCase(str: string): string {
+  if (!str) {
+    return str;
+  }
+
+  if (typeof str !== "string") {
+    return str;
+  }
+
+  return str.toUpperCase() || null;
+}
 
 export function oneLetterGender(str: string): string {
   if (!str) {

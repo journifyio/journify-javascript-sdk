@@ -302,6 +302,70 @@ describe("OpenAIPixel plugin", () => {
     });
   });
 
+  it("should include only country city and zip_code in the init user payload", () => {
+    const generatedPixelId = generatePixelId();
+    const browser = new BrowserMock();
+    const oaiqFunc = jest.fn();
+    const win = { ...window };
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [
+          {
+            source: { type: 1, value: "traits.country_code" },
+            target: { name: "country" },
+          },
+          {
+            source: { type: 1, value: "traits.city" },
+            target: { name: "city" },
+          },
+          {
+            source: { type: 1, value: "traits.postal_code" },
+            target: { name: "zip_code" },
+          },
+        ],
+        event_mappings: [],
+      },
+      user: new UserMock(
+        randomUUID(),
+        randomUUID(),
+        {
+          country_code: " us ",
+          city: " San Francisco ",
+          postal_code: "94107",
+          email: "test@example.com",
+        },
+        {}
+      ),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory: new FieldsMapperFactoryImpl(),
+      browser,
+      testingWriteKey: false,
+      logger: console,
+    });
+
+    expect(plugin).toBeDefined();
+    expect(oaiqFunc).toHaveBeenCalledWith("init", {
+      pixelId: generatedPixelId,
+      user: {
+        country: "US",
+        city: "San Francisco",
+        zip_code: "94107",
+      },
+    });
+  });
+
   it("should send a page view when page matches the filter", () => {
     testPageFiltering(true);
   });
