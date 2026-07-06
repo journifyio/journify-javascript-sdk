@@ -5,6 +5,9 @@ import { FieldsMapper, FieldsMapperFactory } from "../lib/fieldMapping";
 import { EventMapper, EventMapperFactory } from "../lib/eventMapping";
 import { Browser } from "../../browser";
 import { toSettingsObject } from "../lib/settings";
+import { User } from "../../../domain/user";
+import { getStoredIdentify } from "../lib/identify";
+import { JournifyEvent, JournifyEventType } from "../../../domain/event";
 
 declare global {
   interface Window {
@@ -44,6 +47,7 @@ export class OpenAIPixel implements Plugin {
   public readonly name = "openai_pixel";
   private settings: Record<string, string> = {};
   private readonly browser: Browser;
+  private readonly user: User;
   private readonly fieldMapperFactory: FieldsMapperFactory;
   private readonly eventMapperFactory: EventMapperFactory;
   private readonly testingMode: boolean;
@@ -53,6 +57,7 @@ export class OpenAIPixel implements Plugin {
 
   public constructor(deps: PluginDependencies) {
     this.browser = deps.browser;
+    this.user = deps.user;
     this.fieldMapperFactory = deps.fieldMapperFactory;
     this.eventMapperFactory = deps.eventMapperFactory;
     this.testingMode = deps.testingWriteKey;
@@ -73,7 +78,20 @@ export class OpenAIPixel implements Plugin {
   }
 
   identify(ctx: Context): Context {
-    this.initPixel();
+    const newEvent = ctx.getEvent();
+    const storedEvent = getStoredIdentify(this.user);
+
+    const event = {
+      type: JournifyEventType.IDENTIFY,
+      userId: newEvent.userId || storedEvent.userId,
+      anonymousId: newEvent.anonymousId || storedEvent.anonymousId,
+      traits: {
+        ...(storedEvent.traits || {}),
+        ...(newEvent.traits || {}),
+      },
+    };
+
+    this.initPixel(event);
     return this.trackPixelEvent(ctx);
   }
 
@@ -105,9 +123,11 @@ export class OpenAIPixel implements Plugin {
       this.callPixelHelper("measure", eventName, mappedProperties, eventOptions);
     } else {
       mappedProperties.type = "custom";
-      const eventOptions: Record<string, any> = {
-        custom_event_name: getCustomEventName(customEventName, event.event),
-      };
+      const eventOptions: Record<string, any> = {};
+      const customName = getCustomEventName(customEventName, eventName);
+      if (customName) {
+        eventOptions.custom_event_name = customName;
+      }
       if (eventId != null) {
         eventOptions.event_id = eventId;
       }
@@ -130,7 +150,8 @@ export class OpenAIPixel implements Plugin {
       this.loadScript();
     }
 
-    this.initPixel();
+    const event = getStoredIdentify(this.user);
+    this.initPixel(event);
   }
 
   private loadScript(): void {
@@ -149,8 +170,8 @@ export class OpenAIPixel implements Plugin {
     this.browser.injectScript(OPENAI_SCRIPT_URL, { async: true });
   }
 
-  private initPixel() {
-    this.callPixelHelper("init", { pixelId: this.settings.pixel_id });
+  private initPixel(identifyEvent: JournifyEvent) {
+    this.callPixelHelper("init", this.buildInitPayload(identifyEvent));
   }
 
   private callPixelHelper(...args: any[]) {
@@ -163,6 +184,55 @@ export class OpenAIPixel implements Plugin {
     }
 
     this.browser.window().oaiq?.(...args);
+  }
+
+  private buildInitPayload(identifyEvent: JournifyEvent): Record<string, unknown> {
+    const traits = (identifyEvent?.traits || {}) as Record<string, unknown>;
+    const payload: Record<string, unknown> = {
+      pixelId: this.settings.pixel_id,
+    };
+    const user: Record<string, unknown> = {};
+
+    if (typeof traits.email_sha256 === "string" && traits.email_sha256.trim()) {
+      user.email_sha256 = traits.email_sha256;
+    } else if (
+      typeof traits.hashed_email === "string" &&
+      traits.hashed_email.trim()
+    ) {
+      user.email_sha256 = traits.hashed_email;
+    }
+
+    if (
+      typeof traits.external_id_sha256 === "string" &&
+      traits.external_id_sha256.trim()
+    ) {
+      user.external_id_sha256 = traits.external_id_sha256;
+    }
+
+    if (typeof traits.country_code === "string" && traits.country_code.trim()) {
+      user.country = traits.country_code;
+    } else if (typeof traits.country === "string" && traits.country.trim()) {
+      user.country = traits.country;
+    }
+
+    if (typeof traits.city === "string" && traits.city.trim()) {
+      user.city = traits.city;
+    }
+
+    if (typeof traits.zip_code === "string" && traits.zip_code.trim()) {
+      user.zip_code = traits.zip_code;
+    } else if (
+      typeof traits.postal_code === "string" &&
+      traits.postal_code.trim()
+    ) {
+      user.zip_code = traits.postal_code;
+    }
+
+    if (Object.keys(user).length > 0) {
+      payload.user = user;
+    }
+
+    return payload;
   }
 }
 
@@ -181,9 +251,13 @@ function getCustomEventName(
     return mappedCustomEventName;
   }
 
-  if (typeof fallbackEventName === "string" && fallbackEventName.trim().length > 0) {
+  if (
+    typeof fallbackEventName === "string" &&
+    fallbackEventName.trim().length > 0 &&
+    fallbackEventName !== "custom"
+  ) {
     return fallbackEventName;
   }
 
-  return "custom";
+  return "";
 }
