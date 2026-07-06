@@ -106,6 +106,7 @@ describe("PinterestTag plugin", () => {
       fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
       eventMapperFactory: new EventMapperFactoryImpl(),
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -378,6 +379,7 @@ function testSendingEvent(
     eventMapperFactory: new EventMapperFactoryImpl(),
     fieldMapperFactory: fieldMapperFactory,
     browser: browser,
+    additionalPIIKeys: [],
     testingWriteKey: false,
     logger: console,
   };
@@ -503,6 +505,7 @@ function testLoad(
     eventMapperFactory: new EventMapperFactoryImpl(),
     fieldMapperFactory: mapperFactory,
     browser: browser,
+    additionalPIIKeys: [],
     testingWriteKey: false,
     logger: console,
   };

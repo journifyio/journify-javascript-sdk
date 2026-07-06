@@ -53,6 +53,7 @@ describe("OpenAIPixel plugin", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
       browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -97,6 +98,7 @@ describe("OpenAIPixel plugin", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
       browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -123,6 +125,7 @@ describe("OpenAIPixel plugin", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryImpl(),
       browser: new BrowserMock(),
+      additionalPIIKeys: [],
       sentry: {
         setTag: jest.fn(),
         setResponse: jest.fn(),
@@ -229,6 +232,7 @@ describe("OpenAIPixel plugin", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory,
       browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -282,6 +286,7 @@ describe("OpenAIPixel plugin", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
       browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -371,6 +376,7 @@ describe("OpenAIPixel plugin", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory,
       browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     });
@@ -441,6 +447,7 @@ function testSendingEvent(
     eventMapperFactory: new EventMapperFactoryImpl(),
     fieldMapperFactory,
     browser,
+    additionalPIIKeys: [],
     testingWriteKey: false,
     logger: console,
   };
@@ -558,6 +565,7 @@ function testPageFiltering(matchFilter: boolean) {
     eventMapperFactory: new EventMapperFactoryImpl(),
     fieldMapperFactory,
     browser,
+    additionalPIIKeys: [],
     testingWriteKey: false,
     logger: console,
   };
@@ -622,6 +630,7 @@ function testLoggingEvent(
     eventMapperFactory: new EventMapperFactoryImpl(),
     fieldMapperFactory: new FieldsMapperFactoryImpl(),
     browser: new BrowserMock(),
+    additionalPIIKeys: [],
     sentry: {
       setTag: jest.fn(),
       setResponse: jest.fn(),

@@ -98,6 +98,7 @@ describe("X plugin", () => {
       fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
       eventMapperFactory: new EventMapperFactoryImpl(),
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -184,6 +185,7 @@ describe("X plugin", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: fieldMapperFactory,
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };

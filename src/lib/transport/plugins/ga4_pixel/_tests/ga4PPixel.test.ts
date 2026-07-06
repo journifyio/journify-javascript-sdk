@@ -68,6 +68,7 @@ describe("GA4 Pixel", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       testingWriteKey: false,
       browser: browser,
+      additionalPIIKeys: [],
       logger: console,
     };
     // // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -120,6 +121,7 @@ describe("GA4 Pixel", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       testingWriteKey: false,
       browser: browser,
+      additionalPIIKeys: [],
       logger: console,
     };
 
@@ -177,6 +179,7 @@ describe("GA4 Pixel", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       testingWriteKey: false,
       browser: browser,
+      additionalPIIKeys: [],
       logger: console,
     };
 

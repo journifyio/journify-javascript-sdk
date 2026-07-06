@@ -647,6 +647,7 @@ function newPlugin({
     fieldMapperFactory: new FieldsMapperFactoryImpl(),
     eventMapperFactory: new EventMapperFactoryImpl(),
     browser,
+    additionalPIIKeys: [],
     testingWriteKey,
     logger,
   };
