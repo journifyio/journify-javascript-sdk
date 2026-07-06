@@ -21,7 +21,7 @@ export class GA4Pixel implements Plugin {
   private readonly user: User;
   private readonly testingMode: boolean;
   private readonly enableHashing: boolean;
-  private readonly piiKeys: string[];
+  private readonly additionalPIIKeys: string[];
   private readonly logger: Logger;
   private settings: Record<string, string>;
 
@@ -31,7 +31,7 @@ export class GA4Pixel implements Plugin {
     this.testingMode = deps.testingWriteKey;
     this.logger = deps.logger;
     this.enableHashing = deps.enableHashing;
-    this.piiKeys = deps.piiKeys;
+    this.additionalPIIKeys = deps.additionalPIIKeys;
     this.init(deps.sync);
   }
 
@@ -51,7 +51,7 @@ export class GA4Pixel implements Plugin {
     };
 
     if (this.enableHashing) {
-      event.traits = await hashPII(event.traits, this.piiKeys);
+      event.traits = await hashPII(event.traits, this.additionalPIIKeys);
     }
 
     if (Object.keys(event.traits).length > 0) {

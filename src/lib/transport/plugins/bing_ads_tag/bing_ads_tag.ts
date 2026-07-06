@@ -22,7 +22,7 @@ export class BingAdsTag implements Plugin {
   private readonly user: User;
   private readonly testingMode: boolean;
   private readonly enableHashing: boolean;
-  private readonly piiKeys: string[];
+  private readonly additionalPIIKeys: string[];
   private browser: Browser;
   private readonly fieldsMapper: FieldsMapper;
   private readonly eventMapper: EventMapper;
@@ -34,7 +34,7 @@ export class BingAdsTag implements Plugin {
     this.user = deps.user;
     this.testingMode = deps.testingWriteKey;
     this.enableHashing = deps.enableHashing;
-    this.piiKeys = deps.piiKeys;
+    this.additionalPIIKeys = deps.additionalPIIKeys;
     this.fieldsMapper = deps.fieldMapperFactory.newFieldMapper(
       deps.sync.field_mappings
     );
@@ -64,7 +64,7 @@ export class BingAdsTag implements Plugin {
     };
 
     if (this.enableHashing) {
-      event.traits = await hashPII(event.traits, this.piiKeys);
+      event.traits = await hashPII(event.traits, this.additionalPIIKeys);
     }
 
     // keep only pid.em and pid.ph

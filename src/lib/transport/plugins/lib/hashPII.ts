@@ -1,9 +1,9 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 export async function hashPII(
-  obj: Record<string, any> = {}, piiKeys: string[] = [],
+  obj: Record<string, any> = {}, additionalPIIKeys: string[] = [],
 ): Promise<Record<string, any>> {
 
-  const piiKeysSet = piiKeys?.length > 0 ? new Set([...PII_DEFAULT_KEYS, ...piiKeys]) : PII_DEFAULT_SET;
+  const piiKeysSet = new Set([...PII_DEFAULT_KEYS, ...additionalPIIKeys]);
   const newObj = {};
   for (const key in obj) {
     let value = obj[key];

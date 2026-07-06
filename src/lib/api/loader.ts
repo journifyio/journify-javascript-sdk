@@ -246,7 +246,7 @@ export class Loader {
       testingWriteKey: deps.testingMode,
       externalSDK: deps.pluginExternalSDKs[sync.destination_app],
       enableHashing: this.sdkSettings?.options?.enableHashing,
-      piiKeys: this.sdkSettings?.options?.piiKeys ?? [],
+      additionalPIIKeys: this.sdkSettings?.options?.additionalPIIKeys ?? [],
       logger: deps.logger,
       sentry: this.sentryWrapper,
     };

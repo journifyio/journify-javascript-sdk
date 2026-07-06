@@ -105,7 +105,7 @@ describe("hashPII", () => {
     expect(result.non_pii).toBe("public");
   });
 
-  it("should not hash extra fields when empty piiKeys array passed", async () => {
+  it("should not hash extra fields when empty additionalPIIKeys array passed", async () => {
     const input = {
       custom_field: "not-sensitive",
       email: "test@example.com",
