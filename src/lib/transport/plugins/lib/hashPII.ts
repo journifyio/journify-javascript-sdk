@@ -55,4 +55,3 @@ const PII_DEFAULT_KEYS = [
   "country_code",
   "gender",
 ];
-const PII_DEFAULT_SET = new Set(PII_DEFAULT_KEYS);
