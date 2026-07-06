@@ -25,9 +25,10 @@ export interface PluginDependencies<T = undefined> {
   browser: Browser;
   testingWriteKey: boolean;
   logger: Logger;
+  additionalPIIKeys: string[];
+  sentry: SentryWrapper;
   enableHashing?: boolean | false;
   externalSDK?: T;
-  sentry: SentryWrapper;
 }
 
 export interface Logger {
@@ -38,6 +39,7 @@ export type PluginSettings = SdkSettings | Sync;
 
 type SdkOptions = {
   enableHashing?: boolean | false;
+  additionalPIIKeys?: string[];
   sessionDurationMin?: number;
   cookie?: {
     domain?: string;

@@ -29,6 +29,7 @@ export class LinkedinAdsInsightTag implements Plugin {
   private settings: Record<string, string> = {};
   private readonly user: User;
   private readonly enableHashing: boolean;
+  private readonly additionalPIIKeys: string[];
   private readonly browser: Browser;
   private readonly fieldsMapper: FieldsMapper;
   private readonly eventMapper: EventMapper;
@@ -39,6 +40,7 @@ export class LinkedinAdsInsightTag implements Plugin {
     this.browser = deps.browser;
     this.user = deps.user;
     this.enableHashing = deps.enableHashing;
+    this.additionalPIIKeys = deps.additionalPIIKeys;
     this.fieldsMapper = deps.fieldMapperFactory.newFieldMapper(
       deps.sync.field_mappings
     );
@@ -69,7 +71,7 @@ export class LinkedinAdsInsightTag implements Plugin {
     };
 
     if (this.enableHashing) {
-      event.traits = await hashPII(event.traits);
+      event.traits = await hashPII(event.traits, this.additionalPIIKeys);
     }
 
     const mappedEvent = this.fieldsMapper.mapEvent(event);
