@@ -757,7 +757,7 @@ describe("EventMapper", () => {
                 },
             });
 
-            expect(mappedEvent).toEqual([{ pixelEventName: "PURCHASE_2" }])
+            expect(mappedEvent).toEqual([{ pixelEventName: "PURCHASE_2" }]);
         });
 
         it("should return all the destination events that match when the same source event is mapped to multiple destination events", () => {
