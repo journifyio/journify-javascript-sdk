@@ -54,9 +54,9 @@ export class GA4Pixel implements Plugin {
     }
 
     if (Object.keys(event.traits).length > 0) {
-      window.gtag("set", "user_properties", event.traits);
+      this.gtagFn("set", "user_properties", event.traits);
     }
-    this.browser.window().gtag("config", this.settings.mesurement_id, {
+    this.gtagFn("config", this.settings.mesurement_id, {
       user_id: event.userId,
     });
     return ctx;
