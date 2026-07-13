@@ -83,8 +83,8 @@ export class OpenAIPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -94,24 +94,27 @@ export class OpenAIPixel implements Plugin {
     const customEventName = mappedProperties.custom_event_name;
     delete mappedProperties.custom_event_name;
 
-    const eventName = mappedEvent?.pixelEventName || event.event || "";
+    for (const mappedEvent of mappedEvents) {
+      const eventName = mappedEvent.pixelEventName || event.event || "";
+      const eventProperties = { ...mappedProperties };
 
-    if (isStandardEvent(eventName)) {
-      mappedProperties.type = EVENT_TYPE_MAP[eventName];
-      const eventOptions: Record<string, any> = {};
-      if (eventId != null) {
-        eventOptions.event_id = eventId;
+      if (isStandardEvent(eventName)) {
+        eventProperties.type = EVENT_TYPE_MAP[eventName];
+        const eventOptions: Record<string, any> = {};
+        if (eventId != null) {
+          eventOptions.event_id = eventId;
+        }
+        this.callPixelHelper("measure", eventName, eventProperties, eventOptions);
+      } else {
+        eventProperties.type = "custom";
+        const eventOptions: Record<string, any> = {
+          custom_event_name: getCustomEventName(customEventName, event.event),
+        };
+        if (eventId != null) {
+          eventOptions.event_id = eventId;
+        }
+        this.callPixelHelper("measure", "custom", eventProperties, eventOptions);
       }
-      this.callPixelHelper("measure", eventName, mappedProperties, eventOptions);
-    } else {
-      mappedProperties.type = "custom";
-      const eventOptions: Record<string, any> = {
-        custom_event_name: getCustomEventName(customEventName, event.event),
-      };
-      if (eventId != null) {
-        eventOptions.event_id = eventId;
-      }
-      this.callPixelHelper("measure", "custom", mappedProperties, eventOptions);
     }
 
     return ctx;

@@ -171,8 +171,8 @@ export class TikTokPixel implements Plugin {
 
     private trackPixelEvent(ctx: Context): Context {
         const event = ctx.getEvent();
-        const mappedEvent = this.eventMapper.applyEventMapping(event);
-        if (!mappedEvent) {
+        const mappedEvents = this.eventMapper.applyEventMapping(event);
+        if (mappedEvents.length === 0) {
             return ctx;
         }
         const mappedProperties = this.fieldsMapper.mapEvent(event);
@@ -180,16 +180,18 @@ export class TikTokPixel implements Plugin {
         delete mappedProperties.event_id;
 
         const traits = this.mapUserData(event);
-        const eventName = mappedEvent?.pixelEventName || event.event;
-        this.callPixelHelper(
-            event.type,
-            {
-                ...mappedProperties,
-                event: eventName,
-            },
-            eventId,
-            traits
-        );
+        for (const mappedEvent of mappedEvents) {
+            const eventName = mappedEvent.pixelEventName || event.event;
+            this.callPixelHelper(
+                event.type,
+                {
+                    ...mappedProperties,
+                    event: eventName,
+                },
+                eventId,
+                traits
+            );
+        }
 
         return ctx;
     }

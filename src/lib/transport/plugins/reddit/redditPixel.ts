@@ -174,8 +174,8 @@ export class RedditPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -186,29 +186,35 @@ export class RedditPixel implements Plugin {
     delete mappedProperties.event_id;
     delete mappedProperties.client_dedup_id;
 
-    const eventName = mappedEvent.pixelEventName || event.event;
-    if (eventName === CUSTOM_EVENT_KEY) {
-      const customEventName = mappedProperties.custom_event_name;
-      if (typeof customEventName !== "string" || customEventName.trim() === "") {
-        this.logger.log(
-          "Reddit Pixel custom events require properties.custom_event_name when destination_event_key is Custom."
-        );
-        return ctx;
+    for (const mappedEvent of mappedEvents) {
+      const eventName = mappedEvent.pixelEventName || event.event;
+      if (eventName === CUSTOM_EVENT_KEY) {
+        const customEventName = mappedProperties.custom_event_name;
+        if (
+          typeof customEventName !== "string" ||
+          customEventName.trim() === ""
+        ) {
+          this.logger.log(
+            "Reddit Pixel custom events require properties.custom_event_name when destination_event_key is Custom."
+          );
+          continue;
+        }
+
+        const customProperties = { ...mappedProperties };
+        delete customProperties.custom_event_name;
+        this.callPixelHelper("track", CUSTOM_EVENT_KEY, {
+          ...customProperties,
+          customEventName,
+        });
+        continue;
       }
 
-      delete mappedProperties.custom_event_name;
-      this.callPixelHelper("track", CUSTOM_EVENT_KEY, {
-        ...mappedProperties,
-        customEventName,
-      });
-      return ctx;
-    }
+      if (!eventName || !STANDARD_EVENTS.has(eventName)) {
+        continue;
+      }
 
-    if (!eventName || !STANDARD_EVENTS.has(eventName)) {
-      return ctx;
+      this.callPixelHelper("track", eventName, mappedProperties);
     }
-
-    this.callPixelHelper("track", eventName, mappedProperties);
     return ctx;
   }
 

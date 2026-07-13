@@ -127,8 +127,8 @@ export class LinkedinAdsInsightTag implements Plugin {
 
   private trackInsightTagEvent(ctx: Context): Promise<Context> | Context {
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -139,10 +139,12 @@ export class LinkedinAdsInsightTag implements Plugin {
     );
     delete mappedFields.email;
 
-    this.lintrk("track", {
-      conversion_id: toInt(mappedEvent.pixelEventName),
-      ...mappedFields,
-    });
+    for (const mappedEvent of mappedEvents) {
+      this.lintrk("track", {
+        conversion_id: toInt(mappedEvent.pixelEventName),
+        ...mappedFields,
+      });
+    }
 
     return ctx;
   }

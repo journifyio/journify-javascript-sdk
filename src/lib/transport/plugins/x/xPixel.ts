@@ -58,8 +58,8 @@ export class XPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -68,11 +68,13 @@ export class XPixel implements Plugin {
       {},
       { ignoreUnmappedProperties: true }
     );
-    this.callPixelHelper(
-      "event",
-      `tw-${this.settings.x_pixel_id}-${mappedEvent.pixelEventName}`,
-      mappedProperties
-    );
+    for (const mappedEvent of mappedEvents) {
+      this.callPixelHelper(
+        "event",
+        `tw-${this.settings.x_pixel_id}-${mappedEvent.pixelEventName}`,
+        mappedProperties
+      );
+    }
 
     return ctx;
   }
