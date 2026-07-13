@@ -63,9 +63,7 @@ export function ConfigForm(props: Props) {
             onChange={(e) => set("cdnHost", e.target.value)}
           >
             {CDN_HOSTS.map((host) => (
-              <option key={host} value={host}>
-                {host === window.location.origin ? `${host} (local fixture)` : host}
-              </option>
+              <option key={host}>{host}</option>
             ))}
           </select>
         </label>

@@ -93,7 +93,6 @@ Once your PR is merged and the CI pipeline is passed, your code will be publishe
 
 The playground imports the SDK directly from `src/`, so SDK changes hot-reload
 instantly — no build step needed. See [playground/README.md](playground/README.md)
-for details (persisted settings, fake write-key settings fixture, GA4 event
-buttons).
+for details (persisted settings, GA4 event buttons).
 # License
 This project is licensed under MIT license.

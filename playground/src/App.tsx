@@ -38,9 +38,11 @@ export function App() {
     setLoading(true);
     log("info", "load()", settings);
     try {
+      // The SDK swallows load errors internally, so a resolved load() does NOT
+      // mean success — only log what we can verify ourselves.
       await journify.load(settings);
       setSdkLoaded(true);
-      log("success", "SDK loaded");
+      log("info", "load() finished (SDK does not report load failures — check the browser console)");
       await logLoadedSyncs(settings);
     } catch (e) {
       log("error", "load() threw", String(e));
@@ -79,26 +81,37 @@ export function App() {
 
   const sendEvent = async (definition: EventDefinition, payload: object) => {
     try {
+      let ctx: unknown;
       if (definition.kind === "identify") {
         const { userId, traits } = payload as {
           userId: string;
           traits?: Parameters<typeof journify.identify>[1];
         };
         log("info", `identify(${userId})`, payload);
-        await journify.identify(userId, traits);
+        ctx = await journify.identify(userId, traits);
       } else if (definition.kind === "page") {
         const { name, properties } = payload as { name?: string; properties?: object };
         log("info", `page(${name ?? ""})`, payload);
-        await journify.page(name, properties);
+        ctx = await journify.page(name, properties);
       } else {
         const properties = { ...payload } as Record<string, unknown>;
         if ("transaction_id" in properties) {
           properties.transaction_id = randomTransactionId();
         }
         log("info", `track(${definition.key})`, properties);
-        await journify.track(definition.key, properties);
+        ctx = await journify.track(definition.key, properties);
       }
-      log("success", `${definition.label} sent`);
+
+      // The SDK returns a Context when the event went through the plugins, and
+      // null/undefined when it was only queued (SDK not loaded) or errored.
+      if (ctx) {
+        log("success", `${definition.label} dispatched to plugins`);
+      } else {
+        log(
+          "error",
+          `${definition.label} was NOT dispatched — SDK is not loaded (the call was queued by the SDK)`
+        );
+      }
     } catch (e) {
       log("error", `${definition.label} failed`, String(e));
     }
@@ -115,7 +128,7 @@ export function App() {
       <header>
         <h1>Journify SDK Playground</h1>
         <span className={`sdk-status ${sdkLoaded ? "loaded" : ""}`}>
-          {sdkLoaded ? "SDK loaded" : "SDK not loaded"}
+          {sdkLoaded ? "load() called" : "load() not called"}
         </span>
       </header>
       <div className="columns">

@@ -21,12 +21,6 @@ npm run dev
   to localStorage, so settings survive reloads.
 - **Auto-load**: when enabled (default), the SDK is loaded with the saved
   settings on every page load — edit SDK code, page reloads, SDK re-initializes.
-- **Fake write-key settings**: the Vite dev server serves
-  `GET /write_keys/<any-key>.json` from
-  [`fixtures/write-key-settings.json`](fixtures/write-key-settings.json).
-  Keep the CDN host on the local origin (default) to use it. Edit the fixture to
-  change syncs/plugins — it is re-read on every request. Point the CDN host at a
-  real CDN to test real write keys instead.
 - **Event buttons**: identify + GA4 recommended e-commerce events (page,
   view_item, add_to_cart, begin_checkout, purchase) with editable, persisted
   payloads. `purchase` gets a fresh `transaction_id` on every click.

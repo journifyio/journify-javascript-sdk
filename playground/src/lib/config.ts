@@ -7,7 +7,6 @@ export const API_HOSTS = [
 ];
 
 export const CDN_HOSTS = [
-  window.location.origin, // served by the Vite fixture middleware
   "https://local.journify.dev",
   "https://static.journify.dev",
   "https://static.journify.io",
