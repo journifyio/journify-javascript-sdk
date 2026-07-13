@@ -10,7 +10,6 @@ import { hashPII } from "../lib/hashPII";
 
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void;
     JDataLayer?: any[];
   }
 }
@@ -96,7 +95,7 @@ export class GA4Pixel implements Plugin {
           );
         }
 
-        this.browser.window().gtag("event", "page_view", gtagEventParams);
+         this.gtagFn("event", "page_view", gtagEventParams);
         break;
 
       case JournifyEventType.GROUP:
@@ -107,7 +106,7 @@ export class GA4Pixel implements Plugin {
           );
         }
 
-        this.browser.window().gtag("event", "join_group", gtagEventParams);
+         this.gtagFn("event", "join_group", gtagEventParams);
         break;
       default:
         if (this.testingMode) {
@@ -117,7 +116,7 @@ export class GA4Pixel implements Plugin {
           );
         }
 
-        this.browser.window().gtag("event", event, gtagEventParams);
+         this.gtagFn("event", event, gtagEventParams);
     }
   }
 
@@ -126,6 +125,9 @@ export class GA4Pixel implements Plugin {
     this.loadScript(this.settings.mesurement_id);
   }
 
+  private gtagFn!: (...args: any[]) => void;
+
+
   private loadScript(measurementID: string) {
     const localWindow = this.browser.window();
 
@@ -133,9 +135,7 @@ export class GA4Pixel implements Plugin {
 
     // Using a custom data layer to avoid conflicts with gtags
     // Docs: https://developers.google.com/tag-platform/tag-manager/datalayer?hl=en#rename_the_data_layer
-    localWindow.gtag = function gtag() {
-      // This is very important to use the arguments object here, and it's not possible to use rest parameters
-      // Pushing to our custom data layer
+    this.gtagFn = function () {
       // eslint-disable-next-line prefer-rest-params
       localWindow.JDataLayer.push(arguments);
     };
@@ -152,8 +152,8 @@ export class GA4Pixel implements Plugin {
       config.cookie_expires = this.settings.cookie_expires;
     }
 
-    localWindow.gtag("js", new Date());
-    localWindow.gtag("config", measurementID, config);
+     this.gtagFn("js", new Date());
+     this.gtagFn("config", measurementID, config);
 
     // Load the gtag script with l paramater to set the new data layer name
     this.browser.injectScript(
