@@ -223,7 +223,7 @@ describe("EventMapper", () => {
                 },
             });
 
-            expect(mappedEvent).toEqual([])
+            expect(mappedEvent).toEqual([]);
         });
 
         describe("matchFilter - type coercion", () => {
