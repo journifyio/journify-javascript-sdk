@@ -135,6 +135,9 @@ export class FacebookPixel implements Plugin {
 
     for (const mappedEvent of mappedEvents) {
       const eventName = mappedEvent.pixelEventName || event.event || "";
+      if (!eventName) {
+        continue;
+      }
       const trackType = isStandardEvent(eventName)
         ? "trackSingle"
         : "trackSingleCustom";
