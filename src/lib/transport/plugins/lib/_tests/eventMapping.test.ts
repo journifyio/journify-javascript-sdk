@@ -72,7 +72,7 @@ describe("EventMapper", () => {
             expect(mappedEvent).toEqual([{ pixelEventName: "pixel_identify_event" }]);
         });
 
-        it("should return null for an unsupported event type", () => {
+        it("should return an empty array for an unsupported event type", () => {
             const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
             const ctx = {
                 getEvent: () => ({ type: "UNSUPPORTED_EVENT_TYPE", event: "" }),
