@@ -31,10 +31,7 @@
     "major-version": "npm --no-git-tag-version version major && npm run update-version",
     "minor-version": "npm --no-git-tag-version version minor && npm run update-version",
     "patch-version": "npm --no-git-tag-version version patch && npm run update-version",
-    "build-watch": "chokidar \"src/lib/**/*.js\" \"src/lib/**/*.ts\" -i \"src/lib/generated/*.ts\" -i \"**/*.test.ts\" -c \"npm run build-watch-cmd\" --initial",
-    "build-watch-cmd": "npm-run-all build copy-lib-to-playground && echo 'Build finished' && date",
-    "copy-lib-to-playground": "mkdir -p examples/react-playground/node_modules/@journifyio/js-sdk && cp -r  dist/lib/es6/* examples/react-playground/node_modules/@journifyio/js-sdk",
-    "playground": "npm run --prefix examples/react-playground start"
+    "playground": "npm run --prefix playground dev"
   },
   "dependencies": {
     "@sentry/browser": "8.33.0",
@@ -57,7 +54,6 @@
     "@types/jest": "^29.5.12",
     "@typescript-eslint/eslint-plugin": "^5.33.0",
     "@typescript-eslint/parser": "^5.33.0",
-    "chokidar-cli": "^3.0.0",
     "eslint": "^8.21.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",

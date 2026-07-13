@@ -224,4 +224,5 @@ function updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
   }
 }
 
-export { load, identify, track, page, group, updateConsent, SdkSettings, Consent, ConsentCategoryPreferences, ConsentPreference, fromGoogleConsentV2, GoogleConsentV2 };
+export { load, identify, track, page, group, updateConsent, ConsentPreference, fromGoogleConsentV2 };
+export type { SdkSettings, Consent, ConsentCategoryPreferences, GoogleConsentV2 };
