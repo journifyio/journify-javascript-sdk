@@ -174,7 +174,7 @@ describe("EventMapper", () => {
                 },
             });
 
-            expect(mappedEvent).toEqual([{ pixelEventName: "PURCHASE" }])
+            expect(mappedEvent).toEqual([{ pixelEventName: "PURCHASE" }]);
         });
 
         it("should return null if one of the filters doesn't match", () => {
