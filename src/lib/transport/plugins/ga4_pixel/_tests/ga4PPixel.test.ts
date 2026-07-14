@@ -127,6 +127,10 @@ describe("GA4 Pixel", () => {
 
     const plugin = new GA4Pixel(deps);
     expect(plugin).toBeDefined();
+    const pushToGtagSpy = jest.spyOn(
+      plugin as unknown as { pushToGtag: (...args: unknown[]) => void },
+      "pushToGtag"
+    );
     plugin.track(
       new ContextFactoryImpl().newContext(
         {
@@ -140,7 +144,11 @@ describe("GA4 Pixel", () => {
         randomUUID()
       )
     );
-    expect(browser.window().gtag).toBeDefined();
+    expect(pushToGtagSpy).toHaveBeenCalledWith("event", "add_to_cart", {
+      send_to: mesurementId,
+      value: "323.12",
+      currency: "USD",
+    });
     const lastItem = browser.window().JDataLayer.pop();
     expect(lastItem[0]).toBe("event");
     expect(lastItem[1]).toBe("add_to_cart");
@@ -185,6 +193,10 @@ describe("GA4 Pixel", () => {
 
     const plugin = new GA4Pixel(deps);
     expect(plugin).toBeDefined();
+    const pushToGtagSpy = jest.spyOn(
+      plugin as unknown as { pushToGtag: (...args: unknown[]) => void },
+      "pushToGtag"
+    );
     plugin.page(
       new ContextFactoryImpl().newContext(
         {
@@ -198,7 +210,11 @@ describe("GA4 Pixel", () => {
         randomUUID()
       )
     );
-    expect(browser.window().gtag).toBeDefined();
+    expect(pushToGtagSpy).toHaveBeenCalledWith(
+      "event",
+      "page_view",
+      expect.objectContaining({ send_to: mesurementId })
+    );
     const lastItem = browser.window().JDataLayer.pop();
     expect(lastItem[0]).toBe("event");
     expect(lastItem[1]).toBe("page_view");

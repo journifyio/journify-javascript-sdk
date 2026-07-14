@@ -10,7 +10,6 @@ import { hashPII } from "../lib/hashPII";
 
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void;
     JDataLayer?: any[];
   }
 }
@@ -55,9 +54,9 @@ export class GA4Pixel implements Plugin {
     }
 
     if (Object.keys(event.traits).length > 0) {
-      window.gtag("set", "user_properties", event.traits);
+      this.pushToGtag("set", "user_properties", event.traits);
     }
-    this.browser.window().gtag("config", this.settings.mesurement_id, {
+    this.pushToGtag("config", this.settings.mesurement_id, {
       user_id: event.userId,
     });
     return ctx;
@@ -91,33 +90,33 @@ export class GA4Pixel implements Plugin {
       case JournifyEventType.PAGE:
         if (this.testingMode) {
           return this.logger.log(
-            "Will call window.gtag with the following params in order:",
+            "Will call Journify's pushToGtag with the following params in order:",
             ["event", "page_view", gtagEventParams]
           );
         }
 
-        this.browser.window().gtag("event", "page_view", gtagEventParams);
+         this.pushToGtag("event", "page_view", gtagEventParams);
         break;
 
       case JournifyEventType.GROUP:
         if (this.testingMode) {
           return this.logger.log(
-            "Will call window.gtag with the following params in order:",
+            "Will call Journify's pushToGtag with the following params in order:",
             ["event", "join_group", gtagEventParams]
           );
         }
 
-        this.browser.window().gtag("event", "join_group", gtagEventParams);
+         this.pushToGtag("event", "join_group", gtagEventParams);
         break;
       default:
         if (this.testingMode) {
           return this.logger.log(
-            "Will call window.gtag with the following params in order:",
+            "Will call Journify's pushToGtag with the following params in order:",
             ["event", event, gtagEventParams]
           );
         }
 
-        this.browser.window().gtag("event", event, gtagEventParams);
+         this.pushToGtag("event", event, gtagEventParams);
     }
   }
 
@@ -126,21 +125,22 @@ export class GA4Pixel implements Plugin {
     this.loadScript(this.settings.mesurement_id);
   }
 
+  private pushToGtag!: (...args: any[]) => void;
+
+
   private loadScript(measurementID: string) {
     const localWindow = this.browser.window();
 
     localWindow.JDataLayer = localWindow.JDataLayer || [];
 
-    // Using a custom data layer to avoid conflicts with gtags
+    // Using a custom gtag to push to JDatalayer to avoid conflicts with any existing gtags.
     // Docs: https://developers.google.com/tag-platform/tag-manager/datalayer?hl=en#rename_the_data_layer
-    localWindow.gtag = function gtag() {
-      // This is very important to use the arguments object here, and it's not possible to use rest parameters
-      // Pushing to our custom data layer
+    this.pushToGtag = function () {
       // eslint-disable-next-line prefer-rest-params
       localWindow.JDataLayer.push(arguments);
     };
 
-    // Setting up the config object for gtag
+    // Setting up the config object
     const config: Record<string, any> = {};
     if (this.settings?.cookie_domain) {
       config.cookie_domain = this.settings.cookie_domain;
@@ -152,8 +152,8 @@ export class GA4Pixel implements Plugin {
       config.cookie_expires = this.settings.cookie_expires;
     }
 
-    localWindow.gtag("js", new Date());
-    localWindow.gtag("config", measurementID, config);
+     this.pushToGtag("js", new Date());
+     this.pushToGtag("config", measurementID, config);
 
     // Load the gtag script with l paramater to set the new data layer name
     this.browser.injectScript(
