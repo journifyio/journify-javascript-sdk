@@ -90,7 +90,7 @@ export class GA4Pixel implements Plugin {
       case JournifyEventType.PAGE:
         if (this.testingMode) {
           return this.logger.log(
-            "Will call window.gtag with the following params in order:",
+            "Will call Journify's pushToGtag with the following params in order:",
             ["event", "page_view", gtagEventParams]
           );
         }
@@ -101,7 +101,7 @@ export class GA4Pixel implements Plugin {
       case JournifyEventType.GROUP:
         if (this.testingMode) {
           return this.logger.log(
-            "Will call window.gtag with the following params in order:",
+            "Will call Journify's pushToGtag with the following params in order:",
             ["event", "join_group", gtagEventParams]
           );
         }
@@ -111,7 +111,7 @@ export class GA4Pixel implements Plugin {
       default:
         if (this.testingMode) {
           return this.logger.log(
-            "Will call window.gtag with the following params in order:",
+            "Will call Journify's pushToGtag with the following params in order:",
             ["event", event, gtagEventParams]
           );
         }
@@ -133,14 +133,14 @@ export class GA4Pixel implements Plugin {
 
     localWindow.JDataLayer = localWindow.JDataLayer || [];
 
-    // Using a custom data layer to avoid conflicts with gtags
+    // Using a custom gtag to push to JDatalayer to avoid conflicts with any existing gtags.
     // Docs: https://developers.google.com/tag-platform/tag-manager/datalayer?hl=en#rename_the_data_layer
     this.pushToGtag = function () {
       // eslint-disable-next-line prefer-rest-params
       localWindow.JDataLayer.push(arguments);
     };
 
-    // Setting up the config object for gtag
+    // Setting up the config object
     const config: Record<string, any> = {};
     if (this.settings?.cookie_domain) {
       config.cookie_domain = this.settings.cookie_domain;
