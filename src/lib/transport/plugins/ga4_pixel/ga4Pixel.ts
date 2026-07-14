@@ -54,9 +54,9 @@ export class GA4Pixel implements Plugin {
     }
 
     if (Object.keys(event.traits).length > 0) {
-      this.gtagFn("set", "user_properties", event.traits);
+      this.pushToGtag("set", "user_properties", event.traits);
     }
-    this.gtagFn("config", this.settings.mesurement_id, {
+    this.pushToGtag("config", this.settings.mesurement_id, {
       user_id: event.userId,
     });
     return ctx;
@@ -95,7 +95,7 @@ export class GA4Pixel implements Plugin {
           );
         }
 
-         this.gtagFn("event", "page_view", gtagEventParams);
+         this.pushToGtag("event", "page_view", gtagEventParams);
         break;
 
       case JournifyEventType.GROUP:
@@ -106,7 +106,7 @@ export class GA4Pixel implements Plugin {
           );
         }
 
-         this.gtagFn("event", "join_group", gtagEventParams);
+         this.pushToGtag("event", "join_group", gtagEventParams);
         break;
       default:
         if (this.testingMode) {
@@ -116,7 +116,7 @@ export class GA4Pixel implements Plugin {
           );
         }
 
-         this.gtagFn("event", event, gtagEventParams);
+         this.pushToGtag("event", event, gtagEventParams);
     }
   }
 
@@ -125,7 +125,7 @@ export class GA4Pixel implements Plugin {
     this.loadScript(this.settings.mesurement_id);
   }
 
-  private gtagFn!: (...args: any[]) => void;
+  private pushToGtag!: (...args: any[]) => void;
 
 
   private loadScript(measurementID: string) {
@@ -135,7 +135,7 @@ export class GA4Pixel implements Plugin {
 
     // Using a custom data layer to avoid conflicts with gtags
     // Docs: https://developers.google.com/tag-platform/tag-manager/datalayer?hl=en#rename_the_data_layer
-    this.gtagFn = function () {
+    this.pushToGtag = function () {
       // eslint-disable-next-line prefer-rest-params
       localWindow.JDataLayer.push(arguments);
     };
@@ -152,8 +152,8 @@ export class GA4Pixel implements Plugin {
       config.cookie_expires = this.settings.cookie_expires;
     }
 
-     this.gtagFn("js", new Date());
-     this.gtagFn("config", measurementID, config);
+     this.pushToGtag("js", new Date());
+     this.pushToGtag("config", measurementID, config);
 
     // Load the gtag script with l paramater to set the new data layer name
     this.browser.injectScript(
