@@ -141,8 +141,8 @@ export class PinterestTag implements Plugin {
 
   private trackTagEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -152,12 +152,10 @@ export class PinterestTag implements Plugin {
       { ignoreUnmappedProperties: true }
     );
 
-    const eventName = mappedEvent?.pixelEventName || event.event;
-    if (!mappedEvent) {
-      return ctx;
+    for (const mappedEvent of mappedEvents) {
+      const eventName = mappedEvent.pixelEventName || event.event;
+      this.callPintrk("track", eventName, mappedProperties);
     }
-
-    this.callPintrk("track", eventName, mappedProperties);
     return ctx;
   }
 }

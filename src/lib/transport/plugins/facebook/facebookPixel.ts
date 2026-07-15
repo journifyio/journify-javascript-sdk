@@ -119,8 +119,8 @@ export class FacebookPixel implements Plugin {
 
   private trackPixelEvent(ctx: Context): Context {
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -128,23 +128,28 @@ export class FacebookPixel implements Plugin {
     const eventId = mappedProperties.event_id;
     delete mappedProperties.event_id;
 
-    const eventName = mappedEvent?.pixelEventName || event.event;
-    const trackType = isStandardEvent(eventName)
-      ? "trackSingle"
-      : "trackSingleCustom";
-
     const properties = this.removeUserData(mappedProperties);
     if (!properties.currency) {
       properties.currency = DEFAULT_CURRENCY;
     }
 
-    this.callPixelHelper(
-      trackType,
-      this.settings.pixel_id,
-      eventName,
-      properties,
-      { eventID: eventId }
-    );
+    for (const mappedEvent of mappedEvents) {
+      const eventName = mappedEvent.pixelEventName || event.event || "";
+      if (!eventName) {
+        continue;
+      }
+      const trackType = isStandardEvent(eventName)
+        ? "trackSingle"
+        : "trackSingleCustom";
+
+      this.callPixelHelper(
+        trackType,
+        this.settings.pixel_id,
+        eventName,
+        properties,
+        { eventID: eventId }
+      );
+    }
 
     return ctx;
   }

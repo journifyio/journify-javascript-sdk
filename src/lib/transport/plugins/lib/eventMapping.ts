@@ -19,7 +19,7 @@ export interface EventMapperFactory {
 }
 
 export interface EventMapper {
-  applyEventMapping(event: JournifyEvent): MappedEvent | null;
+  applyEventMapping(event: JournifyEvent): MappedEvent[];
 }
 
 export class EventMapperFactoryImpl implements EventMapperFactory {
@@ -41,7 +41,7 @@ export class EventMapperImpl implements EventMapper {
     this.init();
   }
 
-  public applyEventMapping(event: JournifyEvent): MappedEvent | null {
+  public applyEventMapping(event: JournifyEvent): MappedEvent[] {
     let eventMappings: PixelEventMapping[];
     switch (event.type) {
       case JournifyEventType.TRACK:
@@ -62,22 +62,23 @@ export class EventMapperImpl implements EventMapper {
           ];
         break;
       default:
-        return null;
+        return [];
     }
 
     if (!eventMappings || eventMappings.length === 0) {
-      return null;
+      return [];
     }
 
+    const mappedEvents: MappedEvent[] = [];
     for (const mapping of eventMappings) {
       if (matchFilters(event, mapping.filters)) {
-        return {
+        mappedEvents.push({
           pixelEventName: mapping.pixelEventName,
-        };
+        });
       }
     }
 
-    return null;
+    return mappedEvents;
   }
 
   private init(): void {

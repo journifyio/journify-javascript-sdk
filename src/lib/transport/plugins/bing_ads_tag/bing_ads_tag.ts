@@ -90,8 +90,8 @@ export class BingAdsTag implements Plugin {
       return ctx;
     }
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -104,9 +104,11 @@ export class BingAdsTag implements Plugin {
       }
     }
 
-    this.browser
-      .window()
-      .uetq.push("event", mappedEvent.pixelEventName, mappedFields);
+    for (const mappedEvent of mappedEvents) {
+      this.browser
+        .window()
+        .uetq.push("event", mappedEvent.pixelEventName, mappedFields);
+    }
     return ctx;
   }
 
