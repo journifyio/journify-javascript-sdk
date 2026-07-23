@@ -39,6 +39,7 @@ export type PluginSettings = SdkSettings | Sync;
 
 type SdkOptions = {
   enableHashing?: boolean | false;
+  enableCookieKeeper?: boolean;
   additionalPIIKeys?: string[];
   sessionDurationMin?: number;
   cookie?: {
