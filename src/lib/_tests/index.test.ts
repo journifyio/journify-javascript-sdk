@@ -1,7 +1,8 @@
-import JsCookie from "js-cookie";
+import { CookiesStore } from "../store/cookiesStore";
 import { load } from "../index";
 
 const mockLoaderLoad = jest.fn().mockResolvedValue({});
+const cookiesStore = new CookiesStore();
 
 jest.mock("../api/loader", () => ({
   getProductionWriteKey: (writeKey: string) => writeKey,
@@ -13,8 +14,8 @@ jest.mock("../api/loader", () => ({
 describe("write key settings", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    JsCookie.remove("k1");
-    JsCookie.remove("k2");
+    cookiesStore.remove("k1");
+    cookiesStore.remove("k2");
   });
 
   it("loads settings from the CDN by default", async () => {
@@ -57,7 +58,7 @@ describe("write key settings", () => {
   });
 
   it("sets x-jrnf values as cookies without overwriting existing values", async () => {
-    JsCookie.set("k2", "existing");
+    cookiesStore.set("k2", "existing");
     global.fetch = jest.fn().mockResolvedValue({
       status: 200,
       headers: new Headers({
@@ -74,7 +75,7 @@ describe("write key settings", () => {
       },
     });
 
-    expect(JsCookie.get("k1")).toBe("v1");
-    expect(JsCookie.get("k2")).toBe("existing");
+    expect(cookiesStore.get("k1")).toBe("v1");
+    expect(cookiesStore.get("k2")).toBe("existing");
   });
 });

@@ -8,7 +8,7 @@ import {SentryWrapperImpl} from "./lib/sentry";
 import {cleanTraits} from "./lib/utils";
 import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/consent";
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
-import JsCookie from "js-cookie";
+import {CookiesStore} from "./store/cookiesStore";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 const DEFAULT_API_HOST = "https://t.journify.io";
@@ -68,8 +68,9 @@ async function fetchRemoteWriteKeySettings(
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
         settings.country_code = response.headers.get(countryHeader);
-        if (enableCookieKeeper) {
-          setMissingCookies(response.headers.get("x-jrnf"));
+        const cookieHeader = response.headers.get("x-jrnf");
+        if (enableCookieKeeper && cookieHeader) {
+          setMissingCookies(cookieHeader, new CookiesStore());
         }
         return settings;
       } else if (500 <= response.status && response.status <= 599) {
@@ -102,8 +103,11 @@ async function fetchRemoteWriteKeySettings(
   return null;
 }
 
-function setMissingCookies(cookieHeader: string | null): void {
-  cookieHeader?.split(";").forEach((cookie) => {
+function setMissingCookies(
+  cookieHeader: string,
+  cookiesStore: CookiesStore
+): void {
+  cookieHeader.split(";").forEach((cookie) => {
     const separatorIndex = cookie.indexOf("=");
     if (separatorIndex < 1) {
       return;
@@ -111,8 +115,8 @@ function setMissingCookies(cookieHeader: string | null): void {
 
     const key = cookie.slice(0, separatorIndex).trim();
     const value = cookie.slice(separatorIndex + 1).trim();
-    if (JsCookie.get(key) === undefined) {
-      JsCookie.set(key, value);
+    if (cookiesStore.get(key) === null) {
+      cookiesStore.set(key, value);
     }
   });
 }
