@@ -42,6 +42,7 @@ import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
 import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
+import {extractEcommerceItems} from "../lib/ecommerceEnrichment";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -129,6 +130,7 @@ export class Loader {
         DEFAULT_MAX_QUEUE_ATTEMPTS
     );
     const browser = new BrowserImpl();
+    const ecommerceItems = extractEcommerceItems(browser.document());
     const sessionStore = new SessionStore(browser);
     const externalIdsSessionCache = new ExternalIdsSessionCacheImpl(
         browser,
@@ -151,6 +153,7 @@ export class Loader {
           browser,
           this.sentryWrapper
       ),
+      ecommerceItems,
     };
 
     this.sdk = new Sdk(this.sdkSettings, deps);

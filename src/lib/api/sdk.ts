@@ -8,6 +8,10 @@ import { EventQueue } from "../transport/queue";
 import { Group, GroupFactory } from "../domain/group";
 import { SdkSettings } from "../transport/plugins/plugin";
 import { ExternalIds } from "../domain/externalId";
+import {
+  EcommerceItem,
+  enrichEventItems,
+} from "../lib/ecommerceEnrichment";
 
 const IDENTIFY_EVENT_NAME = "identify";
 const TRACK_EVENT_NAME = "track";
@@ -20,6 +24,7 @@ export interface SdkDependencies {
   eventFactory: EventFactory;
   contextFactory: ContextFactory;
   eventQueue: EventQueue;
+  ecommerceItems?: EcommerceItem[];
 }
 
 export class Sdk extends EmitterImpl {
@@ -29,6 +34,7 @@ export class Sdk extends EmitterImpl {
   private readonly eventFactory: EventFactory;
   private readonly contextFactory: ContextFactory;
   private readonly eventQueue: EventQueue;
+  private readonly ecommerceItems: EcommerceItem[];
 
   public constructor(sdkSettings: SdkSettings, deps: SdkDependencies) {
     super();
@@ -37,6 +43,7 @@ export class Sdk extends EmitterImpl {
     this.contextFactory = deps.contextFactory;
     this.eventQueue = deps.eventQueue;
     this.eventFactory = deps.eventFactory;
+    this.ecommerceItems = deps.ecommerceItems ?? [];
 
     this.user = deps.user;
     this.eventFactory.setUser(this.user);
@@ -119,6 +126,7 @@ export class Sdk extends EmitterImpl {
   }
 
   private async dispatchEvent(event: JournifyEvent): Promise<Context> {
+    enrichEventItems(event, this.ecommerceItems);
     const eventCtx = this.contextFactory.newContext(event);
     return this.eventQueue.deliver(eventCtx);
   }
