@@ -68,7 +68,7 @@ async function fetchRemoteWriteKeySettings(
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
         settings.country_code = response.headers.get(countryHeader);
-        const cookieHeader = response.headers.get("x-jrnf");
+        const cookieHeader = response.headers.get("x-jrnf-eids");
         if (enableCookieKeeper && cookieHeader) {
           setMissingCookies(cookieHeader, new CookiesStore());
         }
@@ -107,14 +107,8 @@ function setMissingCookies(
   cookieHeader: string,
   cookiesStore: CookiesStore
 ): void {
-  cookieHeader.split(";").forEach((cookie) => {
-    const separatorIndex = cookie.indexOf("=");
-    if (separatorIndex < 1) {
-      return;
-    }
-
-    const key = cookie.slice(0, separatorIndex).trim();
-    const value = cookie.slice(separatorIndex + 1).trim();
+  const cookies = JSON.parse(decodeURIComponent(cookieHeader));
+  Object.entries(cookies).forEach(([key, value]: [string, string]) => {
     if (cookiesStore.get(key) === null) {
       cookiesStore.set(key, value);
     }

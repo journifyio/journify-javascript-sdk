@@ -14,8 +14,8 @@ jest.mock("../api/loader", () => ({
 describe("write key settings", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    cookiesStore.remove("k1");
-    cookiesStore.remove("k2");
+    cookiesStore.remove("_ga");
+    cookiesStore.remove("_fbp");
   });
 
   it("loads settings from the CDN by default", async () => {
@@ -57,12 +57,13 @@ describe("write key settings", () => {
     );
   });
 
-  it("sets x-jrnf values as cookies without overwriting existing values", async () => {
-    cookiesStore.set("k2", "existing");
+  it("sets x-jrnf-eids values as cookies without overwriting existing values", async () => {
+    cookiesStore.set("_fbp", "existing");
     global.fetch = jest.fn().mockResolvedValue({
       status: 200,
       headers: new Headers({
-        "x-jrnf": "k1=v1;k2=v2;",
+        "x-jrnf-eids":
+          "%7B%22_ga%22%3A%22click_123%22%2C%22_fbp%22%3A%22fb.1.123%22%7D",
       }),
       json: jest.fn().mockResolvedValue({ syncs: [] }),
     });
@@ -75,7 +76,7 @@ describe("write key settings", () => {
       },
     });
 
-    expect(cookiesStore.get("k1")).toBe("v1");
-    expect(cookiesStore.get("k2")).toBe("existing");
+    expect(cookiesStore.get("_ga")).toBe("click_123");
+    expect(cookiesStore.get("_fbp")).toBe("existing");
   });
 });
