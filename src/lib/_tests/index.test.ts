@@ -32,7 +32,10 @@ describe("write key settings", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://cdn.example.com/write_keys/wk_example.json"
+      "https://cdn.example.com/write_keys/wk_example.json",
+      {
+        credentials: "include",
+      }
     );
   });
 
@@ -53,7 +56,10 @@ describe("write key settings", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://api.example.com/v1/px/wk_example.json"
+      "https://api.example.com/v1/px/wk_example.json",
+      {
+        credentials: "include",
+      }
     );
   });
 

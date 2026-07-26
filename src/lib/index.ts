@@ -64,7 +64,9 @@ async function fetchRemoteWriteKeySettings(
   for (let i = 0; i < maxRetries; i++) {
     try {
       sentryWrapper.setTag("settingsURL", settingsUrl);
-      const response = await fetch(settingsUrl);
+      const response = await fetch(settingsUrl, {
+        credentials: "include",
+      });
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
         settings.country_code = response.headers.get(countryHeader);

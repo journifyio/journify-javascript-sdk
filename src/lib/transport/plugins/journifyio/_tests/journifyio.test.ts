@@ -167,6 +167,7 @@ async function testJournifyPlugin(
   const expectedEndpoint = `${settings.apiHost}/v1/${event.type.charAt(0)}`;
   expect(fetchMock).toHaveBeenCalledWith(expectedEndpoint, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
