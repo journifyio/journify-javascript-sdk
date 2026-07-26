@@ -65,7 +65,7 @@ async function fetchRemoteWriteKeySettings(
     try {
       sentryWrapper.setTag("settingsURL", settingsUrl);
       const response = await fetch(settingsUrl, {
-        credentials: "include",
+        ...(enableCookieKeeper && {credentials: "include"}),
       });
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();

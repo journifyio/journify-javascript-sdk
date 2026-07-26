@@ -60,7 +60,10 @@ describe("Journifyio plugin", () => {
       },
     };
     const expectedPayload = { ...trackEvent };
-    await testJournifyPlugin(trackEvent, expectedPayload);
+    await testJournifyPlugin(trackEvent, expectedPayload, {
+      enableHashing: false,
+      enableCookieKeeper: true,
+    });
   });
 
   it("should send track event to the tracking api after hashed PII", async () => {
@@ -140,6 +143,7 @@ async function testJournifyPlugin(
   expectedPayload: object,
   options: {
     enableHashing: boolean;
+    enableCookieKeeper?: boolean;
   } = { enableHashing: false }
 ) {
   const fetchMock = jest.fn().mockReturnValue({ ok: true });
@@ -150,6 +154,7 @@ async function testJournifyPlugin(
     apiHost: "https://t.lvh.me",
     options: {
       enableHashing: options.enableHashing,
+      enableCookieKeeper: options.enableCookieKeeper,
     },
   };
   const sentryMock = {
@@ -167,7 +172,7 @@ async function testJournifyPlugin(
   const expectedEndpoint = `${settings.apiHost}/v1/${event.type.charAt(0)}`;
   expect(fetchMock).toHaveBeenCalledWith(expectedEndpoint, {
     method: "POST",
-    credentials: "include",
+    ...(options.enableCookieKeeper && {credentials: "include"}),
     headers: {
       "Content-Type": "application/json",
     },

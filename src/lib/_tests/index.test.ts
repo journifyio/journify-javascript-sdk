@@ -33,9 +33,7 @@ describe("write key settings", () => {
 
     expect(fetch).toHaveBeenCalledWith(
       "https://cdn.example.com/write_keys/wk_example.json",
-      {
-        credentials: "include",
-      }
+      {}
     );
   });
 

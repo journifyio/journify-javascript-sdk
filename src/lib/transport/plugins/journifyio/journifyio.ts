@@ -62,7 +62,9 @@ export class JournifyioPlugin implements Plugin {
     this.sentry.setTag("writeKey", requestBody.writeKey);
     const response = await fetch(eventUrl, {
       method: "POST",
-      credentials: "include",
+      ...(this.sdkSettings.options?.enableCookieKeeper && {
+        credentials: "include",
+      }),
       headers: {
         "Content-Type": "application/json",
       },
