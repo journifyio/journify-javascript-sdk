@@ -12,6 +12,22 @@ import {CookiesStore} from "./store/cookiesStore";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 const DEFAULT_API_HOST = "https://t.journify.io";
+const EXTERNAL_ID_COOKIE_NAMES: Record<string, string> = {
+  facebook_click_id: "_fbc",
+  pinterest_click_id: "_epik",
+  tiktok_click_id: "ttclid",
+  snapchat_click_id: "_scclid",
+  facebook_browser_id: "_fbp",
+  snapchat_scid: "_scid",
+  tiktok_ttp: "_ttp",
+  microsoft_click_id: "_uetmsclkid",
+  linkedin_click_id: "li_fat_id",
+  openai_click_id: "__oppref",
+  google_ga: "_ga",
+  google_click_id: "_gcl_aw",
+  twitter_click_id: "_twclid",
+  snapchat_advertiser_cookie_1: "snapchat_advertiser_cookie_1",
+};
 
 const callsBeforeLoad = [];
 const sentryWrapper = new SentryWrapperImpl();
@@ -111,8 +127,9 @@ function setMissingCookies(
 ): void {
   const cookies = JSON.parse(decodeURIComponent(cookieHeader));
   Object.entries(cookies).forEach(([key, value]: [string, string]) => {
-    if (cookiesStore.get(key) === null) {
-      cookiesStore.set(key, value);
+    const cookieName = EXTERNAL_ID_COOKIE_NAMES[key];
+    if (cookieName && cookiesStore.get(cookieName) === null) {
+      cookiesStore.set(cookieName, value);
     }
   });
 }

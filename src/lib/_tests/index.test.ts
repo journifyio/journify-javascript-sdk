@@ -14,8 +14,9 @@ jest.mock("../api/loader", () => ({
 describe("write key settings", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    cookiesStore.remove("_ga");
-    cookiesStore.remove("_fbp");
+    ["_fbc", "_fbp", "_gcl_aw", "facebook_click_id"].forEach((cookie) =>
+      cookiesStore.remove(cookie)
+    );
   });
 
   it("loads settings from the CDN by default", async () => {
@@ -66,8 +67,13 @@ describe("write key settings", () => {
     global.fetch = jest.fn().mockResolvedValue({
       status: 200,
       headers: new Headers({
-        "x-jrnf-eids":
-          "%7B%22_ga%22%3A%22click_123%22%2C%22_fbp%22%3A%22fb.1.123%22%7D",
+        "x-jrnf-eids": encodeURIComponent(
+          JSON.stringify({
+            facebook_click_id: "facebook-click-id",
+            facebook_browser_id: "facebook-browser-id",
+            google_click_id: "google-click-id",
+          })
+        ),
       }),
       json: jest.fn().mockResolvedValue({ syncs: [] }),
     });
@@ -80,7 +86,9 @@ describe("write key settings", () => {
       },
     });
 
-    expect(cookiesStore.get("_ga")).toBe("click_123");
+    expect(cookiesStore.get("_fbc")).toBe("facebook-click-id");
     expect(cookiesStore.get("_fbp")).toBe("existing");
+    expect(cookiesStore.get("_gcl_aw")).toBe("google-click-id");
+    expect(cookiesStore.get("facebook_click_id")).toBeNull();
   });
 });
