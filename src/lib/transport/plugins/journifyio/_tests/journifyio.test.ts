@@ -169,7 +169,9 @@ async function testJournifyPlugin(
   const newCtx = await plugin.track(ctx);
   expect(newCtx).toEqual(ctx);
   expect(fetchMock).toHaveBeenCalledTimes(1);
-  const expectedEndpoint = `${settings.apiHost}/v1/${event.type.charAt(0)}`;
+  const expectedEndpoint = `${settings.apiHost}/v1/${event.type.charAt(0)}${
+    options.enableCookieKeeper ? "?ck=1" : ""
+  }`;
   expect(fetchMock).toHaveBeenCalledWith(expectedEndpoint, {
     method: "POST",
     ...(options.enableCookieKeeper && {credentials: "include"}),
