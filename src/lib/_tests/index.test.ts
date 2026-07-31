@@ -34,10 +34,15 @@ describe("SDK write key validation", () => {
       writeKey: "invalid",
     });
     await Journify.track("Test Event");
+    await Journify.track("Another Test Event");
 
     expect(global.fetch).not.toHaveBeenCalled();
     expect(Loader.prototype.load).not.toHaveBeenCalled();
     expect(sdk.track).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledTimes(3);
+    expect(console.error).toHaveBeenLastCalledWith(
+      "[Journify] Invalid write key. Event was not sent."
+    );
   });
 
   it("stops sending events when reinitialized with an invalid write key", async () => {

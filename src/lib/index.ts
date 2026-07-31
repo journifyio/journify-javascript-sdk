@@ -10,6 +10,7 @@ import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/c
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
+const INVALID_WRITE_KEY_MESSAGE = "[Journify] Invalid write key. Event was not sent.";
 
 const callsBeforeLoad = [];
 const sentryWrapper = new SentryWrapperImpl();
@@ -24,7 +25,7 @@ async function load(sdkSettings: SdkSettings) {
     if (invalidWriteKey) {
       sdk = null;
       callsBeforeLoad.length = 0;
-      throw new Error("Invalid write key");
+      throw new Error(INVALID_WRITE_KEY_MESSAGE);
     }
 
     const wKeySettings = await fetchWriteKeySettings(sdkSettings);
@@ -111,6 +112,7 @@ async function identify(
 ): Promise<Context | null> {
   try {
     if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
       return null;
     }
 
@@ -140,6 +142,7 @@ async function track(
 ): Promise<Context | null> {
   try {
     if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
       return null;
     }
 
@@ -162,6 +165,7 @@ async function page(
 ): Promise<Context | null> {
   try {
     if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
       return null;
     }
 
@@ -201,6 +205,7 @@ async function group(
 ): Promise<Context | null> {
   try {
     if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
       return null;
     }
 
