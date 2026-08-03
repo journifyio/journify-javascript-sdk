@@ -112,7 +112,6 @@ export class TikTokPixel implements Plugin {
             ...args,
             pixelCode: this.settings.pixel_code,
         };
-        const ttqInstance = window.ttq.instance(event.pixelCode)
 
         switch (eventType) {
             case JournifyEventType.IDENTIFY:
@@ -123,7 +122,7 @@ export class TikTokPixel implements Plugin {
                     );
                 }
 
-                ttqInstance.identify({
+                window.ttq.instance(event.pixelCode).identify({
                     ...event,
                     event_id: eventId,
                 });
@@ -136,8 +135,8 @@ export class TikTokPixel implements Plugin {
                             {...event, event_id: eventId}
                         );
                     }
-                    ttqInstance.identify(traits);
-                    ttqInstance.page({
+                    window.ttq.instance(event.pixelCode).identify(traits);
+                    window.ttq.instance(event.pixelCode).page({
                         ...event,
                         event_id: eventId,
                     });
@@ -150,8 +149,8 @@ export class TikTokPixel implements Plugin {
                             {event_id: eventId}
                         );
                     }
-                    ttqInstance.identify(traits);
-                    ttqInstance.track(args.event, event, {event_id: eventId});
+                    window.ttq.instance(event.pixelCode).identify(traits);
+                    window.ttq.instance(event.pixelCode).track(args.event, event, {event_id: eventId});
                 }
                 break;
             default:
@@ -163,8 +162,8 @@ export class TikTokPixel implements Plugin {
                         {event_id: eventId}
                     );
                 }
-                ttqInstance.identify(traits);
-                ttqInstance.track(args.event, event, {event_id: eventId});
+                window.ttq.instance(event.pixelCode).identify(traits);
+                window.ttq.instance(event.pixelCode).track(args.event, event, {event_id: eventId});
                 break;
         }
     }
