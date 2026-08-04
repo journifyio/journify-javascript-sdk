@@ -25,7 +25,8 @@ async function load(sdkSettings: SdkSettings) {
     if (invalidWriteKey) {
       sdk = null;
       callsBeforeLoad.length = 0;
-      throw new Error(INVALID_WRITE_KEY_MESSAGE);
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return;
     }
 
     const wKeySettings = await fetchWriteKeySettings(sdkSettings);
