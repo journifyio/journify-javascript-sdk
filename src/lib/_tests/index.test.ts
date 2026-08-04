@@ -47,7 +47,7 @@ describe("write key settings", () => {
       json: jest.fn().mockResolvedValue({ syncs: [] }),
     });
 
-    await load({
+    await Journify.load({
       writeKey: "wk_example",
       cdnHost: "https://cdn.example.com",
       apiHost: "https://api.example.com",
@@ -80,7 +80,7 @@ describe("write key settings", () => {
       json: jest.fn().mockResolvedValue({ syncs: [] }),
     });
 
-    await load({
+    await Journify.load({
       writeKey: "wk_example",
       apiHost: "https://api.example.com",
       options: {
@@ -92,8 +92,8 @@ describe("write key settings", () => {
     expect(cookiesStore.get("_fbp")).toBe("existing");
     expect(cookiesStore.get("_gcl_aw")).toBe("google-click-id");
     expect(cookiesStore.get("facebook_click_id")).toBeNull();
-
   });
+});
 
 describe("SDK write key validation", () => {
   const validWriteKey = `wk_${"a".repeat(27)}`;
