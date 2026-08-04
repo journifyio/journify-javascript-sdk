@@ -8,9 +8,13 @@ const cookiesStore = new CookiesStore();
 
 jest.mock("../api/loader", () => ({
   getProductionWriteKey: (writeKey: string) => writeKey,
-  Loader: jest.fn().mockImplementation(() => ({
-    load: (...args: unknown[]) => mockLoaderLoad(...args),
-  })),
+  isValidWriteKey: (writeKey: string) =>
+    /^(?:wk_|wk_test_)[a-zA-Z0-9]{27}$/.test(writeKey),
+  Loader: class {
+    load(...args: unknown[]) {
+      return mockLoaderLoad(...args);
+    }
+  },
 }));
 
 describe("write key settings", () => {
@@ -29,13 +33,13 @@ describe("write key settings", () => {
     });
 
     await Journify.load({
-      writeKey: "wk_example",
+      writeKey: "wk_3HRNlvW2C30FEcfkcCwyRqYJF1w",
       cdnHost: "https://cdn.example.com",
       apiHost: "https://api.example.com",
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://cdn.example.com/write_keys/wk_example.json",
+      "https://cdn.example.com/write_keys/wk_3HRNlvW2C30FEcfkcCwyRqYJF1w.json",
       {}
     );
   });
@@ -48,7 +52,7 @@ describe("write key settings", () => {
     });
 
     await Journify.load({
-      writeKey: "wk_example",
+      writeKey: "wk_3HRNlvW2C30FEcfkcCwyRqYJF1w",
       cdnHost: "https://cdn.example.com",
       apiHost: "https://api.example.com",
       options: {
@@ -57,7 +61,7 @@ describe("write key settings", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://api.example.com/v1/px/wk_example.json",
+      "https://api.example.com/v1/px/wk_3HRNlvW2C30FEcfkcCwyRqYJF1w.json",
       {
         credentials: "include",
       }
@@ -81,7 +85,7 @@ describe("write key settings", () => {
     });
 
     await Journify.load({
-      writeKey: "wk_example",
+      writeKey: "wk_3HRNlvW2C30FEcfkcCwyRqYJF1w",
       apiHost: "https://api.example.com",
       options: {
         enableCookieKeeper: true,
@@ -96,7 +100,7 @@ describe("write key settings", () => {
 });
 
 describe("SDK write key validation", () => {
-  const validWriteKey = `wk_${"a".repeat(27)}`;
+  const validWriteKey = "wk_test_3HRNlvW2C30FEcfkcCwyRqYJF1w";
   const sdk = {
     track: jest.fn(),
   };
