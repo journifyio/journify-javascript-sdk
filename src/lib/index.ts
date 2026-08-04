@@ -1,4 +1,4 @@
-import {getProductionWriteKey, Loader} from "./api/loader";
+import {getProductionWriteKey, isValidWriteKey, Loader} from "./api/loader";
 import {Sdk} from "./api/sdk";
 import {Traits} from "./domain/traits";
 import {Context} from "./transport/context";
@@ -28,15 +28,25 @@ const EXTERNAL_ID_COOKIE_NAMES: Record<string, string> = {
   twitter_click_id: "_twclid",
   snapchat_advertiser_cookie_1: "snapchat_advertiser_cookie_1",
 };
+const INVALID_WRITE_KEY_MESSAGE = "[Journify] Invalid write key. Event was not sent.";
 
 const callsBeforeLoad = [];
 const sentryWrapper = new SentryWrapperImpl();
 const loader: Loader = new Loader(sentryWrapper);
 let sdk: Sdk = null;
+let invalidWriteKey = false;
 let recordingCallsBeforeLoad = false;
 
 async function load(sdkSettings: SdkSettings) {
   try {
+    invalidWriteKey = !isValidWriteKey(sdkSettings?.writeKey);
+    if (invalidWriteKey) {
+      sdk = null;
+      callsBeforeLoad.length = 0;
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return;
+    }
+
     const wKeySettings = await fetchWriteKeySettings(sdkSettings);
     sdk = await loader.load(sdkSettings, wKeySettings);
     callsBeforeLoad.forEach((call) => call());
@@ -144,6 +154,11 @@ async function identify(
   externalIds?: ExternalIds
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => identify(userId, traits, externalIds));
       return null;
@@ -169,6 +184,11 @@ async function track(
   traits?: object
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => track(eventName, properties, traits));
       return null;
@@ -187,6 +207,11 @@ async function page(
   param3?: object
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => page(param1, param2, param3));
       return null;
@@ -222,6 +247,11 @@ async function group(
   traits?: Traits
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => group(groupId, traits));
       return null;
@@ -266,4 +296,5 @@ function updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
   }
 }
 
-export { load, identify, track, page, group, updateConsent, SdkSettings, Consent, ConsentCategoryPreferences, ConsentPreference, fromGoogleConsentV2, GoogleConsentV2 };
+export { load, identify, track, page, group, updateConsent, ConsentPreference, fromGoogleConsentV2 };
+export type { SdkSettings, Consent, ConsentCategoryPreferences, GoogleConsentV2 };

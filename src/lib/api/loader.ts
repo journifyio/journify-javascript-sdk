@@ -296,6 +296,11 @@ export class Loader {
 
 const WRITE_KEY_TEST_PREFIX = "wk_test_";
 const WRITE_KEY_PROD_PREFIX = "wk_";
+
+export function isValidWriteKey(writeKey: string): boolean {
+  return /^(?:wk_|wk_test_)[a-zA-Z0-9]{27}$/.test(writeKey);
+}
+
 function isTestingWriteKey(writeKey: string): boolean {
   return writeKey?.startsWith(WRITE_KEY_TEST_PREFIX);
 }
