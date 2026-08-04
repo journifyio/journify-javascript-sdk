@@ -1,4 +1,4 @@
-import {getProductionWriteKey, Loader} from "./api/loader";
+import {getProductionWriteKey, isValidWriteKey, Loader} from "./api/loader";
 import {Sdk} from "./api/sdk";
 import {Traits} from "./domain/traits";
 import {Context} from "./transport/context";
@@ -10,15 +10,25 @@ import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/c
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
+const INVALID_WRITE_KEY_MESSAGE = "[Journify] Invalid write key. Event was not sent.";
 
 const callsBeforeLoad = [];
 const sentryWrapper = new SentryWrapperImpl();
 const loader: Loader = new Loader(sentryWrapper);
 let sdk: Sdk = null;
+let invalidWriteKey = false;
 let recordingCallsBeforeLoad = false;
 
 async function load(sdkSettings: SdkSettings) {
   try {
+    invalidWriteKey = !isValidWriteKey(sdkSettings?.writeKey);
+    if (invalidWriteKey) {
+      sdk = null;
+      callsBeforeLoad.length = 0;
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return;
+    }
+
     const wKeySettings = await fetchWriteKeySettings(sdkSettings);
     sdk = await loader.load(sdkSettings, wKeySettings);
     callsBeforeLoad.forEach((call) => call());
@@ -102,6 +112,11 @@ async function identify(
   externalIds?: ExternalIds
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => identify(userId, traits, externalIds));
       return null;
@@ -127,6 +142,11 @@ async function track(
   traits?: object
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => track(eventName, properties, traits));
       return null;
@@ -145,6 +165,11 @@ async function page(
   param3?: object
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => page(param1, param2, param3));
       return null;
@@ -180,6 +205,11 @@ async function group(
   traits?: Traits
 ): Promise<Context | null> {
   try {
+    if (invalidWriteKey) {
+      console.error(INVALID_WRITE_KEY_MESSAGE);
+      return null;
+    }
+
     if (!sdk) {
       recordCallBeforeLoad(() => group(groupId, traits));
       return null;
