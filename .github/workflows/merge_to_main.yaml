@@ -17,11 +17,26 @@ jobs:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
     steps:
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Get GitHub App user ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Install Node.js
         uses: actions/setup-node@v3
@@ -36,8 +51,8 @@ jobs:
 
       - name: Configure git
         run: |
-          git config --global user.email "ci@journify.io"
-          git config --global user.name "Journify CI bot"
+          git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
 
       - name: Bump version and tag
         id: release_check
@@ -62,8 +77,8 @@ jobs:
           tag_name="v$current_version"
 
           git commit -am "update version ($bump)"
-          git tag -a $tag_name -m "New version $tag_name"
-          git push origin main --follow-tags
+          git tag -a "$tag_name" -m "New version $tag_name"
+          git push --atomic origin HEAD:main "refs/tags/$tag_name"
 
           echo "new_release=true" >> $GITHUB_OUTPUT
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
