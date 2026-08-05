@@ -44,7 +44,9 @@ export class JournifyioPlugin implements Plugin {
       delete event.traits.hashed_phone;
     }
 
-    const eventUrl = `${apiHost}/v1/${event.type?.charAt(0)}`;
+    const eventUrl = `${apiHost}/v1/${event.type?.charAt(0)}${
+      this.sdkSettings.options?.enableCookieKeeper ? "?ck=1" : ""
+    }`;
     const requestBody = {
       ...event,
       writeKey: this.sdkSettings.writeKey,
@@ -62,6 +64,9 @@ export class JournifyioPlugin implements Plugin {
     this.sentry.setTag("writeKey", requestBody.writeKey);
     const response = await fetch(eventUrl, {
       method: "POST",
+      ...(this.sdkSettings.options?.enableCookieKeeper && {
+        credentials: "include",
+      }),
       headers: {
         "Content-Type": "application/json",
       },
