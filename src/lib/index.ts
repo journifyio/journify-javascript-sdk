@@ -25,8 +25,7 @@ const EXTERNAL_ID_COOKIE_NAMES: Record<string, string> = {
   openai_click_id: "__oppref",
   google_ga: "_ga",
   google_click_id: "_gcl_aw",
-  twitter_click_id: "_twclid",
-  snapchat_advertiser_cookie_1: "snapchat_advertiser_cookie_1",
+  twitter_click_id: "_twclid"
 };
 const INVALID_WRITE_KEY_MESSAGE = "[Journify] Invalid write key. Event was not sent.";
 
