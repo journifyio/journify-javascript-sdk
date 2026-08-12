@@ -1,8 +1,8 @@
 import * as Sentry from "@sentry/browser";
 import { LIB_VERSION } from "../generated/libVersion";
-import type { Primitive } from "@sentry/types";
-import type { SeverityLevel } from "@sentry/types";
-import type { EventHint } from "@sentry/types";
+import type { SeverityLevel, EventHint } from "@sentry/browser";
+
+type Primitive = string | number | boolean | bigint | symbol | null | undefined;
 
 const isLocalHost =
   window.location.hostname === "localhost" ||

@@ -5,6 +5,7 @@ import { JournifyEvent, JournifyEventType } from "../../../../domain/event";
 import { randomUUID } from "node:crypto";
 import { JournifyioPlugin } from "../journifyio";
 import { LIB_VERSION } from "../../../../generated/libVersion";
+import { ResolvedSdkConfig } from "../../../../lib/remoteConfig";
 enableFetchMocks();
 
 const contextFactory = new ContextFactoryImpl();
@@ -158,7 +159,21 @@ async function testJournifyPlugin(
     captureException: jest.fn(),
     captureMessage: jest.fn(),
   };
-  const plugin = new JournifyioPlugin(settings, sentryMock);
+  const resolvedConfig: ResolvedSdkConfig = {
+    hashing: {
+      enabled: options.enableHashing,
+      algorithm: "sha256",
+      additionalPIIKeys: ["address"],
+    },
+    autoCapturePII: {
+      enabled: false,
+      fields: [],
+    },
+    cookieKeeper: {
+      enabled: false,
+    },
+  };
+  const plugin = new JournifyioPlugin(settings, resolvedConfig, sentryMock);
 
   const ctx = contextFactory.newContext(event, randomUUID());
   const newCtx = await plugin.track(ctx);

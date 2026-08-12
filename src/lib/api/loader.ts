@@ -42,6 +42,7 @@ import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
 import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
+import { createDefaultResolvedConfig, ResolvedSdkConfig } from "../lib/remoteConfig";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -71,6 +72,7 @@ export class Loader {
   private sdkSettings: SdkSettings;
   private writeKeySettings: WriteKeySettings;
   private consentService: ConsentService = null;
+  private resolvedConfig: ResolvedSdkConfig = createDefaultResolvedConfig();
 
   constructor(sentryWrapper: SentryWrapper) {
     this.sentryWrapper = sentryWrapper;
@@ -78,10 +80,12 @@ export class Loader {
 
   public async load(
       sdkConfig: SdkSettings,
-      writeKeySettings: WriteKeySettings
+      writeKeySettings: WriteKeySettings,
+      resolvedConfig: ResolvedSdkConfig
   ): Promise<Sdk> {
     this.sdkSettings = sdkConfig;
     this.writeKeySettings = writeKeySettings;
+    this.resolvedConfig = resolvedConfig;
     this.startNewSession();
 
     if (!this.consentService) {
@@ -93,9 +97,9 @@ export class Loader {
     const browser = new BrowserImpl();
 
     let cookieService: HttpCookieService;
-    if (this.sdkSettings?.options?.httpCookieServiceOptions) {
+    if (this.resolvedConfig.cookieKeeper.enabled && this.resolvedConfig.cookieKeeper.options) {
       cookieService = new HttpCookieServiceImpl(
-          this.sdkSettings?.options?.httpCookieServiceOptions,
+          this.resolvedConfig.cookieKeeper.options,
           browser,
           this.sentryWrapper,
           this.cookiesStore
@@ -120,7 +124,11 @@ export class Loader {
 
   private initSdk() {
     this.plugins = {
-      journifyio: new JournifyioPlugin(this.sdkSettings, this.sentryWrapper),
+      journifyio: new JournifyioPlugin(
+          this.sdkSettings,
+          this.resolvedConfig,
+          this.sentryWrapper
+      ),
     };
 
     this.initializePlugins();
@@ -154,11 +162,12 @@ export class Loader {
     };
 
     this.sdk = new Sdk(this.sdkSettings, deps);
-    if (this.sdkSettings.options?.autoCapturePII) {
+    if (this.resolvedConfig.autoCapturePII.enabled) {
       const autoCapturePII = new AutoCapturePII(
           browser,
           this.user,
-          this.sdkSettings.options.autoCapturePhoneRegex
+          this.sdkSettings.options?.autoCapturePhoneRegex,
+          this.resolvedConfig.autoCapturePII.fields
       );
       autoCapturePII.listen();
     }
@@ -245,8 +254,8 @@ export class Loader {
       sync: sync,
       testingWriteKey: deps.testingMode,
       externalSDK: deps.pluginExternalSDKs[sync.destination_app],
-      enableHashing: this.sdkSettings?.options?.enableHashing,
-      additionalPIIKeys: this.sdkSettings?.options?.additionalPIIKeys ?? [],
+      enableHashing: this.resolvedConfig.hashing.enabled,
+      additionalPIIKeys: this.resolvedConfig.hashing.additionalPIIKeys,
       logger: deps.logger,
       sentry: this.sentryWrapper,
     };

@@ -8,6 +8,7 @@ import {SentryWrapperImpl} from "./lib/sentry";
 import {cleanTraits} from "./lib/utils";
 import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/consent";
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
+import {RemoteConfig} from "./lib/remoteConfig";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 const INVALID_WRITE_KEY_MESSAGE = "[Journify] Invalid write key. Event was not sent.";
@@ -15,6 +16,7 @@ const INVALID_WRITE_KEY_MESSAGE = "[Journify] Invalid write key. Event was not s
 const callsBeforeLoad = [];
 const sentryWrapper = new SentryWrapperImpl();
 const loader: Loader = new Loader(sentryWrapper);
+const remoteConfig = new RemoteConfig({ sentry: sentryWrapper });
 let sdk: Sdk = null;
 let invalidWriteKey = false;
 let recordingCallsBeforeLoad = false;
@@ -29,8 +31,12 @@ async function load(sdkSettings: SdkSettings) {
       return;
     }
 
-    const wKeySettings = await fetchWriteKeySettings(sdkSettings);
-    sdk = await loader.load(sdkSettings, wKeySettings);
+    const remoteConfigResult = await fetchWriteKeySettings(sdkSettings);
+    sdk = await loader.load(
+      sdkSettings,
+      remoteConfigResult.writeKeySettings,
+      remoteConfigResult.resolvedConfig
+    );
     callsBeforeLoad.forEach((call) => call());
   } catch (error) {
     sentryWrapper.captureException(error);
@@ -40,70 +46,16 @@ async function load(sdkSettings: SdkSettings) {
 
 async function fetchWriteKeySettings(
   sdkSettings: SdkSettings
-): Promise<WriteKeySettings> {
+): Promise<{
+  writeKeySettings: WriteKeySettings;
+  resolvedConfig: ReturnType<RemoteConfig["resolveConfig"]>;
+}> {
   const productionWriteKey = getProductionWriteKey(sdkSettings?.writeKey);
-  let settings = await fetchRemoteWriteKeySettings(
+  return remoteConfig.load(
     productionWriteKey,
-    sdkSettings.cdnHost || DEFAULT_CDN_HOST
+    sdkSettings.cdnHost || DEFAULT_CDN_HOST,
+    sdkSettings.options
   );
-
-  if (!settings) {
-    settings = {
-      syncs: [],
-    };
-  }
-
-  return settings;
-}
-
-async function fetchRemoteWriteKeySettings(
-  writeKey: string,
-  cdnHost: string
-): Promise<WriteKeySettings> {
-  const maxRetries = 2;
-  const settingsUrl = `${cdnHost}/write_keys/${writeKey}.json`;
-  const countryHeader = "X-Client-Country";
-
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      sentryWrapper.setTag("settingsURL", settingsUrl);
-      const response = await fetch(settingsUrl);
-      if (200 <= response.status && response.status <= 299) {
-        const settings = await response.json();
-        settings.country_code = response.headers.get(countryHeader);
-        return settings;
-      } else if (500 <= response.status && response.status <= 599) {
-        if (i < maxRetries - 1) {
-          console.log(`Retrying in 2 seconds...`);
-          await sleep(2000);
-        }
-      } else if (response.status != 404) {
-        const error = new Error(
-          `write key settings are not found for write key ${writeKey}. Status: ${response.status}`
-        );
-        await sentryWrapper.setResponse({
-          url: settingsUrl,
-          headers: response.headers,
-          status: response.status,
-          body: await response.text(),
-        });
-        sentryWrapper.captureException(error);
-        console.error(error);
-      }
-      return { syncs: [] };
-    } catch (error) {
-      sentryWrapper.captureException(error);
-      console.error(
-        `Failed to fetch write key settings from ${settingsUrl}. error: ${error}`
-      );
-    }
-  }
-
-  return null;
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function identify(

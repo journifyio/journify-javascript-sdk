@@ -37,16 +37,40 @@ export interface Logger {
 
 export type PluginSettings = SdkSettings | Sync;
 
-type SdkOptions = {
+export interface RemoteHashingOption {
+  enabled?: boolean;
+  algorithm?: string;
+}
+
+export interface RemoteAutoCapturePIIOption {
+  enabled?: boolean;
+  fields?: string[];
+}
+
+export interface RemoteCookieKeeperOption {
+  enabled?: boolean;
+}
+
+export interface RemoteOptions {
+  hashing?: RemoteHashingOption;
+  auto_capture_pii?: RemoteAutoCapturePIIOption;
+  cookie_keeper?: RemoteCookieKeeperOption;
+}
+
+export type SdkOptions = {
+  /** @deprecated Legacy local hashing config. Prefer dashboard remote config. */
   enableHashing?: boolean | false;
+  /** @deprecated Legacy local hashing supplement. Prefer dashboard remote config. */
   additionalPIIKeys?: string[];
   sessionDurationMin?: number;
   cookie?: {
     domain?: string;
   };
+  /** @deprecated Legacy local auto-capture config. Prefer dashboard remote config. */
   autoCapturePII?: boolean;
   autoCapturePhoneRegex?: string;
   phoneCountryCode?: string;
+  /** @deprecated Legacy local cookie keeper config. Prefer dashboard remote config. */
   httpCookieServiceOptions?: HttpCookieOptions;
   initialConsent?: ConsentCategoryPreferences;
 };
@@ -62,6 +86,7 @@ export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
+  options?: RemoteOptions;
 }
 
 export interface Sync {

@@ -2,6 +2,7 @@ import { Plugin, SdkSettings } from "../plugin";
 import { Context } from "../../context";
 import { hashPII } from "../lib/hashPII";
 import { SentryWrapper } from "../../../lib/sentry";
+import { ResolvedSdkConfig } from "../../../lib/remoteConfig";
 
 const DEFAULT_API_HOST = "https://t.journify.io";
 // this is used to limit the size of the request body to prevent issues with large payloads
@@ -10,10 +11,16 @@ const MAX_REQUEST_BODY_SIZE_KB = 16; // 16KB
 export class JournifyioPlugin implements Plugin {
   public readonly name = "journifyio";
   private sdkSettings: SdkSettings;
+  private resolvedConfig: ResolvedSdkConfig;
   private sentry: SentryWrapper;
 
-  public constructor(sdkConfig: SdkSettings, sentry: SentryWrapper) {
+  public constructor(
+    sdkConfig: SdkSettings,
+    resolvedConfig: ResolvedSdkConfig,
+    sentry: SentryWrapper
+  ) {
     this.sdkSettings = sdkConfig;
+    this.resolvedConfig = resolvedConfig;
     this.sentry = sentry;
   }
 
@@ -29,9 +36,15 @@ export class JournifyioPlugin implements Plugin {
     const apiHost = this.sdkSettings.apiHost ?? DEFAULT_API_HOST;
     const event = ctx.getEvent();
 
-    if (this.sdkSettings?.options?.enableHashing === true) {
-      event.traits = await hashPII(event.traits, this.sdkSettings?.options?.additionalPIIKeys);
-      event.externalIds = await hashPII(event.externalIds, this.sdkSettings?.options?.additionalPIIKeys);
+    if (this.resolvedConfig.hashing.enabled) {
+      event.traits = await hashPII(
+        event.traits,
+        this.resolvedConfig.hashing.additionalPIIKeys
+      );
+      event.externalIds = await hashPII(
+        event.externalIds,
+        this.resolvedConfig.hashing.additionalPIIKeys
+      );
     }
 
     if (event.traits?.hashed_email && !event.traits.email) {

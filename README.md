@@ -36,6 +36,81 @@ document.body?.addEventListener('click', () => {
 })
 ```
 
+## Remote configuration
+The SDK now resolves selected runtime options from the write-key settings payload fetched from:
+
+`https://static.journify.io/write_keys/{write_key}.json`
+
+The request reuses the existing write-key settings fetch, including custom `cdnHost` support. The SDK reads the top-level `options` object and resolves each supported AddOn with this precedence:
+
+1. Remote dashboard AddOn configuration from `options`
+2. Legacy local SDK options passed to `load(...)`
+3. SDK safe defaults
+
+If the remote request fails, times out, returns malformed JSON, or omits an option, the SDK continues initializing with local configuration and defaults. Successful write-key responses are cached for the lifetime of the page and concurrent loads for the same URL are deduplicated.
+
+### Supported remote AddOns
+- `hashing`
+  Remote shape:
+  ```json
+  {
+    "options": {
+      "hashing": {
+        "enabled": true,
+        "algorithm": "sha256"
+      }
+    }
+  }
+  ```
+  Notes: only `sha256` is supported. If hashing is enabled remotely and the algorithm is missing or invalid, the SDK safely falls back to `sha256`.
+
+- `auto_capture_pii`
+  Remote shape:
+  ```json
+  {
+    "options": {
+      "auto_capture_pii": {
+        "enabled": true,
+        "fields": ["email", "phone"]
+      }
+    }
+  }
+  ```
+  Notes: if `fields` is missing or empty, the SDK uses its built-in supported field set.
+
+- `cookie_keeper`
+  Remote shape:
+  ```json
+  {
+    "options": {
+      "cookie_keeper": {
+        "enabled": true
+      }
+    }
+  }
+  ```
+  Notes: the legacy local `renewUrl` inside `httpCookieServiceOptions` is still required to power cookie renewal. If the dashboard enables `cookie_keeper` without a valid local `renewUrl`, the SDK disables the feature safely and logs a warning.
+
+### Legacy local options
+The following `load(...).options` fields are still supported for backward compatibility, but should now be treated as legacy:
+
+- `enableHashing`
+- `additionalPIIKeys`
+- `autoCapturePII`
+- `httpCookieServiceOptions`
+
+When both a remote AddOn and its matching legacy local option are present, the SDK logs a warning and the remote configuration wins.
+
+### Migration note
+Existing integrations do not need to change immediately. To migrate toward dashboard-controlled configuration:
+
+- Move `enableHashing` to the dashboard `hashing` AddOn
+- Keep `additionalPIIKeys` locally until the dashboard supports supplemental hashing field lists
+- Move `autoCapturePII` to the dashboard `auto_capture_pii` AddOn
+- Move cookie keeper enablement to the dashboard `cookie_keeper` AddOn, while continuing to provide the local `httpCookieServiceOptions.renewUrl`
+
+Legacy local options remain supported in this release as a fallback and compatibility layer.
+
 ## Using in html page
 Add the following script tag at the top of your `<head>`. Replace `<YOUR_WRITE_KEY>` with your actual write key.
 

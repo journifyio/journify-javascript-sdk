@@ -1,6 +1,7 @@
 import { Traits } from "../domain/traits";
 import { User } from "../domain/user";
 import { Browser } from "../transport/browser";
+import { AutoCapturePIIField, AUTO_CAPTURE_PII_SUPPORTED_FIELDS } from "./remoteConfig";
 
 const birthdayRegex =
   /\b(?:n\/a|\d{1,2}[\\/-]\d{1,2}[\\/-](?:\d{2}|\d{4})|\d{4}[\\/-]\d{1,2}[\\/-]\d{1,2}|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s*\d{0,2}(?:,?\s*(?:\d{2}|\d{4}))?)\b/i;
@@ -19,13 +20,20 @@ export class AutoCapturePII {
   private user: User;
   private browser: Browser;
   private phoneRegex: RegExp;
+  private readonly enabledFields: Set<AutoCapturePIIField>;
   // Great article on this https://alephnode.io/07-event-handler-binding/
   private readonly boundOnChange: (e: Event) => void;
 
-  constructor(browser: Browser, user: User, phoneRegex?: string) {
+  constructor(
+    browser: Browser,
+    user: User,
+    phoneRegex?: string,
+    fields: AutoCapturePIIField[] = [...AUTO_CAPTURE_PII_SUPPORTED_FIELDS]
+  ) {
     this.user = user;
     this.browser = browser;
     this.phoneRegex = phoneRegex ? new RegExp(phoneRegex) : defaultPhoneRegex;
+    this.enabledFields = new Set(fields);
     this.boundOnChange = this.onChange.bind(this);
   }
   public listen(): () => void {
@@ -61,6 +69,7 @@ export class AutoCapturePII {
     switch (type) {
       case "text":
         if (
+          this.shouldCapture("phone") &&
           this.checkInputBy(inputTarget, ["mobile", "tel"], this.phoneRegex) &&
           this.isValidPhone(value)
         ) {
@@ -69,6 +78,7 @@ export class AutoCapturePII {
         }
 
         if (
+          this.shouldCapture("email") &&
           this.checkInputBy(inputTarget, ["email", "e-mail"], emailRegex) &&
           this.isValidEmail(value)
         ) {
@@ -76,28 +86,37 @@ export class AutoCapturePII {
           break;
         }
 
-        if (this.checkInputBy(inputTarget, ["firstname"])) {
+        if (this.shouldCapture("firstname") && this.checkInputBy(inputTarget, ["firstname"])) {
           traits.firstname = inputTarget.value.trim();
           break;
         }
 
-        if (this.checkInputBy(inputTarget, ["lastname"])) {
+        if (this.shouldCapture("lastname") && this.checkInputBy(inputTarget, ["lastname"])) {
           traits.lastname = inputTarget.value.trim();
           break;
         }
 
         if (this.checkInputBy(inputTarget, ["name"])) {
-          traits.name = inputTarget.value.trim();
+          if (this.shouldCapture("name")) {
+            traits.name = inputTarget.value.trim();
+          }
           if (split.length > 1) {
-            traits.firstname = split[0].trim();
-            traits.lastname = split.slice(1).join(" ").trim();
+            if (this.shouldCapture("firstname")) {
+              traits.firstname = split[0].trim();
+            }
+            if (this.shouldCapture("lastname")) {
+              traits.lastname = split.slice(1).join(" ").trim();
+            }
           }
 
+          if (Object.keys(traits).length === 0) {
+            break;
+          }
           break;
         }
         break;
       case "email":
-        if (this.isValidEmail(value)) {
+        if (this.shouldCapture("email") && this.isValidEmail(value)) {
           traits.email = value;
         }
         break;
@@ -105,22 +124,25 @@ export class AutoCapturePII {
       case "phone":
       case "mobile":
       case "number":
-        if (this.isValidPhone(value)) {
+        if (this.shouldCapture("phone") && this.isValidPhone(value)) {
           traits.phone = value;
         }
         break;
       case "radio":
       case "checkbox":
-        if (this.getGender(value) && inputTarget?.checked) {
+        if (this.shouldCapture("gender") && this.getGender(value) && inputTarget?.checked) {
           traits.gender = this.getGender(value);
         }
         break;
       case "date":
-        if (this.isValidBirthday(inputTarget)) {
+        if (this.shouldCapture("birthday") && this.isValidBirthday(inputTarget)) {
           traits.birthday = value;
         }
         break;
       case "select-one":
+        if (!this.shouldCapture("gender")) {
+          break;
+        }
         this.getSelectValues(selectTarget).forEach((v) => {
           const g = this.getGender(v);
           if (g) {
@@ -153,6 +175,7 @@ export class AutoCapturePII {
   }
 
   private isValidEmail(v: string): boolean {
+    emailRegex.lastIndex = 0;
     return emailRegex.test(v);
   }
   private isValidPhone(v: string): boolean {
@@ -173,5 +196,9 @@ export class AutoCapturePII {
   private getSelectValues(e: HTMLSelectElement): string[] {
     if (e?.selectedIndex === -1) return [];
     return [e?.value, e?.options[e?.selectedIndex]?.label];
+  }
+
+  private shouldCapture(field: AutoCapturePIIField): boolean {
+    return this.enabledFields.has(field);
   }
 }

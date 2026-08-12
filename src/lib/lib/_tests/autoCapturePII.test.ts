@@ -281,6 +281,44 @@ describe("AutoCapturePII", () => {
 
     expect(userMock.setTraits).not.toHaveBeenCalled();
   });
+
+  it("should capture only configured auto-capture fields", () => {
+    browserMock.document = jest.fn().mockReturnValue(document);
+    const autoCapture = new AutoCapturePII(browserMock, userMock, undefined, ["email"]);
+    autoCapture.listen();
+
+    writeInputOnDocument({
+      id: "telephone",
+      type: "tel",
+      value: "+1234567890",
+    });
+    writeInputOnDocument({
+      id: "email",
+      type: "email",
+      value: "valid@journify.io",
+    });
+
+    expect(userMock.setTraits).toHaveBeenCalledTimes(1);
+    expect(userMock.setTraits).toHaveBeenCalledWith({
+      email: "valid@journify.io",
+    });
+  });
+
+  it("should split name into the allowed configured fields", () => {
+    browserMock.document = jest.fn().mockReturnValue(document);
+    const autoCapture = new AutoCapturePII(browserMock, userMock, undefined, ["firstname"]);
+    autoCapture.listen();
+
+    writeInputOnDocument({
+      id: "name",
+      type: "text",
+      value: "Said Gates Armani",
+    });
+
+    expect(userMock.setTraits).toHaveBeenCalledWith({
+      firstname: "Said",
+    });
+  });
   it("should set email when class is very long", () => {
     browserMock.document = jest.fn().mockReturnValue(document);
     const autoCapture = new AutoCapturePII(browserMock, userMock);
