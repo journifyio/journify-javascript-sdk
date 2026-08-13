@@ -32,7 +32,7 @@ describe("RemoteConfig", () => {
           syncs: [{ id: "sync-1" }],
           addons: [
             {
-              name: "hashing",
+              name: "end2end_hashing",
               options: {
                 algorithm: "sha256",
               },
@@ -58,7 +58,7 @@ describe("RemoteConfig", () => {
     expect(result.writeKeySettings.syncs).toEqual([{ id: "sync-1" }]);
     expect(result.writeKeySettings.addons).toEqual([
       {
-        name: "hashing",
+        name: "end2end_hashing",
         options: {
           algorithm: "sha256",
         },
@@ -213,7 +213,7 @@ describe("RemoteConfig", () => {
           status: 200,
           jsonBody: {
             syncs: [],
-            addons: [{ name: "hashing" }],
+            addons: [{ name: "end2end_hashing" }],
           },
         })
       );
@@ -248,7 +248,7 @@ describe("RemoteConfig", () => {
         status: 200,
         jsonBody: {
           syncs: [],
-          addons: [{ name: "hashing" }],
+          addons: [{ name: "end2end_hashing" }],
         },
       })
     );
@@ -296,7 +296,7 @@ describe("RemoteConfig", () => {
           syncs: [],
           addons: [
             { name: "mystery_addon", options: { enabled: true } },
-            { name: "hashing", options: { algorithm: "sha256" } },
+            { name: "end2end_hashing", options: { algorithm: "sha256" } },
           ],
         },
       })

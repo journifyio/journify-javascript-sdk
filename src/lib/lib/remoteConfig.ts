@@ -16,7 +16,7 @@ const RETRY_DELAY_MS = 100;
 const COUNTRY_HEADER = "X-Client-Country";
 const HASHING_ALGORITHM_SHA256 = "sha256";
 const JOURNIFY_PREFIX = "[Journify]";
-const REMOTE_ADDON_HASHING = "hashing";
+const REMOTE_ADDON_END2END_HASHING = "end2end_hashing";
 const REMOTE_ADDON_AUTO_CAPTURE_PII = "auto_capture_pii";
 const REMOTE_ADDON_COOKIE_KEEPER = "cookie_keeper";
 
@@ -303,7 +303,7 @@ export class RemoteConfig {
     const remoteConfigured = hasOwn(remoteOptions, "hashing");
 
     if (remoteConfigured && (localConfigured || hasOwn(localOptions, "additionalPIIKeys"))) {
-      this.warnRemoteWins("hashing", "enableHashing");
+      this.warnRemoteWins(REMOTE_ADDON_END2END_HASHING, "enableHashing");
     }
 
     const additionalPIIKeys = sanitizeStringArray(localOptions?.additionalPIIKeys);
@@ -522,7 +522,7 @@ function normalizeAddonOptions(addons: RemoteAddon[]): RemoteOptions | undefined
   const normalizedOptions: RemoteOptions = {};
 
   addons.forEach((addon) => {
-    if (addon.name === REMOTE_ADDON_HASHING) {
+    if (addon.name === REMOTE_ADDON_END2END_HASHING) {
       normalizedOptions.hashing = normalizeHashingOption(addon.options);
       return;
     }

@@ -59,7 +59,7 @@ Example payload:
   "syncs": [],
   "addons": [
     {
-      "name": "hashing",
+      "name": "end2end_hashing",
       "options": {
         "algorithm": "sha256"
       }
@@ -89,16 +89,16 @@ Journify.load({
 });
 ```
 
-In the example above, the dashboard `hashing` and `auto_capture_pii` AddOns win because remote configuration overrides the legacy local options when those AddOns are present.
+In the example above, the dashboard `end2end_hashing` and `auto_capture_pii` AddOns win because remote configuration overrides the legacy local options when those AddOns are present.
 
 ### Supported remote AddOns
-- `hashing`
+- `end2end_hashing`
   Remote shape:
   ```json
   {
     "addons": [
       {
-        "name": "hashing",
+        "name": "end2end_hashing",
         "options": {
         "algorithm": "sha256"
       }
@@ -150,7 +150,7 @@ When both a remote AddOn and its matching legacy local option are present, the S
 ### Migration note
 Existing integrations do not need to change immediately. To migrate toward dashboard-controlled configuration:
 
-- Move `enableHashing` to the dashboard `hashing` AddOn
+- Move `enableHashing` to the dashboard `end2end_hashing` AddOn
 - Keep `additionalPIIKeys` locally until the dashboard supports supplemental hashing field lists
 - Move `autoCapturePII` to the dashboard `auto_capture_pii` AddOn
 - Move cookie keeper enablement to the dashboard `cookie_keeper` AddOn, while continuing to provide the local `httpCookieServiceOptions.renewUrl`
