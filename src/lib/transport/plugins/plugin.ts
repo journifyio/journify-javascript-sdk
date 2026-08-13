@@ -15,6 +15,7 @@ export interface Plugin {
   page: (ctx: Context) => Promise<Context> | Context;
   group: (ctx: Context) => Promise<Context> | Context;
   updateSettings(settings: PluginSettings): void;
+  updateResolvedConfig?: (resolvedConfig: unknown) => void;
 }
 
 export interface PluginDependencies<T = undefined> {
@@ -37,19 +38,20 @@ export interface Logger {
 
 export type PluginSettings = SdkSettings | Sync;
 
+export interface RemoteAddon {
+  name: string;
+  options?: Record<string, unknown>;
+}
+
 export interface RemoteHashingOption {
-  enabled?: boolean;
   algorithm?: string;
 }
 
 export interface RemoteAutoCapturePIIOption {
-  enabled?: boolean;
   fields?: string[];
 }
 
-export interface RemoteCookieKeeperOption {
-  enabled?: boolean;
-}
+export type RemoteCookieKeeperOption = Record<string, never>;
 
 export interface RemoteOptions {
   hashing?: RemoteHashingOption;
@@ -86,6 +88,7 @@ export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
+  addons?: RemoteAddon[];
   options?: RemoteOptions;
 }
 

@@ -1,7 +1,9 @@
 import { HttpCookieOptions } from "./httpCookieService";
 import { SentryWrapper } from "./sentry";
 import {
+  RemoteAddon,
   RemoteAutoCapturePIIOption,
+  RemoteCookieKeeperOption,
   RemoteHashingOption,
   RemoteOptions,
   SdkOptions,
@@ -14,6 +16,9 @@ const RETRY_DELAY_MS = 100;
 const COUNTRY_HEADER = "X-Client-Country";
 const HASHING_ALGORITHM_SHA256 = "sha256";
 const JOURNIFY_PREFIX = "[Journify]";
+const REMOTE_ADDON_HASHING = "hashing";
+const REMOTE_ADDON_AUTO_CAPTURE_PII = "auto_capture_pii";
+const REMOTE_ADDON_COOKIE_KEEPER = "cookie_keeper";
 
 export const AUTO_CAPTURE_PII_SUPPORTED_FIELDS = [
   "email",
@@ -102,6 +107,12 @@ export class RemoteConfig {
     const settingsUrl = buildWriteKeySettingsUrl(cdnHost, writeKey);
     const remoteSettings = await this.fetchWriteKeySettings(settingsUrl);
     const writeKeySettings = remoteSettings ?? { syncs: [] };
+
+    if (!remoteSettings) {
+      this.consoleWarn(
+        `${JOURNIFY_PREFIX} Remote config could not be fetched or parsed for write key ${writeKey}. Falling back to legacy local config and SDK defaults.`
+      );
+    }
 
     return {
       writeKeySettings,
@@ -250,15 +261,15 @@ export class RemoteConfig {
     const consentMode = typeof payload.consent_mode === "string"
       ? payload.consent_mode
       : undefined;
-    const options = isRecord(payload.options)
-      ? (payload.options as RemoteOptions)
-      : undefined;
+    const addons = normalizeAddons(payload.addons);
+    const options = addons ? normalizeAddonOptions(addons) : undefined;
 
     return {
       ...payload,
       syncs,
       consent_mode: consentMode,
       country_code: countryCode,
+      addons,
       options,
     } as WriteKeySettings;
   }
@@ -299,22 +310,6 @@ export class RemoteConfig {
     const remoteHashing = remoteOptions?.hashing;
 
     if (remoteConfigured) {
-      if (!isValidHashingOption(remoteHashing)) {
-        return {
-          enabled: false,
-          algorithm: HASHING_ALGORITHM_SHA256,
-          additionalPIIKeys,
-        };
-      }
-
-      if (remoteHashing.enabled === false) {
-        return {
-          enabled: false,
-          algorithm: HASHING_ALGORITHM_SHA256,
-          additionalPIIKeys,
-        };
-      }
-
       return {
         enabled: true,
         algorithm: getHashingAlgorithm(remoteHashing),
@@ -342,26 +337,9 @@ export class RemoteConfig {
 
     const remoteAutoCapturePII = remoteOptions?.auto_capture_pii;
     if (remoteConfigured) {
-      if (!isValidRemoteOptionWithEnabled(remoteAutoCapturePII)) {
-        return {
-          enabled: false,
-          fields: getDefaultAutoCapturePIIFields(),
-        };
-      }
-
-      if (remoteAutoCapturePII.enabled === false) {
-        return {
-          enabled: false,
-          fields: getDefaultAutoCapturePIIFields(),
-        };
-      }
-
-      const remoteAutoCapturePIIConfig =
-        remoteAutoCapturePII as RemoteAutoCapturePIIOption & { enabled: boolean };
-
       return {
         enabled: true,
-        fields: normalizeAutoCapturePIIFields(remoteAutoCapturePIIConfig.fields),
+        fields: normalizeAutoCapturePIIFields(remoteAutoCapturePII?.fields),
       };
     }
 
@@ -383,13 +361,8 @@ export class RemoteConfig {
     }
 
     const localCookieOptions = normalizeCookieOptions(localOptions?.httpCookieServiceOptions);
-    const remoteCookieKeeper = remoteOptions?.cookie_keeper;
 
     if (remoteConfigured) {
-      if (!isValidRemoteOptionWithEnabled(remoteCookieKeeper) || remoteCookieKeeper.enabled === false) {
-        return { enabled: false };
-      }
-
       if (!localCookieOptions) {
         this.consoleWarn(
           `${JOURNIFY_PREFIX} Remote cookie_keeper is enabled, but a valid legacy renewUrl is still required locally. Falling back to disabled cookie keeper.`
@@ -461,18 +434,6 @@ function getHashingAlgorithm(remoteHashing: RemoteHashingOption): "sha256" {
   return HASHING_ALGORITHM_SHA256;
 }
 
-function isValidHashingOption(
-  option: RemoteHashingOption | undefined
-): option is RemoteHashingOption & { enabled: boolean } {
-  return isValidRemoteOptionWithEnabled(option);
-}
-
-function isValidRemoteOptionWithEnabled(
-  option: { enabled?: boolean } | undefined
-): option is { enabled: boolean } {
-  return isRecord(option) && typeof option.enabled === "boolean";
-}
-
 function normalizeAutoCapturePIIFields(
   fields: RemoteAutoCapturePIIOption["fields"]
 ): AutoCapturePIIField[] {
@@ -524,6 +485,76 @@ function sanitizeStringArray(value: unknown): string[] {
     .filter((item) => typeof item === "string")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function normalizeAddons(value: unknown): RemoteAddon[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const addons: RemoteAddon[] = [];
+
+  value.filter(isRecord).forEach((addon) => {
+    const name = typeof addon.name === "string" ? addon.name.trim() : "";
+    if (!name) {
+      return;
+    }
+
+    addons.push({
+      name,
+      options: isRecord(addon.options)
+        ? { ...addon.options }
+        : undefined,
+    });
+  });
+
+  return addons;
+}
+
+function normalizeAddonOptions(addons: RemoteAddon[]): RemoteOptions | undefined {
+  const normalizedOptions: RemoteOptions = {};
+
+  addons.forEach((addon) => {
+    if (addon.name === REMOTE_ADDON_HASHING) {
+      normalizedOptions.hashing = normalizeHashingOption(addon.options);
+      return;
+    }
+
+    if (addon.name === REMOTE_ADDON_AUTO_CAPTURE_PII) {
+      normalizedOptions.auto_capture_pii = normalizeAutoCapturePIIOption(addon.options);
+      return;
+    }
+
+    if (addon.name === REMOTE_ADDON_COOKIE_KEEPER) {
+      normalizedOptions.cookie_keeper = normalizeCookieKeeperOption();
+    }
+  });
+
+  return Object.keys(normalizedOptions).length > 0
+    ? normalizedOptions
+    : undefined;
+}
+
+function normalizeHashingOption(
+  options?: Record<string, unknown>
+): RemoteHashingOption {
+  return {
+    algorithm: typeof options?.algorithm === "string"
+      ? options.algorithm.trim()
+      : undefined,
+  };
+}
+
+function normalizeAutoCapturePIIOption(
+  options?: Record<string, unknown>
+): RemoteAutoCapturePIIOption {
+  return {
+    fields: Array.isArray(options?.fields) ? options.fields as string[] : undefined,
+  };
+}
+
+function normalizeCookieKeeperOption(): RemoteCookieKeeperOption {
+  return {};
 }
 
 function hasOwn(value: unknown, key: string): boolean {

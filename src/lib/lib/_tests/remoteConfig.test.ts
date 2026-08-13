@@ -30,12 +30,14 @@ describe("RemoteConfig", () => {
         status: 200,
         jsonBody: {
           syncs: [{ id: "sync-1" }],
-          options: {
-            hashing: {
-              enabled: true,
-              algorithm: "sha256",
+          addons: [
+            {
+              name: "hashing",
+              options: {
+                algorithm: "sha256",
+              },
             },
-          },
+          ],
         },
         headers: {
           "X-Client-Country": "US",
@@ -54,6 +56,14 @@ describe("RemoteConfig", () => {
     );
     expect(result.writeKeySettings.country_code).toBe("US");
     expect(result.writeKeySettings.syncs).toEqual([{ id: "sync-1" }]);
+    expect(result.writeKeySettings.addons).toEqual([
+      {
+        name: "hashing",
+        options: {
+          algorithm: "sha256",
+        },
+      },
+    ]);
     expect(result.resolvedConfig.hashing).toEqual({
       enabled: true,
       algorithm: "sha256",
@@ -61,7 +71,7 @@ describe("RemoteConfig", () => {
     });
   });
 
-  it("applies precedence remote over local over defaults, including explicit false", () => {
+  it("applies precedence remote over local over defaults based on addon presence", () => {
     const localOptions: SdkOptions = {
       enableHashing: true,
       additionalPIIKeys: ["company"],
@@ -79,15 +89,15 @@ describe("RemoteConfig", () => {
 
     const resolved = remoteConfig.resolveConfig(
       {
-        hashing: { enabled: false, algorithm: "sha256" },
-        auto_capture_pii: { enabled: true, fields: ["email", "phone"] },
-        cookie_keeper: { enabled: false },
+        hashing: { algorithm: "sha256" },
+        auto_capture_pii: { fields: ["email", "phone"] },
+        cookie_keeper: {},
       },
       localOptions
     );
 
     expect(resolved.hashing).toEqual({
-      enabled: false,
+      enabled: true,
       algorithm: "sha256",
       additionalPIIKeys: ["company"],
     });
@@ -95,7 +105,13 @@ describe("RemoteConfig", () => {
       enabled: true,
       fields: ["email", "phone"],
     });
-    expect(resolved.cookieKeeper).toEqual({ enabled: false });
+    expect(resolved.cookieKeeper).toEqual({
+      enabled: true,
+      options: {
+        renewUrl: "/renew",
+        enablePolling: true,
+      },
+    });
     expect(consoleWarn).toHaveBeenCalledTimes(3);
   });
 
@@ -109,7 +125,7 @@ describe("RemoteConfig", () => {
     const resolved = remoteConfig.resolveConfig(
       ({
         hashing: { algorithm: "md5" },
-        auto_capture_pii: { enabled: true, fields: [123, "email"] },
+        auto_capture_pii: { fields: [123, "email"] },
         cookie_keeper: {},
       } as unknown) as RemoteOptions,
       {
@@ -119,13 +135,19 @@ describe("RemoteConfig", () => {
       }
     );
 
-    expect(resolved.hashing.enabled).toBe(false);
+    expect(resolved.hashing.enabled).toBe(true);
     expect(resolved.hashing.algorithm).toBe("sha256");
     expect(resolved.autoCapturePII).toEqual({
       enabled: true,
       fields: ["email"],
     });
-    expect(resolved.cookieKeeper).toEqual({ enabled: false });
+    expect(resolved.cookieKeeper).toEqual({
+      enabled: true,
+      options: {
+        renewUrl: "/renew",
+        enablePolling: true,
+      },
+    });
   });
 
   it("uses default auto-capture fields when remote fields are missing or empty", () => {
@@ -137,13 +159,13 @@ describe("RemoteConfig", () => {
 
     const missingFields = remoteConfig.resolveConfig(
       {
-        auto_capture_pii: { enabled: true },
+        auto_capture_pii: {},
       },
       {}
     );
     const emptyFields = remoteConfig.resolveConfig(
       {
-        auto_capture_pii: { enabled: true, fields: [] },
+        auto_capture_pii: { fields: [] },
       },
       {}
     );
@@ -165,7 +187,7 @@ describe("RemoteConfig", () => {
 
     const resolved = remoteConfig.resolveConfig(
       {
-        cookie_keeper: { enabled: true },
+        cookie_keeper: {},
       },
       {
         httpCookieServiceOptions: {
@@ -191,9 +213,7 @@ describe("RemoteConfig", () => {
           status: 200,
           jsonBody: {
             syncs: [],
-            options: {
-              hashing: { enabled: true },
-            },
+            addons: [{ name: "hashing" }],
           },
         })
       );
@@ -228,9 +248,7 @@ describe("RemoteConfig", () => {
         status: 200,
         jsonBody: {
           syncs: [],
-          options: {
-            hashing: { enabled: true },
-          },
+          addons: [{ name: "hashing" }],
         },
       })
     );
@@ -269,24 +287,71 @@ describe("RemoteConfig", () => {
     expect(second.writeKeySettings).toEqual({ syncs: [] });
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
+
+  it("ignores unknown addons safely", async () => {
+    const fetchFn = jest.fn().mockResolvedValue(
+      createResponse({
+        status: 200,
+        jsonBody: {
+          syncs: [],
+          addons: [
+            { name: "mystery_addon", options: { enabled: true } },
+            { name: "hashing", options: { algorithm: "sha256" } },
+          ],
+        },
+      })
+    );
+    const remoteConfig = new RemoteConfig({ fetchFn, sentry, consoleWarn });
+
+    const result = await remoteConfig.load("wk_abc", "https://static.journify.io");
+
+    expect(result.resolvedConfig.hashing.enabled).toBe(true);
+    expect(result.resolvedConfig.autoCapturePII.enabled).toBe(false);
+  });
+
+  it("warns and falls back when remote config cannot be parsed", async () => {
+    const fetchFn = jest.fn().mockResolvedValue(
+      createResponse({
+        status: 200,
+        jsonError: new Error("malformed-json"),
+      })
+    );
+    const remoteConfig = new RemoteConfig({ fetchFn, sentry, consoleWarn });
+
+    const result = await remoteConfig.load("wk_abc", "https://static.journify.io", {
+      enableHashing: true,
+    });
+
+    expect(result.writeKeySettings).toEqual({ syncs: [] });
+    expect(result.resolvedConfig.hashing.enabled).toBe(true);
+    expect(consoleWarn).toHaveBeenCalledWith(
+      expect.stringContaining("Remote config could not be fetched or parsed")
+    );
+  });
 });
 
 function createResponse({
   status,
   jsonBody,
+  jsonError,
   textBody,
   headers = {},
 }: {
   status: number;
   jsonBody?: unknown;
+  jsonError?: Error;
   textBody?: string;
   headers?: Record<string, string>;
 }): Response {
-  return {
+  const response: Partial<Response> = {
     ok: status >= 200 && status <= 299,
     status,
     headers: new Headers(headers),
-    json: jest.fn().mockResolvedValue(jsonBody),
+    json: jsonError
+      ? jest.fn().mockRejectedValue(jsonError)
+      : jest.fn().mockResolvedValue(jsonBody),
     text: jest.fn().mockResolvedValue(textBody ?? JSON.stringify(jsonBody ?? {})),
-  } as unknown as Response;
+  };
+
+  return response as Response;
 }

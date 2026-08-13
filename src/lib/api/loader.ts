@@ -187,6 +187,9 @@ export class Loader {
 
       const plugin = this.plugins[syncID];
       plugin.updateSettings(settings);
+      if (plugin.updateResolvedConfig) {
+        plugin.updateResolvedConfig(this.resolvedConfig);
+      }
     }
   }
 

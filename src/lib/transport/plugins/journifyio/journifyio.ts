@@ -28,6 +28,10 @@ export class JournifyioPlugin implements Plugin {
     this.sdkSettings = settings;
   }
 
+  public updateResolvedConfig(resolvedConfig: ResolvedSdkConfig) {
+    this.resolvedConfig = resolvedConfig;
+  }
+
   public identify = this.post;
   public track = this.post;
   public page = this.post;

@@ -134,6 +134,47 @@ describe("Journifyio plugin", () => {
       enableHashing: true,
     });
   });
+
+  it("should refresh hashing behavior when resolved config changes", async () => {
+    const fetchMock = jest.fn().mockReturnValue({ ok: true });
+    global.fetch = fetchMock;
+
+    const settings: SdkSettings = {
+      writeKey: "wk_139fjskfjsdkljflskdjflkds",
+      apiHost: "https://t.lvh.me",
+    };
+    const sentryMock = {
+      setTag: jest.fn(),
+      setResponse: jest.fn(),
+      captureException: jest.fn(),
+      captureMessage: jest.fn(),
+    };
+    const plugin = new JournifyioPlugin(
+      settings,
+      buildResolvedConfig(false),
+      sentryMock
+    );
+
+    const plainEvent = buildTrackEvent({
+      email: "user@example.com",
+    });
+    await plugin.track(contextFactory.newContext(plainEvent, randomUUID()));
+
+    plugin.updateResolvedConfig(buildResolvedConfig(true));
+
+    const hashedEvent = buildTrackEvent({
+      email: "user@example.com",
+    });
+    await plugin.track(contextFactory.newContext(hashedEvent, randomUUID()));
+
+    const firstPayload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const secondPayload = JSON.parse(fetchMock.mock.calls[1][1].body);
+
+    expect(firstPayload.traits.email).toBe("user@example.com");
+    expect(secondPayload.traits.email).toBe(
+      "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514"
+    );
+  });
 });
 
 async function testJournifyPlugin(
@@ -159,20 +200,7 @@ async function testJournifyPlugin(
     captureException: jest.fn(),
     captureMessage: jest.fn(),
   };
-  const resolvedConfig: ResolvedSdkConfig = {
-    hashing: {
-      enabled: options.enableHashing,
-      algorithm: "sha256",
-      additionalPIIKeys: ["address"],
-    },
-    autoCapturePII: {
-      enabled: false,
-      fields: [],
-    },
-    cookieKeeper: {
-      enabled: false,
-    },
-  };
+  const resolvedConfig = buildResolvedConfig(options.enableHashing);
   const plugin = new JournifyioPlugin(settings, resolvedConfig, sentryMock);
 
   const ctx = contextFactory.newContext(event, randomUUID());
@@ -191,4 +219,58 @@ async function testJournifyPlugin(
     }),
     keepalive: true,
   });
+}
+
+function buildResolvedConfig(enableHashing: boolean): ResolvedSdkConfig {
+  return {
+    hashing: {
+      enabled: enableHashing,
+      algorithm: "sha256",
+      additionalPIIKeys: ["address"],
+    },
+    autoCapturePII: {
+      enabled: false,
+      fields: [],
+    },
+    cookieKeeper: {
+      enabled: false,
+    },
+  };
+}
+
+function buildTrackEvent(traits: JournifyEvent["traits"]): JournifyEvent {
+  return {
+    messageId: randomUUID(),
+    type: JournifyEventType.TRACK,
+    externalIds: {},
+    userId: randomUUID(),
+    anonymousId: randomUUID(),
+    event: "purchase",
+    traits,
+    timestamp: new Date(),
+    context: {
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      library: {
+        name: "@journifyio/js-sdk",
+        version: LIB_VERSION,
+      },
+      locale: "'en-US'",
+      page: {
+        path: "/product/1093892",
+        referrer: "https://www.google.com",
+        search: "?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale",
+        title: "Product 1093892",
+        url: "https://www.example.com/product/1093892",
+      },
+      campaign: {
+        id: "12345",
+        name: "summer_sale",
+        source: "google",
+        medium: "cpc",
+        term: "running+shoes",
+        content: "ad-1",
+      },
+    },
+  };
 }
