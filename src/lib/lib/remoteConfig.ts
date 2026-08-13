@@ -402,7 +402,14 @@ export function buildWriteKeySettingsUrl(cdnHost: string, writeKey: string): str
 }
 
 export function normalizeCdnHost(cdnHost: string): string {
-  return (cdnHost || "").replace(/\/+$/, "");
+  const host = cdnHost || "";
+  let endIndex = host.length;
+
+  while (endIndex > 0 && host.charAt(endIndex - 1) === "/") {
+    endIndex -= 1;
+  }
+
+  return host.slice(0, endIndex);
 }
 
 function freezeResolvedConfig(config: ResolvedSdkConfig): ResolvedSdkConfig {
