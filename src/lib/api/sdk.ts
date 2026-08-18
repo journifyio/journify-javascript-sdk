@@ -25,7 +25,7 @@ export interface SdkDependencies {
 export class Sdk extends EmitterImpl {
   private readonly sdkSettings: SdkSettings;
   private readonly _group: Group;
-  private readonly user: User;
+  private user: User;
   private readonly eventFactory: EventFactory;
   private readonly contextFactory: ContextFactory;
   private readonly eventQueue: EventQueue;
@@ -43,6 +43,11 @@ export class Sdk extends EmitterImpl {
 
     this._group = deps.groupFactory.loadGroup();
     this.eventFactory.setGroup(this._group);
+  }
+
+  public updateUser(user: User): void {
+    this.user = user;
+    this.eventFactory.setUser(user);
   }
 
   public async identify(

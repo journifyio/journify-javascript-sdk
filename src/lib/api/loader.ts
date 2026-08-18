@@ -1,7 +1,6 @@
 import {
   SdkSettings,
   WriteKeySettings,
-  PluginSettings,
   PluginDependencies,
   Logger,
   Sync,
@@ -66,6 +65,8 @@ export class Loader {
   private sdk: Sdk = null;
   private user: User = null;
   private plugins: Record<string, Plugin> = {};
+  private autoCapturePIIStopListening: (() => void) | null = null;
+  private autoCapturePII: AutoCapturePII | null = null;
   private sessionIntervalId: NodeJS.Timeout = null;
   private stores: StoresGroup = null;
   private cookiesStore: Store = null;
@@ -114,29 +115,19 @@ export class Loader {
     await this.user.load();
 
     if (!this.sdk) {
-      this.initSdk();
+      this.initSdk(browser);
     } else {
-      this.updatePluginSettings();
+      this.refreshSdkRuntime(browser);
     }
 
     return this.sdk;
   }
 
-  private initSdk() {
-    this.plugins = {
-      journifyio: new JournifyioPlugin(
-          this.sdkSettings,
-          this.resolvedConfig,
-          this.sentryWrapper
-      ),
-    };
-
-    this.initializePlugins();
-
+  private initSdk(browser: BrowserImpl) {
+    this.rebuildPlugins();
     const pQueue = new OperationsPriorityQueueImpl<Context>(
         DEFAULT_MAX_QUEUE_ATTEMPTS
     );
-    const browser = new BrowserImpl();
     const sessionStore = new SessionStore(browser);
     const externalIdsSessionCache = new ExternalIdsSessionCacheImpl(
         browser,
@@ -162,35 +153,13 @@ export class Loader {
     };
 
     this.sdk = new Sdk(this.sdkSettings, deps);
-    if (this.resolvedConfig.autoCapturePII.enabled) {
-      const autoCapturePII = new AutoCapturePII(
-          browser,
-          this.user,
-          this.sdkSettings.options?.autoCapturePhoneRegex,
-          this.resolvedConfig.autoCapturePII.fields
-      );
-      autoCapturePII.listen();
-    }
+    this.syncAutoCapturePII(browser);
   }
 
-  private updatePluginSettings() {
-    const syncsMap = {};
-    for (const sync of this.writeKeySettings.syncs) {
-      syncsMap[sync.id] = sync;
-    }
-
-    for (const syncID in this.plugins) {
-      let settings: PluginSettings = syncsMap[syncID];
-      if (!settings) {
-        settings = this.sdkSettings;
-      }
-
-      const plugin = this.plugins[syncID];
-      plugin.updateSettings(settings);
-      if (plugin.updateResolvedConfig) {
-        plugin.updateResolvedConfig(this.resolvedConfig);
-      }
-    }
+  private refreshSdkRuntime(browser: BrowserImpl) {
+    this.rebuildPlugins();
+    this.sdk.updateUser(this.user);
+    this.syncAutoCapturePII(browser);
   }
 
   private initStores() {
@@ -238,8 +207,40 @@ export class Loader {
   public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
     if (this.consentService) {
       this.consentService.updateConsent(categoryPreferences);
-      this.initializePlugins();
+      this.rebuildPlugins();
     }
+  }
+
+  private rebuildPlugins(): void {
+    this.plugins = {
+      journifyio: new JournifyioPlugin(
+          this.sdkSettings,
+          this.resolvedConfig,
+          this.sentryWrapper
+      ),
+    };
+
+    this.initializePlugins();
+  }
+
+  private syncAutoCapturePII(browser: BrowserImpl): void {
+    if (this.autoCapturePIIStopListening) {
+      this.autoCapturePIIStopListening();
+      this.autoCapturePIIStopListening = null;
+    }
+    this.autoCapturePII = null;
+
+    if (!this.resolvedConfig.autoCapturePII.enabled) {
+      return;
+    }
+
+    this.autoCapturePII = new AutoCapturePII(
+        browser,
+        this.user,
+        this.sdkSettings.options?.autoCapturePhoneRegex,
+        this.resolvedConfig.autoCapturePII.fields
+    );
+    this.autoCapturePIIStopListening = this.autoCapturePII.listen();
   }
 
   private createPlugin(sync: Sync, sharedDeps?): Plugin | null {

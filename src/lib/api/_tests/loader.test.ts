@@ -1,27 +1,136 @@
-import {isValidWriteKey} from "../loader";
+import { Loader } from "../loader";
+import { ResolvedSdkConfig } from "../../lib/remoteConfig";
+import { AutoCapturePII } from "../../lib/autoCapturePII";
 
-describe("write key validation", () => {
-  const suffix = "a1B2c3D4e5F6g7H8i9J0k1L2m3N";
+const validWriteKey = `wk_${"a".repeat(27)}`;
 
-  it.each([
-    `wk_${suffix}`,
-    `wk_test_${suffix}`,
-  ])("accepts a valid write key: %s", (writeKey) => {
-    expect(isValidWriteKey(writeKey)).toBe(true);
+describe("Loader reload behavior", () => {
+  const sentryWrapper = {
+    captureException: jest.fn(),
+    setTag: jest.fn(),
+    setResponse: jest.fn(),
+    captureMessage: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    document.body.innerHTML = "";
+    localStorage.clear();
   });
 
-  it.each([
-    null,
-    undefined,
-    "",
-    suffix,
-    `wk_${suffix.slice(1)}`,
-    `wk_${suffix}4`,
-    `wk_${suffix.slice(0, -1)}_`,
-    `wk_test_${suffix.slice(1)}`,
-    `wk_test_${suffix}4`,
-    `wk_test_${suffix.slice(0, -1)}-`,
-  ])("rejects an invalid write key: %s", (writeKey) => {
-    expect(isValidWriteKey(writeKey)).toBe(false);
+  it("keeps the same SDK instance while refreshing hashing behavior on reload", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true }) as typeof fetch;
+    const loader = new Loader(sentryWrapper as never);
+
+    const sdk = await loader.load(
+      { writeKey: validWriteKey },
+      { syncs: [] },
+      buildResolvedConfig({ hashingEnabled: false })
+    );
+    const firstPlugin = (loader as never as { plugins: { journifyio: { track: unknown } } })
+      .plugins.journifyio;
+
+    const reloadedSdk = await loader.load(
+      { writeKey: validWriteKey },
+      { syncs: [] },
+      buildResolvedConfig({ hashingEnabled: true })
+    );
+    const secondPlugin = (loader as never as {
+      plugins: {
+        journifyio: {
+          track: (ctx: unknown) => Promise<unknown>;
+          resolvedConfig: ResolvedSdkConfig;
+        };
+      };
+    }).plugins.journifyio;
+    const secondTrackSpy = jest.spyOn(secondPlugin, "track");
+
+    await reloadedSdk.track("Purchase", undefined, { email: "user@example.com" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(reloadedSdk).toBe(sdk);
+    expect(secondPlugin).not.toBe(firstPlugin);
+    expect(secondPlugin.resolvedConfig.hashing.enabled).toBe(true);
+    expect(secondTrackSpy).toHaveBeenCalled();
+  });
+
+  it("refreshes the auto-capture listener lifecycle and field allowlist on reload", async () => {
+    const addEventListenerSpy = jest.spyOn(document.body, "addEventListener");
+    const removeEventListenerSpy = jest.spyOn(document.body, "removeEventListener");
+    const loader = new Loader(sentryWrapper as never);
+
+    await loader.load(
+      { writeKey: validWriteKey },
+      { syncs: [] },
+      buildResolvedConfig({
+        autoCaptureEnabled: true,
+        autoCaptureFields: ["phone"],
+      })
+    );
+
+    expect(addEventListenerSpy).toHaveBeenCalledWith(
+      "change",
+      expect.any(Function),
+      { capture: true }
+    );
+    expect(
+      Array.from(((loader as never as { autoCapturePII: AutoCapturePII }).autoCapturePII as never as {
+        enabledFields: Set<string>;
+      }).enabledFields)
+    ).toEqual(["phone"]);
+
+    await loader.load(
+      { writeKey: validWriteKey },
+      { syncs: [] },
+      buildResolvedConfig({
+        autoCaptureEnabled: true,
+        autoCaptureFields: ["email"],
+      })
+    );
+
+    expect(removeEventListenerSpy).toHaveBeenCalledWith(
+      "change",
+      expect.any(Function),
+      { capture: true }
+    );
+    expect(
+      Array.from(((loader as never as { autoCapturePII: AutoCapturePII }).autoCapturePII as never as {
+        enabledFields: Set<string>;
+      }).enabledFields)
+    ).toEqual(["email"]);
+
+    await loader.load(
+      { writeKey: validWriteKey },
+      { syncs: [] },
+      buildResolvedConfig({ autoCaptureEnabled: false })
+    );
+
+    expect(removeEventListenerSpy).toHaveBeenCalledTimes(2);
+    expect((loader as never as { autoCapturePII: AutoCapturePII | null }).autoCapturePII).toBeNull();
   });
 });
+
+function buildResolvedConfig({
+  hashingEnabled = false,
+  autoCaptureEnabled = false,
+  autoCaptureFields = [],
+}: {
+  hashingEnabled?: boolean;
+  autoCaptureEnabled?: boolean;
+  autoCaptureFields?: string[];
+}): ResolvedSdkConfig {
+  return {
+    hashing: {
+      enabled: hashingEnabled,
+      algorithm: "sha256",
+      additionalPIIKeys: [],
+    },
+    autoCapturePII: {
+      enabled: autoCaptureEnabled,
+      fields: autoCaptureFields as ResolvedSdkConfig["autoCapturePII"]["fields"],
+    },
+    cookieKeeper: {
+      enabled: false,
+    },
+  };
+}

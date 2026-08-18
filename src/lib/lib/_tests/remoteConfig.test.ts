@@ -46,9 +46,13 @@ describe("RemoteConfig", () => {
     );
 
     const remoteConfig = new RemoteConfig({ fetchFn, sentry, consoleWarn });
-    const result = await remoteConfig.load("wk_abc", "https://static.journify.io", {
-      enableHashing: false,
-    });
+    const result = await remoteConfig.load(
+      "wk_abc",
+      "https://static.journify.io",
+      {
+        enableHashing: false,
+      }
+    );
 
     expect(fetchFn).toHaveBeenCalledWith(
       "https://static.journify.io/write_keys/wk_abc.json",
@@ -178,6 +182,26 @@ describe("RemoteConfig", () => {
     );
   });
 
+  it("resolves invalid non-empty remote auto-capture fields to an empty allowlist", () => {
+    const remoteConfig = new RemoteConfig({
+      fetchFn: jest.fn(),
+      sentry,
+      consoleWarn,
+    });
+
+    const resolved = remoteConfig.resolveConfig(
+      {
+        auto_capture_pii: { fields: ["emails", "phones"] },
+      },
+      {}
+    );
+
+    expect(resolved.autoCapturePII).toEqual({
+      enabled: true,
+      fields: [],
+    });
+  });
+
   it("disables remote cookie keeper safely when renewUrl is missing", () => {
     const remoteConfig = new RemoteConfig({
       fetchFn: jest.fn(),
@@ -227,6 +251,46 @@ describe("RemoteConfig", () => {
     expect(result.resolvedConfig.hashing.enabled).toBe(true);
   });
 
+  it("falls back without throwing when fetch is unavailable", async () => {
+    const previousFetch = global.fetch;
+    delete (global as typeof global & { fetch?: typeof fetch }).fetch;
+    const remoteConfig = new RemoteConfig({ sentry, consoleWarn });
+
+    try {
+      const result = await remoteConfig.load(
+        "wk_abc",
+        "https://static.journify.io",
+        {
+          enableHashing: true,
+        }
+      );
+
+      expect(result.writeKeySettings).toEqual({ syncs: [] });
+      expect(result.resolvedConfig.hashing.enabled).toBe(true);
+      expect(consoleWarn).toHaveBeenCalledWith(
+        expect.stringContaining("Remote config could not be fetched or parsed")
+      );
+    } finally {
+      global.fetch = previousFetch;
+    }
+  });
+
+  it("does not retry 404 responses", async () => {
+    const fetchFn = jest.fn().mockResolvedValue(
+      createResponse({
+        status: 404,
+        textBody: "missing",
+      })
+    );
+    const remoteConfig = new RemoteConfig({ fetchFn, sentry, consoleWarn });
+
+    const result = await remoteConfig.load("wk_abc", "https://static.journify.io");
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(result.writeKeySettings).toEqual({ syncs: [] });
+    expect(sentry.setResponse).not.toHaveBeenCalled();
+  });
+
   it("times out within the initialization budget and falls back to local config", async () => {
     jest.useFakeTimers();
     const fetchFn = jest.fn().mockImplementation(() => new Promise(() => undefined));
@@ -267,25 +331,39 @@ describe("RemoteConfig", () => {
   });
 
   it("does not permanently cache failed requests", async () => {
+    jest.useFakeTimers();
     const fetchFn = jest
       .fn()
-      .mockRejectedValueOnce(new Error("network-failure"))
+      .mockRejectedValueOnce(new Error("network-failure-1"))
+      .mockRejectedValueOnce(new Error("network-failure-2"))
+      .mockRejectedValueOnce(new Error("network-failure-3"))
       .mockResolvedValueOnce(
         createResponse({
           status: 200,
           jsonBody: {
             syncs: [],
+            boosters: [{ name: "auto_capture_pii", options: { fields: ["email"] } }],
           },
         })
       );
     const remoteConfig = new RemoteConfig({ fetchFn, sentry, consoleWarn });
 
-    const first = await remoteConfig.load("wk_abc", "https://static.journify.io");
-    const second = await remoteConfig.load("wk_abc", "https://static.journify.io");
+    const firstPromise = remoteConfig.load("wk_abc", "https://static.journify.io");
+    await jest.advanceTimersByTimeAsync(200);
+    const first = await firstPromise;
+
+    const secondPromise = remoteConfig.load("wk_abc", "https://static.journify.io");
+    const second = await secondPromise;
 
     expect(first.writeKeySettings).toEqual({ syncs: [] });
-    expect(second.writeKeySettings).toEqual({ syncs: [] });
-    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(second.writeKeySettings.boosters).toEqual([
+      { name: "auto_capture_pii", options: { fields: ["email"] } },
+    ]);
+    expect(second.resolvedConfig.autoCapturePII).toEqual({
+      enabled: true,
+      fields: ["email"],
+    });
+    expect(fetchFn).toHaveBeenCalledTimes(4);
   });
 
   it("ignores unknown boosters safely", async () => {
@@ -318,9 +396,13 @@ describe("RemoteConfig", () => {
     );
     const remoteConfig = new RemoteConfig({ fetchFn, sentry, consoleWarn });
 
-    const result = await remoteConfig.load("wk_abc", "https://static.journify.io", {
-      enableHashing: true,
-    });
+    const result = await remoteConfig.load(
+      "wk_abc",
+      "https://static.journify.io",
+      {
+        enableHashing: true,
+      }
+    );
 
     expect(result.writeKeySettings).toEqual({ syncs: [] });
     expect(result.resolvedConfig.hashing.enabled).toBe(true);

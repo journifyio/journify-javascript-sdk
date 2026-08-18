@@ -193,6 +193,9 @@ export class RemoteConfig {
     signal?: AbortSignal
   ): Promise<WriteKeySettings | null> {
     const fetchFn = this.getFetchFn();
+    if (!fetchFn) {
+      return null;
+    }
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (Date.now() >= deadline) {
@@ -208,7 +211,10 @@ export class RemoteConfig {
             return settings;
           }
         } else {
-          await this.handleNonOkResponse(settingsUrl, response);
+          const shouldRetry = await this.handleNonOkResponse(settingsUrl, response);
+          if (!shouldRetry) {
+            return null;
+          }
         }
       } catch (error) {
         if (isAbortError(error)) {
@@ -233,10 +239,10 @@ export class RemoteConfig {
     return null;
   }
 
-  private getFetchFn(): typeof fetch {
+  private getFetchFn(): typeof fetch | null {
     const fetchFn = this.fetchFn ?? globalThis.fetch;
     if (!fetchFn) {
-      throw new Error("fetch is not available for RemoteConfig");
+      return null;
     }
 
     return fetchFn.bind(globalThis);
@@ -277,9 +283,9 @@ export class RemoteConfig {
   private async handleNonOkResponse(
     settingsUrl: string,
     response: Response
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (response.status === 404) {
-      return;
+      return false;
     }
 
     const body = await response.text();
@@ -293,6 +299,7 @@ export class RemoteConfig {
       body,
     });
     this.sentry.captureException(error);
+    return true;
   }
 
   private resolveHashing(
@@ -444,11 +451,19 @@ function getHashingAlgorithm(remoteHashing: RemoteHashingOption): "sha256" {
 function normalizeAutoCapturePIIFields(
   fields: RemoteAutoCapturePIIOption["fields"]
 ): AutoCapturePIIField[] {
-  const normalizedFields = sanitizeStringArray(fields).filter(isAutoCapturePIIField);
-
-  if (normalizedFields.length === 0) {
+  if (typeof fields === "undefined") {
     return getDefaultAutoCapturePIIFields();
   }
+
+  if (!Array.isArray(fields)) {
+    return [];
+  }
+
+  if (fields.length === 0) {
+    return getDefaultAutoCapturePIIFields();
+  }
+
+  const normalizedFields = sanitizeStringArray(fields).filter(isAutoCapturePIIField);
 
   return normalizedFields.filter(
     (field, index) => normalizedFields.indexOf(field) === index
