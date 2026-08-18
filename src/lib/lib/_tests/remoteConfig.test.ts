@@ -30,7 +30,7 @@ describe("RemoteConfig", () => {
         status: 200,
         jsonBody: {
           syncs: [{ id: "sync-1" }],
-          addons: [
+          boosters: [
             {
               name: "end2end_hashing",
               options: {
@@ -56,7 +56,7 @@ describe("RemoteConfig", () => {
     );
     expect(result.writeKeySettings.country_code).toBe("US");
     expect(result.writeKeySettings.syncs).toEqual([{ id: "sync-1" }]);
-    expect(result.writeKeySettings.addons).toEqual([
+    expect(result.writeKeySettings.boosters).toEqual([
       {
         name: "end2end_hashing",
         options: {
@@ -71,7 +71,7 @@ describe("RemoteConfig", () => {
     });
   });
 
-  it("applies precedence remote over local over defaults based on addon presence", () => {
+  it("applies precedence remote over local over defaults based on booster presence", () => {
     const localOptions: SdkOptions = {
       enableHashing: true,
       additionalPIIKeys: ["company"],
@@ -213,7 +213,7 @@ describe("RemoteConfig", () => {
           status: 200,
           jsonBody: {
             syncs: [],
-            addons: [{ name: "end2end_hashing" }],
+            boosters: [{ name: "end2end_hashing" }],
           },
         })
       );
@@ -248,7 +248,7 @@ describe("RemoteConfig", () => {
         status: 200,
         jsonBody: {
           syncs: [],
-          addons: [{ name: "end2end_hashing" }],
+          boosters: [{ name: "end2end_hashing" }],
         },
       })
     );
@@ -288,14 +288,14 @@ describe("RemoteConfig", () => {
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
-  it("ignores unknown addons safely", async () => {
+  it("ignores unknown boosters safely", async () => {
     const fetchFn = jest.fn().mockResolvedValue(
       createResponse({
         status: 200,
         jsonBody: {
           syncs: [],
-          addons: [
-            { name: "mystery_addon", options: { enabled: true } },
+          boosters: [
+            { name: "mystery_booster", options: { enabled: true } },
             { name: "end2end_hashing", options: { algorithm: "sha256" } },
           ],
         },

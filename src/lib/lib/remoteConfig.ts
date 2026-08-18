@@ -1,7 +1,7 @@
 import { HttpCookieOptions } from "./httpCookieService";
 import { SentryWrapper } from "./sentry";
 import {
-  RemoteAddon,
+  RemoteBooster,
   RemoteAutoCapturePIIOption,
   RemoteCookieKeeperOption,
   RemoteHashingOption,
@@ -16,9 +16,9 @@ const RETRY_DELAY_MS = 100;
 const COUNTRY_HEADER = "X-Client-Country";
 const HASHING_ALGORITHM_SHA256 = "sha256";
 const JOURNIFY_PREFIX = "[Journify]";
-const REMOTE_ADDON_END2END_HASHING = "end2end_hashing";
-const REMOTE_ADDON_AUTO_CAPTURE_PII = "auto_capture_pii";
-const REMOTE_ADDON_COOKIE_KEEPER = "cookie_keeper";
+const REMOTE_BOOSTER_END2END_HASHING = "end2end_hashing";
+const REMOTE_BOOSTER_AUTO_CAPTURE_PII = "auto_capture_pii";
+const REMOTE_BOOSTER_COOKIE_KEEPER = "cookie_keeper";
 
 export const AUTO_CAPTURE_PII_SUPPORTED_FIELDS = [
   "email",
@@ -261,15 +261,15 @@ export class RemoteConfig {
     const consentMode = typeof payload.consent_mode === "string"
       ? payload.consent_mode
       : undefined;
-    const addons = normalizeAddons(payload.addons);
-    const options = addons ? normalizeAddonOptions(addons) : undefined;
+    const boosters = normalizeBoosters(payload.boosters);
+    const options = boosters ? normalizeBoosterOptions(boosters) : undefined;
 
     return {
       ...payload,
       syncs,
       consent_mode: consentMode,
       country_code: countryCode,
-      addons,
+      boosters,
       options,
     } as WriteKeySettings;
   }
@@ -303,7 +303,7 @@ export class RemoteConfig {
     const remoteConfigured = hasOwn(remoteOptions, "hashing");
 
     if (remoteConfigured && (localConfigured || hasOwn(localOptions, "additionalPIIKeys"))) {
-      this.warnRemoteWins(REMOTE_ADDON_END2END_HASHING, "enableHashing");
+      this.warnRemoteWins(REMOTE_BOOSTER_END2END_HASHING, "enableHashing");
     }
 
     const additionalPIIKeys = sanitizeStringArray(localOptions?.additionalPIIKeys);
@@ -494,45 +494,45 @@ function sanitizeStringArray(value: unknown): string[] {
     .filter(Boolean);
 }
 
-function normalizeAddons(value: unknown): RemoteAddon[] | undefined {
+function normalizeBoosters(value: unknown): RemoteBooster[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
 
-  const addons: RemoteAddon[] = [];
+  const boosters: RemoteBooster[] = [];
 
-  value.filter(isRecord).forEach((addon) => {
-    const name = typeof addon.name === "string" ? addon.name.trim() : "";
+  value.filter(isRecord).forEach((booster) => {
+    const name = typeof booster.name === "string" ? booster.name.trim() : "";
     if (!name) {
       return;
     }
 
-    addons.push({
+    boosters.push({
       name,
-      options: isRecord(addon.options)
-        ? { ...addon.options }
+      options: isRecord(booster.options)
+        ? { ...booster.options }
         : undefined,
     });
   });
 
-  return addons;
+  return boosters;
 }
 
-function normalizeAddonOptions(addons: RemoteAddon[]): RemoteOptions | undefined {
+function normalizeBoosterOptions(boosters: RemoteBooster[]): RemoteOptions | undefined {
   const normalizedOptions: RemoteOptions = {};
 
-  addons.forEach((addon) => {
-    if (addon.name === REMOTE_ADDON_END2END_HASHING) {
-      normalizedOptions.hashing = normalizeHashingOption(addon.options);
+  boosters.forEach((booster) => {
+    if (booster.name === REMOTE_BOOSTER_END2END_HASHING) {
+      normalizedOptions.hashing = normalizeHashingOption(booster.options);
       return;
     }
 
-    if (addon.name === REMOTE_ADDON_AUTO_CAPTURE_PII) {
-      normalizedOptions.auto_capture_pii = normalizeAutoCapturePIIOption(addon.options);
+    if (booster.name === REMOTE_BOOSTER_AUTO_CAPTURE_PII) {
+      normalizedOptions.auto_capture_pii = normalizeAutoCapturePIIOption(booster.options);
       return;
     }
 
-    if (addon.name === REMOTE_ADDON_COOKIE_KEEPER) {
+    if (booster.name === REMOTE_BOOSTER_COOKIE_KEEPER) {
       normalizedOptions.cookie_keeper = normalizeCookieKeeperOption();
     }
   });

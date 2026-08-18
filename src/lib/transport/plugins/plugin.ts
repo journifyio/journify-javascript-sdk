@@ -38,7 +38,7 @@ export interface Logger {
 
 export type PluginSettings = SdkSettings | Sync;
 
-export interface RemoteAddon {
+export interface RemoteBooster {
   name: string;
   options?: Record<string, unknown>;
 }
@@ -88,7 +88,7 @@ export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
-  addons?: RemoteAddon[];
+  boosters?: RemoteBooster[];
   options?: RemoteOptions;
 }
 

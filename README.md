@@ -41,15 +41,15 @@ The SDK now resolves selected runtime options from the write-key settings payloa
 
 `https://static.journify.io/write_keys/{write_key}.json`
 
-The request reuses the existing write-key settings fetch, including custom `cdnHost` support. The SDK reads the top-level `addons` array, normalizes it into internal options, and resolves each supported AddOn with this precedence:
+The request reuses the existing write-key settings fetch, including custom `cdnHost` support. The SDK reads the top-level `boosters` array, normalizes it into internal options, and resolves each supported booster with this precedence:
 
-1. Remote dashboard AddOn configuration from `addons`
+1. Remote dashboard booster configuration from `boosters`
 2. Legacy local SDK options passed to `load(...)`
 3. SDK safe defaults
 
 If the remote request fails, times out, returns malformed JSON, or omits an option, the SDK continues initializing with local configuration and defaults. Successful write-key responses are cached for the lifetime of the page and concurrent loads for the same URL are deduplicated.
 
-Presence in `addons` means the AddOn is enabled automatically. A remote `enabled` key is not required.
+Presence in `boosters` means the booster is enabled automatically. A remote `enabled` key is not required.
 
 Example payload:
 
@@ -57,7 +57,7 @@ Example payload:
 {
   "consent_mode": "relaxed",
   "syncs": [],
-  "addons": [
+  "boosters": [
     {
       "name": "end2end_hashing",
       "options": {
@@ -89,14 +89,14 @@ Journify.load({
 });
 ```
 
-In the example above, the dashboard `end2end_hashing` and `auto_capture_pii` AddOns win because remote configuration overrides the legacy local options when those AddOns are present.
+In the example above, the dashboard `end2end_hashing` and `auto_capture_pii` boosters win because remote configuration overrides the legacy local options when those boosters are present.
 
-### Supported remote AddOns
+### Supported remote Boosters
 - `end2end_hashing`
   Remote shape:
   ```json
   {
-    "addons": [
+    "boosters": [
       {
         "name": "end2end_hashing",
         "options": {
@@ -106,13 +106,13 @@ In the example above, the dashboard `end2end_hashing` and `auto_capture_pii` Add
     ]
   }
   ```
-  Notes: only `sha256` is supported. If the AddOn is present and the algorithm is missing or invalid, the SDK safely falls back to `sha256`.
+  Notes: only `sha256` is supported. If the booster is present and the algorithm is missing or invalid, the SDK safely falls back to `sha256`.
 
 - `auto_capture_pii`
   Remote shape:
   ```json
   {
-    "addons": [
+    "boosters": [
       {
         "name": "auto_capture_pii",
         "options": {
@@ -122,13 +122,13 @@ In the example above, the dashboard `end2end_hashing` and `auto_capture_pii` Add
     ]
   }
   ```
-  Notes: if the AddOn is present and `fields` is missing or empty, the SDK uses its built-in supported field set.
+  Notes: if the booster is present and `fields` is missing or empty, the SDK uses its built-in supported field set.
 
 - `cookie_keeper`
   Remote shape:
   ```json
   {
-    "addons": [
+    "boosters": [
       {
         "name": "cookie_keeper"
       }
@@ -145,15 +145,15 @@ The following `load(...).options` fields are still supported for backward compat
 - `autoCapturePII`
 - `httpCookieServiceOptions`
 
-When both a remote AddOn and its matching legacy local option are present, the SDK logs a warning and the remote configuration wins.
+When both a remote booster and its matching legacy local option are present, the SDK logs a warning and the remote configuration wins.
 
 ### Migration note
 Existing integrations do not need to change immediately. To migrate toward dashboard-controlled configuration:
 
-- Move `enableHashing` to the dashboard `end2end_hashing` AddOn
+- Move `enableHashing` to the dashboard `end2end_hashing` booster
 - Keep `additionalPIIKeys` locally until the dashboard supports supplemental hashing field lists
-- Move `autoCapturePII` to the dashboard `auto_capture_pii` AddOn
-- Move cookie keeper enablement to the dashboard `cookie_keeper` AddOn, while continuing to provide the local `httpCookieServiceOptions.renewUrl`
+- Move `autoCapturePII` to the dashboard `auto_capture_pii` booster
+- Move cookie keeper enablement to the dashboard `cookie_keeper` booster, while continuing to provide the local `httpCookieServiceOptions.renewUrl`
 
 Legacy local options remain supported in this release as a fallback and compatibility layer.
 
