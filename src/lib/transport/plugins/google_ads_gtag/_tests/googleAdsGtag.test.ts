@@ -210,7 +210,169 @@ describe("Google Ads Gtag", () => {
       conversionType
     );
   });
+
+  it("should skip empty nested user data fields during initialization", () => {
+    const browser = new BrowserMock();
+    browser.setWindow({ ...window });
+
+    const gtag = jest.fn();
+    browser.window().gtag = gtag;
+    browser.setInjectScriptFn(jest.fn());
+    browser.setScriptAlreadyInPageFn(() => true);
+
+    const fieldMapper = new FieldsMapperMock(() => ({
+      sha256_email_address: "hashed@example.com",
+      sha256_phone_number: "",
+      address: {
+        sha256_first_name: "first-hash",
+        sha256_last_name: "",
+        city: undefined,
+      },
+    }));
+
+    new GoogleAdsGtag(
+      createDependencies({
+        browser,
+        fieldMapper,
+      })
+    );
+
+    expect(gtag).toHaveBeenCalledWith("set", "user_data", {
+      sha256_email_address: "hashed@example.com",
+      address: {
+        sha256_first_name: "first-hash",
+      },
+    });
+    expect(gtag).not.toHaveBeenCalledWith("set", "user_data", {
+      sha256_phone_number: "",
+    });
+  });
+
+  it("should log and skip gtag calls when window.gtag is unavailable", () => {
+    const browser = new BrowserMock();
+    browser.setWindow({ ...window });
+    browser.setInjectScriptFn(jest.fn());
+    browser.setScriptAlreadyInPageFn(() => false);
+
+    const logger = { log: jest.fn() };
+    const generatedGtagId = "AW-1234567";
+    const conversionLabel = "missing-gtag-label";
+    const fieldMapper = new FieldsMapperMock(() => ({
+      conversionAction: `${generatedGtagId}/${conversionLabel}/WEBPAGE`,
+      value: 42,
+    }));
+
+    const plugin = new GoogleAdsGtag(
+      createDependencies({
+        browser,
+        fieldMapper,
+        logger,
+        generatedGtagId,
+        eventMappings: [
+          {
+            enabled: true,
+            destination_event_key: `${generatedGtagId}/${conversionLabel}/WEBPAGE`,
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "purchase",
+          },
+        ],
+      })
+    );
+
+    logger.log.mockClear();
+    delete browser.window().gtag;
+
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "purchase",
+        properties: {
+          value: 42,
+        },
+      })
+    );
+
+    expect(logger.log).toHaveBeenCalledWith(
+      "window.gtag is not available, skipping gtag call",
+      ["event", "conversion", { send_to: `${generatedGtagId}/${conversionLabel}`, value: 42 }]
+    );
+  });
+
+  it("should log when window.gtag throws", () => {
+    const browser = new BrowserMock();
+    browser.setWindow({ ...window });
+    const error = new Error("gtag failed");
+    browser.window().gtag = jest.fn(() => {
+      throw error;
+    });
+    browser.setInjectScriptFn(jest.fn());
+    browser.setScriptAlreadyInPageFn(() => true);
+
+    const logger = { log: jest.fn() };
+
+    new GoogleAdsGtag(
+      createDependencies({
+        browser,
+        logger,
+      })
+    );
+
+    expect(logger.log).toHaveBeenCalledWith(
+      "window.gtag threw while processing a command",
+      error
+    );
+  });
 });
+
+function createDependencies({
+  browser,
+  fieldMapper = new FieldsMapperMock(() => ({
+    email: "Email@Example.com",
+    phone_number: "+1231234567890",
+  })),
+  logger = console,
+  generatedGtagId = "AW-1234567",
+  eventMappings = [],
+}: {
+  browser: BrowserMock;
+  fieldMapper?: FieldsMapperMock;
+  logger?: Pick<Console, "log">;
+  generatedGtagId?: string;
+  eventMappings?: PluginDependencies["sync"]["event_mappings"];
+}): PluginDependencies {
+  return {
+    sync: {
+      id: "sync_id",
+      destination_app: "google_ads_gtag",
+      settings: [
+        {
+          key: "google_ads_gtag_id",
+          value: generatedGtagId,
+        },
+      ],
+      field_mappings: [],
+      event_mappings: eventMappings,
+    },
+    user: new UserMock(
+      randomUUID(),
+      randomUUID(),
+      { email: "Email@Example.com", phone: "+1231234567890" },
+      {}
+    ),
+    sentry: {
+      setTag: jest.fn(),
+      setResponse: jest.fn(),
+      captureException: jest.fn(),
+      captureMessage: jest.fn(),
+    },
+    eventMapperFactory: new EventMapperFactoryImpl(),
+    fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
+    browser,
+    additionalPIIKeys: [],
+    testingWriteKey: false,
+    logger,
+  };
+}
 
 function generateGtagId(): string {
   return "AW-" + Math.floor(Math.random() * 10000000).toString();
