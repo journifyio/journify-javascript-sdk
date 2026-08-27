@@ -240,6 +240,7 @@ export class EventFactoryImpl implements EventFactory {
       microsoft_click_id: this.cookiesStore.get("_uetmsclkid"),
       linkedin_click_id: this.cookiesStore.get("li_fat_id"),
       openai_click_id: this.cookiesStore.get("__oppref"),
+      google_ga: this.cookiesStore.get("_ga"),
       google_click_id: this.getGoogleClickId(),
       twitter_click_id: this.getTwitterClickId(),
       snapchat_advertiser_cookie_1:
