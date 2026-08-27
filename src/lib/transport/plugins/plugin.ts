@@ -58,10 +58,16 @@ export interface SdkSettings {
   options?: SdkOptions;
 }
 
+export interface Booster {
+  name: string;
+  options?: Record<string, unknown>;
+}
+
 export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
+  boosters?: Booster[];
 }
 
 export interface Sync {
