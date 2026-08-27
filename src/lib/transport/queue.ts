@@ -69,7 +69,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
 
   private subscribeToDelivery(sentCtx: Context) {
     this.on(FLUSH_EVENT_NAME, (flushedCtx: Context, delivered: boolean) => {
-      if (!flushedCtx.isSame(sentCtx) || delivered) {
+      if (!flushedCtx?.isSame(sentCtx) || delivered) {
         return;
       }
 
