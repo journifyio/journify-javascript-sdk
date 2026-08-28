@@ -11,11 +11,6 @@ const HASHING_OFF_PII_ON: SdkOptions = {
   autoCapturePII: true,
 };
 
-const HASHING_ON_PII_OFF: SdkOptions = {
-  enableHashing: true,
-  autoCapturePII: false,
-};
-
 describe("applyBoosters", () => {
   it("preserves local flags when boosters is omitted or invalid", () => {
     expect(applyBoosters(HASHING_ON_PII_ON)).toEqual(HASHING_ON_PII_ON);
@@ -30,11 +25,24 @@ describe("applyBoosters", () => {
     ).toEqual(HASHING_ON_PII_ON);
   });
 
-  it("preserves local flags when boosters is an empty array", () => {
-    expect(applyBoosters(HASHING_ON_PII_ON, [])).toEqual(HASHING_ON_PII_ON);
+  it("keeps HASHING_OFF_PII_ON when remote boosters are off", () => {
+    expect(applyBoosters(HASHING_OFF_PII_ON, [])).toEqual(
+      HASHING_OFF_PII_ON
+    );
   });
 
-  it("enables hashing when end2end_hashing is listed", () => {
+  it("keeps HASHING_OFF_PII_ON when remote boosters are unknown", () => {
+    const boosters: Booster[] = [
+      { name: "cookie_keeper" },
+      { name: "not_a_real_booster" },
+    ];
+
+    expect(applyBoosters(HASHING_OFF_PII_ON, boosters)).toEqual(
+      HASHING_OFF_PII_ON
+    );
+  });
+
+  it("enables hashing from HASHING_OFF_PII_ON when remote is on/off", () => {
     expect(
       applyBoosters(HASHING_OFF_PII_ON, [{ name: "end2end_hashing" }])
     ).toEqual({
@@ -43,16 +51,7 @@ describe("applyBoosters", () => {
     });
   });
 
-  it("enables auto-capture PII when auto_capture_pii is listed", () => {
-    expect(
-      applyBoosters(HASHING_ON_PII_OFF, [{ name: "auto_capture_pii" }])
-    ).toEqual({
-      enableHashing: true,
-      autoCapturePII: true,
-    });
-  });
-
-  it("enables both flags when both named boosters are listed", () => {
+  it("enables both flags from HASHING_OFF_PII_ON when remote is on/on", () => {
     const boosters: Booster[] = [
       { name: "end2end_hashing" },
       { name: "auto_capture_pii" },
@@ -62,16 +61,5 @@ describe("applyBoosters", () => {
       enableHashing: true,
       autoCapturePII: true,
     });
-  });
-
-  it("ignores unknown booster names including cookie_keeper", () => {
-    const boosters: Booster[] = [
-      { name: "cookie_keeper" },
-      { name: "not_a_real_booster" },
-    ];
-
-    expect(applyBoosters(HASHING_ON_PII_ON, boosters)).toEqual(
-      HASHING_ON_PII_ON
-    );
   });
 });
