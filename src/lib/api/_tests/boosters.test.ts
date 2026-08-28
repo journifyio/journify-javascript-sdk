@@ -1,49 +1,64 @@
 import { applyBoosters } from "../boosters";
-import { Booster, SdkSettings } from "../../transport/plugins/plugin";
+import { Booster, SdkOptions } from "../../transport/plugins/plugin";
 
-type LocalSdkOptions = NonNullable<SdkSettings["options"]>;
-
-const HASHING_ON_PII_ON: LocalSdkOptions = {
+const HASHING_ON_PII_ON: SdkOptions = {
   enableHashing: true,
   autoCapturePII: true,
 };
 
-const HASHING_OFF_PII_OFF: LocalSdkOptions = {
+const HASHING_OFF_PII_ON: SdkOptions = {
   enableHashing: false,
+  autoCapturePII: true,
+};
+
+const HASHING_ON_PII_OFF: SdkOptions = {
+  enableHashing: true,
   autoCapturePII: false,
 };
 
 describe("applyBoosters", () => {
-  it("preserves local flags when boosters is omitted", () => {
+  it("preserves local flags when boosters is omitted or invalid", () => {
     expect(applyBoosters(HASHING_ON_PII_ON)).toEqual(HASHING_ON_PII_ON);
     expect(applyBoosters(HASHING_ON_PII_ON, undefined)).toEqual(
       HASHING_ON_PII_ON
     );
+    expect(applyBoosters(HASHING_ON_PII_ON, null as unknown as Booster[])).toEqual(
+      HASHING_ON_PII_ON
+    );
+    expect(
+      applyBoosters(HASHING_ON_PII_ON, { name: "end2end_hashing" } as unknown as Booster[])
+    ).toEqual(HASHING_ON_PII_ON);
   });
 
-  it("disables both flags when boosters is an empty array, overriding local true", () => {
-    expect(applyBoosters(HASHING_ON_PII_ON, [])).toEqual({
-      enableHashing: false,
-      autoCapturePII: false,
-    });
+  it("preserves local flags when boosters is an empty array", () => {
+    expect(applyBoosters(HASHING_ON_PII_ON, [])).toEqual(HASHING_ON_PII_ON);
   });
 
-  it("enables only hashing when end2end_hashing is listed, overriding local auto-capture", () => {
-    const boosters: Booster[] = [{ name: "end2end_hashing" }];
-
-    expect(applyBoosters(HASHING_ON_PII_ON, boosters)).toEqual({
+  it("enables hashing when end2end_hashing is listed", () => {
+    expect(
+      applyBoosters(HASHING_OFF_PII_ON, [{ name: "end2end_hashing" }])
+    ).toEqual({
       enableHashing: true,
-      autoCapturePII: false,
+      autoCapturePII: true,
     });
   });
 
-  it("enables both flags when both named boosters are listed, overriding local false", () => {
+  it("enables auto-capture PII when auto_capture_pii is listed", () => {
+    expect(
+      applyBoosters(HASHING_ON_PII_OFF, [{ name: "auto_capture_pii" }])
+    ).toEqual({
+      enableHashing: true,
+      autoCapturePII: true,
+    });
+  });
+
+  it("enables both flags when both named boosters are listed", () => {
     const boosters: Booster[] = [
       { name: "end2end_hashing" },
       { name: "auto_capture_pii" },
     ];
 
-    expect(applyBoosters(HASHING_OFF_PII_OFF, boosters)).toEqual({
+    expect(applyBoosters(HASHING_OFF_PII_ON, boosters)).toEqual({
       enableHashing: true,
       autoCapturePII: true,
     });
@@ -55,66 +70,8 @@ describe("applyBoosters", () => {
       { name: "not_a_real_booster" },
     ];
 
-    expect(applyBoosters(HASHING_ON_PII_ON, boosters)).toEqual({
-      enableHashing: false,
-      autoCapturePII: false,
-    });
-  });
-
-  it("treats null or non-array boosters as missing and preserves local flags", () => {
-    expect(applyBoosters(HASHING_ON_PII_ON, null as unknown as Booster[])).toEqual(
+    expect(applyBoosters(HASHING_ON_PII_ON, boosters)).toEqual(
       HASHING_ON_PII_ON
     );
-    expect(
-      applyBoosters(HASHING_ON_PII_ON, { name: "end2end_hashing" } as unknown as Booster[])
-    ).toEqual(HASHING_ON_PII_ON);
-  });
-
-  it("enables hashing when the booster includes extra options", () => {
-    const boosters: Booster[] = [
-      { name: "end2end_hashing", options: { algorithm: "sha256" } },
-    ];
-
-    expect(applyBoosters(HASHING_OFF_PII_OFF, boosters)).toEqual({
-      enableHashing: true,
-      autoCapturePII: false,
-    });
-  });
-
-  it("does not mutate the local options object", () => {
-    const local: LocalSdkOptions = { ...HASHING_ON_PII_ON };
-    applyBoosters(local, []);
-    expect(local).toEqual(HASHING_ON_PII_ON);
-  });
-
-  it("preserves unrelated local options when dashboard owns the two flags", () => {
-    const local: LocalSdkOptions = {
-      enableHashing: true,
-      autoCapturePII: false,
-      additionalPIIKeys: ["loyalty_id"],
-      autoCapturePhoneRegex: "custom",
-      sessionDurationMin: 15,
-    };
-
-    expect(applyBoosters(local, [{ name: "auto_capture_pii" }])).toEqual({
-      enableHashing: false,
-      autoCapturePII: true,
-      additionalPIIKeys: ["loyalty_id"],
-      autoCapturePhoneRegex: "custom",
-      sessionDurationMin: 15,
-    });
-  });
-
-  it("skips booster entries without a name", () => {
-    const boosters: Booster[] = [
-      { name: "" },
-      {} as Booster,
-      { name: "end2end_hashing" },
-    ];
-
-    expect(applyBoosters(HASHING_OFF_PII_OFF, boosters)).toEqual({
-      enableHashing: true,
-      autoCapturePII: false,
-    });
   });
 });

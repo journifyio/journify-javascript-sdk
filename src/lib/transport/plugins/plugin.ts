@@ -37,7 +37,7 @@ export interface Logger {
 
 export type PluginSettings = SdkSettings | Sync;
 
-type SdkOptions = {
+export type SdkOptions = {
   enableHashing?: boolean | false;
   additionalPIIKeys?: string[];
   sessionDurationMin?: number;
