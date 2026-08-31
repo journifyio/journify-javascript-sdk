@@ -42,6 +42,7 @@ import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
 import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
+import {applyBoosters} from "./boosters";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -80,7 +81,11 @@ export class Loader {
       sdkConfig: SdkSettings,
       writeKeySettings: WriteKeySettings
   ): Promise<Sdk> {
-    this.sdkSettings = sdkConfig;
+    // Dashboard boosters override local enableHashing / autoCapturePII when present.
+    this.sdkSettings = {
+      ...sdkConfig,
+      options: applyBoosters(sdkConfig.options, writeKeySettings.boosters),
+    };
     this.writeKeySettings = writeKeySettings;
     this.startNewSession();
 
