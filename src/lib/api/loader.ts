@@ -219,12 +219,12 @@ export class Loader {
         const newSessionId = new Date().getTime();
         this.stores.set(SESSION_ID_PERSISTENCE_KEY, newSessionId);
 
-        this.resetUtmCampaign();
+        this.resetCampaignParams();
       }, sessionDurationMin * 60 * 1000);
     }
   }
 
-  private resetUtmCampaign() {
+  private resetCampaignParams() {
     CAMPAIGN_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 

@@ -1,5 +1,6 @@
 import {isValidWriteKey, Loader} from "../loader";
 import {SentryWrapper} from "../../lib/sentry";
+import {SdkSettings} from "../../transport/plugins/plugin";
 
 describe("write key validation", () => {
   const suffix = "a1B2c3D4e5F6g7H8i9J0k1L2m3N";
@@ -41,10 +42,15 @@ describe("Loader session handling", () => {
     localStorage.setItem("utm_campaign", "test");
     localStorage.setItem("jrnf_campaign_id", "120210987654321");
 
+    const sessionDurationMin = 1;
     const loader = new Loader({} as unknown as SentryWrapper);
+    (loader as unknown as { sdkSettings: SdkSettings }).sdkSettings = {
+      writeKey: "wk_test",
+      options: { sessionDurationMin },
+    };
     loader.startNewSession();
 
-    jest.advanceTimersByTime(30 * 60 * 1000);
+    jest.advanceTimersByTime(sessionDurationMin * 60 * 1000);
 
     expect(localStorage.getItem("utm_campaign")).toBeNull();
     expect(localStorage.getItem("jrnf_campaign_id")).toBeNull();
