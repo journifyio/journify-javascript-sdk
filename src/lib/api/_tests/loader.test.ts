@@ -1,4 +1,5 @@
-import {isValidWriteKey} from "../loader";
+import {isValidWriteKey, Loader} from "../loader";
+import {SentryWrapper} from "../../lib/sentry";
 
 describe("write key validation", () => {
   const suffix = "a1B2c3D4e5F6g7H8i9J0k1L2m3N";
@@ -23,5 +24,29 @@ describe("write key validation", () => {
     `wk_test_${suffix.slice(0, -1)}-`,
   ])("rejects an invalid write key: %s", (writeKey) => {
     expect(isValidWriteKey(writeKey)).toBe(false);
+  });
+});
+
+describe("Loader session handling", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("should clear utm and jrnf campaign params from storage when the session expires", () => {
+    localStorage.setItem("utm_campaign", "test");
+    localStorage.setItem("jrnf_campaign_id", "120210987654321");
+
+    const loader = new Loader({} as unknown as SentryWrapper);
+    loader.startNewSession();
+
+    jest.advanceTimersByTime(30 * 60 * 1000);
+
+    expect(localStorage.getItem("utm_campaign")).toBeNull();
+    expect(localStorage.getItem("jrnf_campaign_id")).toBeNull();
   });
 });
