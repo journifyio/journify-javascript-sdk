@@ -131,7 +131,7 @@ export class BrowserImpl implements Browser {
   }
 }
 
-export const UTM_KEYS: [string, keyof UtmCampaign][] = [
+const UTM_KEYS: [string, keyof UtmCampaign][] = [
   ["utm_id", "id"],
   ["utm_campaign", "name"],
   ["utm_source", "source"],
@@ -140,7 +140,7 @@ export const UTM_KEYS: [string, keyof UtmCampaign][] = [
   ["utm_content", "content"],
 ];
 
-export const JRNF_KEYS: [string, keyof UtmCampaign][] = [
+const JRNF_KEYS: [string, keyof UtmCampaign][] = [
   ["jrnf_source_id", "sourceId"],
   ["jrnf_campaign_id", "campaignId"],
   ["jrnf_ad_group_id", "adGroupId"],
