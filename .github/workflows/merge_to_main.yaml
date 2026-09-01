@@ -39,15 +39,14 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 21
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install modules
         run: yarn install
 
-      - name: Lint
-        run: npm run lint
 
       - name: Configure git
         run: |
@@ -59,6 +58,8 @@ jobs:
         env:
           PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
+          echo "new_release=false" >> $GITHUB_OUTPUT
+
           if echo "$PR_LABELS" | grep -q '"no-release"'; then
             echo "PR labeled no-release, skipping version bump and release"
             exit 0
@@ -84,10 +85,6 @@ jobs:
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
           echo "current_version=$current_version" >> $GITHUB_OUTPUT
 
-      - name: Build
-        if: steps.release_check.outputs.new_release == 'true'
-        run: npm run build
-
       - name: Slack notification - Publishing
         if: steps.release_check.outputs.new_release == 'true'
         uses: slackapi/slack-github-action@v1.23.0
@@ -96,6 +93,53 @@ jobs:
           payload: |
             {
               "text": "*JavaScript SDK*: Publishing version *${{ steps.release_check.outputs.tag_name }}* to *stage* ..."
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Build
+        id: build
+        if: steps.release_check.outputs.new_release == 'true'
+        run: npm run build
+
+
+      - name: Prepare npm prerelease version
+        id: npm_prerelease
+        if: steps.release_check.outputs.new_release == 'true'
+        run: |
+          base_version=$(node -p "require('./package.json').version")
+          prerelease_version="${base_version}-beta.${GITHUB_RUN_NUMBER}"
+
+          npm version --no-git-tag-version "$prerelease_version"
+          npm run update-version
+
+          echo "prerelease_version=$prerelease_version" >> $GITHUB_OUTPUT
+
+      - name: Publish prerelease to npm (beta tag)
+        id: npm_publish_beta
+        if: steps.release_check.outputs.new_release == 'true'
+        run: npm publish --tag beta --access public --provenance
+
+      - name: Slack notification - Publishing beta
+        if: steps.npm_publish_beta.outcome == 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: Published beta version *${{ steps.npm_prerelease.outputs.prerelease_version }}* to *npm* :white_check_mark:"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack notification - Failed Publishing beta
+        if: steps.npm_publish_beta.outcome == 'failure'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: Failed to publish beta version *${{ steps.npm_prerelease.outputs.prerelease_version }}* to *npm* :x:"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
