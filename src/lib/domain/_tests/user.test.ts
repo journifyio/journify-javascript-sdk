@@ -93,6 +93,16 @@ describe("User interface", () => {
       assertValueOnStores(testStores, "journifyio_user_traits", expectedTraits);
     });
 
+    it("Should clear previous traits when identifying a different user", async () => {
+      const user = newUser();
+
+      await user.identify("first-user", { email: "first@example.com" });
+      await user.identify("second-user", { email: "second@example.com" });
+
+      expect(user.getUserId()).toBe("second-user");
+      expect(user.getTraits()).toEqual({ email: "second@example.com" });
+    });
+
     it("Should derive phone_e164 from a valid international phone", async () => {
       const user = newUser();
 

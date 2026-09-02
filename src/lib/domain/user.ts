@@ -113,7 +113,7 @@ export class UserImpl implements User {
     this.anonymousId = null;
     this.userId = null;
     this.externalIds = null;
-    this.traits = null;
+    this.traits = {};
     this.stores.remove(ANONYMOUS_ID_PERSISTENCE_KEY);
     this.stores.remove(USER_ID_PERSISTENCE_KEY);
     this.stores.remove(EXTERNAL_IDs_PERSISTENCE_KEY);
