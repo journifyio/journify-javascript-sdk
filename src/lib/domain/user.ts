@@ -2,7 +2,11 @@ import { v4 as uuid } from "uuid";
 import { Traits, USER_TRAITS_PERSISTENCE_KEY } from "./traits";
 import { StoresGroup } from "../store/store";
 import { ExternalIds } from "./externalId";
-import { normalizePhone, parseNumberToString } from "../lib/utils";
+import {
+  formatPhoneE164,
+  normalizePhone,
+  parseNumberToString,
+} from "../lib/utils";
 import { HttpCookieService } from "../lib/httpCookieService";
 import { SentryWrapper } from "../lib/sentry";
 
@@ -160,6 +164,7 @@ export class UserImpl implements User {
     };
 
     this.formatPhone();
+    this.formatPhoneE164(newTraits);
     this.stores.set(USER_TRAITS_PERSISTENCE_KEY, this.traits);
   }
 
@@ -169,6 +174,25 @@ export class UserImpl implements User {
         this.traits.phone,
         this.phoneCountryCode
       );
+    }
+  }
+
+  private formatPhoneE164(newTraits: Traits) {
+    if (!newTraits?.phone || newTraits.phone_e164) {
+      return;
+    }
+
+    const phone = this.phoneCountryCode
+      ? `+${this.traits.phone}`
+      : newTraits.phone.startsWith("+")
+      ? newTraits.phone
+      : undefined;
+    const phoneE164 = phone && formatPhoneE164(phone);
+
+    if (phoneE164) {
+      this.traits.phone_e164 = phoneE164;
+    } else {
+      delete this.traits.phone_e164;
     }
   }
 
