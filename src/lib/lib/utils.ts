@@ -1,5 +1,3 @@
-import parsePhoneNumber from "libphonenumber-js/min";
-
 export const parseNumberToString = (value: number | string): string => {
   if (typeof value === "number") {
     return value.toString();
@@ -34,14 +32,12 @@ export function normalizePhone(
 }
 
 export function formatPhoneE164(phone: string): string | undefined {
-  try {
-    const parsedNumber = parsePhoneNumber(phone);
-    if (parsedNumber?.isValid()) {
-      return parsedNumber.format("E.164");
-    }
-  } catch {
+  const digitsOnly = phone.replace(/\D/g, "");
+  if (digitsOnly.length < 10) {
     return undefined;
   }
+
+  return `+${digitsOnly}`;
 }
 
 // Cleans the traits object by keeping only non-empty strings and valid finite numbers
