@@ -1,4 +1,4 @@
-import parsePhoneNumber from "libphonenumber-js";
+import parsePhoneNumber from "libphonenumber-js/min";
 
 export const parseNumberToString = (value: number | string): string => {
   if (typeof value === "number") {
