@@ -141,7 +141,7 @@ const UTM_KEYS: [string, keyof UtmCampaign][] = [
 ];
 
 const JRNF_KEYS: [string, keyof UtmCampaign][] = [
-  ["jrnf_source_id", "sourceId"],
+  ["jrnf_source", "sourceId"],
   ["jrnf_campaign_id", "campaignId"],
   ["jrnf_ad_group_id", "adGroupId"],
   ["jrnf_ad_id", "adId"],
