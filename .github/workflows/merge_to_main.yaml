@@ -172,6 +172,31 @@ jobs:
           headers: |-
             content-type: 'text/javascript; charset=utf-8'
 
+      - name: Slack notification - Published
+        if: steps.release_check.outputs.new_release == 'true' && steps.publish_latest_to_staging_cdn.outcome == 'success' && steps.publish_current_version_to_staging_cdn.outcome == 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: :rocket: Published version *${{ steps.release_check.outputs.tag_name }}* to *CDN* :white_check_mark:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      
+      - name: Slack notification - Publishing failed
+        uses: slackapi/slack-github-action@v1.23.0
+        if: steps.release_check.outputs.new_release == 'true' && (steps.publish_latest_to_staging_cdn.outcome == 'failure' || steps.publish_current_version_to_staging_cdn.outcome == 'failure')
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ steps.release_check.outputs.tag_name }}* to *CDN* failed :cry:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Release to Github
         if: steps.release_check.outputs.new_release == 'true'
         uses: ncipollo/release-action@v1
