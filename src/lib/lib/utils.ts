@@ -33,7 +33,8 @@ export function normalizePhone(
 
 export function formatPhoneE164(phone: string): string | undefined {
   const digitsOnly = phone.replace(/\D/g, "");
-  if (digitsOnly.length < 10) {
+  // E.164 allows up to 15 digits (excluding the leading '+')
+  if (digitsOnly.length < 10 || digitsOnly.length > 15) {
     return undefined;
   }
 
