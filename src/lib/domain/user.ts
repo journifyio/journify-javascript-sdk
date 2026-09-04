@@ -177,24 +177,34 @@ export class UserImpl implements User {
     }
   }
 
-  private formatPhoneE164(newTraits: Traits) {
-    if (!newTraits?.phone || newTraits.phone_e164) {
-      return;
-    }
+private formatPhoneE164(newTraits: Traits) {
+  if (!newTraits || !Object.prototype.hasOwnProperty.call(newTraits, "phone")) {
+    return;
+  }
 
-    const phone = this.phoneCountryCode
-      ? `+${this.traits.phone}`
-      : newTraits.phone.startsWith("+")
+  if (newTraits.phone_e164) {
+    return;
+  }
+
+  if (!newTraits.phone) {
+    delete this.traits.phone_e164;
+    return;
+  }
+
+  const phone = this.phoneCountryCode
+    ? `+${this.traits.phone}`
+    : newTraits.phone.startsWith("+")
       ? newTraits.phone
       : undefined;
-    const phoneE164 = phone && formatPhoneE164(phone);
 
-    if (phoneE164) {
-      this.traits.phone_e164 = phoneE164;
-    } else {
-      delete this.traits.phone_e164;
-    }
+  const phoneE164 = phone && formatPhoneE164(phone);
+
+  if (phoneE164) {
+    this.traits.phone_e164 = phoneE164;
+  } else {
+    delete this.traits.phone_e164;
   }
+}
 
   private async setUserId(userId: string) {
     this.userId = parseNumberToString(userId);
