@@ -31,7 +31,7 @@ jobs:
       - name: Install modules
         run: yarn install
         
-      - parallel: Lint and Test
+      - parallel:
         steps:
           - name: Lint
             run: npm run lint
