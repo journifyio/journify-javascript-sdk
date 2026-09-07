@@ -78,17 +78,82 @@ jobs:
           headers: |-
             content-type: 'text/javascript; charset=utf-8'
 
-      - run: npm publish --access public --provenance
+      - name: Slack notification - Published to production CDN
+        if: steps.publish_latest_to_production_cdn.outcome == 'success' && steps.publish_current_version_to_production_cdn.outcome == 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: Published version *${{ github.event.inputs.version }}* to *CDN production* :white_check_mark:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack notification - Publishing failed
+        if: steps.publish_latest_to_production_cdn.outcome == 'failure' || steps.publish_current_version_to_production_cdn.outcome == 'failure'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ github.event.inputs.version }}* to *CDN production* failed :cry:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+       
+
+      - id: publish_npm
+        name: Publish to npm
+        run: npm publish --access public --provenance
+
+      - name: Slack notification - Published to npm
+        if: steps.publish_npm.outcome == 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: Published version *${{ github.event.inputs.version }}* to *npm* :white_check_mark:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack notification - Publishing to npm failed
+        if: steps.publish_npm.outcome == 'failure'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ github.event.inputs.version }}* to *npm* failed :cry:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v2'
           
             
       - name: Purge GCP CDN cache
+        id: purge_cdn_cache
         run: |
           gcloud compute url-maps invalidate-cdn-cache ${{ secrets.GLB_PROD }} \
             --path "/@journifyio/js-sdk@latest/journifyio.min.js" \
             --async
+
+      - name: Slack notification - Publishing failed
+        if: steps.purge_cdn_cache.outcome == 'failure'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "<!here> *JavaScript SDK*: :x: Purging of version *${{ github.event.inputs.version }}* from *CDN production* failed :cry:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Slack notification - Published
         if: success()
