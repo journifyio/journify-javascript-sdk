@@ -43,6 +43,12 @@ export interface UtmCampaign {
   medium?: string;
   term?: string;
   content?: string;
+  sourceId?: string;
+  campaignId?: string;
+  adGroupId?: string;
+  adId?: string;
+  creativeId?: string;
+  placement?: string;
 }
 
 interface EventContext {

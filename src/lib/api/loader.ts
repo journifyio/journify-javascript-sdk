@@ -21,7 +21,7 @@ import { SESSION_ID_PERSISTENCE_KEY, Store, StoresGroup } from "../store/store";
 import { BrowserStore } from "../store/browserStore";
 import { FacebookPixel } from "../transport/plugins/facebook/facebookPixel";
 import { SnapchatPixel } from "../transport/plugins/snapchat/snapchatPixel";
-import { BrowserImpl, UTM_KEYS } from "../transport/browser";
+import { BrowserImpl, CAMPAIGN_KEYS } from "../transport/browser";
 import { GA4Pixel } from "../transport/plugins/ga4_pixel/ga4Pixel";
 import { TikTokPixel } from "../transport/plugins/tiktok/tiktokPixel";
 import { CleverTapPlugin } from "../transport/plugins/cleverTap/cleverTapPlugin";
@@ -219,13 +219,13 @@ export class Loader {
         const newSessionId = new Date().getTime();
         this.stores.set(SESSION_ID_PERSISTENCE_KEY, newSessionId);
 
-        this.resetUtmCampaign();
+        this.resetCampaignParams();
       }, sessionDurationMin * 60 * 1000);
     }
   }
 
-  private resetUtmCampaign() {
-    UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
+  private resetCampaignParams() {
+    CAMPAIGN_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 
   public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
