@@ -92,7 +92,7 @@ jobs:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
             {
-              "text": "*JavaScript SDK*: Publishing version *${{ steps.release_check.outputs.tag_name }}* to *stage* ..."
+              "text": "*JavaScript SDK*: Publishing version *${{ steps.release_check.outputs.tag_name }}* to *CDN stage* ..."
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -138,7 +138,7 @@ jobs:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
             {
-              "text": "*JavaScript SDK*: :rocket: Published version *${{ steps.release_check.outputs.tag_name }}* to *CDN* :white_check_mark:!"
+              "text": "*JavaScript SDK*: Published version *${{ steps.release_check.outputs.tag_name }}* to *CDN stage* :white_check_mark:!"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -151,7 +151,7 @@ jobs:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
             {
-              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ steps.release_check.outputs.tag_name }}* to *CDN* failed :cry:!"
+              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ steps.release_check.outputs.tag_name }}* to *CDN stage* failed :cry:!"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -183,7 +183,7 @@ jobs:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
             {
-              "text": "<!here> *JavaScript SDK*: :x: Purging of version *${{ steps.release_check.outputs.tag_name }}* from *CDN* failed :cry:!"
+              "text": "<!here> *JavaScript SDK*: :x: Purging of version *${{ steps.release_check.outputs.tag_name }}* from *CDN stage* failed :cry:!"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -212,7 +212,7 @@ jobs:
         run: npm publish --tag beta --access public --provenance
 
       - name: Slack notification - Publishing beta
-        if: steps.npm_publish_beta.outcome == 'success'
+        if: ${{ always() && steps.npm_publish_beta.outcome == 'success' }}
         uses: slackapi/slack-github-action@v1.23.0
         with:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
@@ -224,7 +224,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Slack notification - Failed Publishing beta
-        if: steps.npm_publish_beta.outcome == 'failure'
+        if: ${{ always() && steps.npm_publish_beta.outcome == 'failure' }}
         uses: slackapi/slack-github-action@v1.23.0
         with:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
