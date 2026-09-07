@@ -92,7 +92,7 @@ jobs:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
             {
-              "text": "*JavaScript SDK*: Publishing version *${{ steps.release_check.outputs.tag_name }}* to *CDN stage* ..."
+              "text": "*JavaScript SDK*: Publishing version *${{ steps.release_check.outputs.tag_name }}* to *stage* ..."
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -146,7 +146,7 @@ jobs:
       
       - name: Slack notification - Publishing failed
         uses: slackapi/slack-github-action@v1.23.0
-        if: steps.release_check.outputs.new_release == 'true' && (steps.publish_latest_to_staging_cdn.outcome == 'failure' || steps.publish_current_version_to_staging_cdn.outcome == 'failure')
+        if: ${{ always() && steps.release_check.outputs.new_release == 'true' && (steps.publish_latest_to_staging_cdn.outcome == 'failure' || steps.publish_current_version_to_staging_cdn.outcome == 'failure') }}
         with:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
@@ -178,7 +178,7 @@ jobs:
 
       - name: Slack notification - Publishing failed
         uses: slackapi/slack-github-action@v1.23.0
-        if: steps.release_check.outputs.new_release == 'true' && steps.purge_cdn_cache.outcome == 'failure'
+        if: ${{ always() && steps.release_check.outputs.new_release == 'true' && steps.purge_cdn_cache.outcome == 'failure' }}
         with:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
@@ -219,6 +219,18 @@ jobs:
           payload: |
             {
               "text": "*JavaScript SDK*: Published beta version *${{ steps.npm_prerelease.outputs.prerelease_version }}* to *npm* :white_check_mark:"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack notification - Published to stage
+        if: ${{ always() && steps.npm_publish_beta.outcome == 'success' }}
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: :rocket: Published version *${{ steps.npm_prerelease.outputs.prerelease_version }}* to *stage* :tada:"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
