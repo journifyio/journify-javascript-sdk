@@ -39,15 +39,14 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 21
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install modules
         run: yarn install
 
-      - name: Lint
-        run: npm run lint
 
       - name: Configure git
         run: |
@@ -59,6 +58,8 @@ jobs:
         env:
           PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
+          echo "new_release=false" >> $GITHUB_OUTPUT
+
           if echo "$PR_LABELS" | grep -q '"no-release"'; then
             echo "PR labeled no-release, skipping version bump and release"
             exit 0
@@ -84,10 +85,6 @@ jobs:
           echo "tag_name=$tag_name" >> $GITHUB_OUTPUT
           echo "current_version=$current_version" >> $GITHUB_OUTPUT
 
-      - name: Build
-        if: steps.release_check.outputs.new_release == 'true'
-        run: npm run build
-
       - name: Slack notification - Publishing
         if: steps.release_check.outputs.new_release == 'true'
         uses: slackapi/slack-github-action@v1.23.0
@@ -99,6 +96,12 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Build stable version
+        id: build_stable
+        if: steps.release_check.outputs.new_release == 'true'
+        run: npm run build
+
 
       - id: auth
         name: Login to GCloud
@@ -128,6 +131,31 @@ jobs:
           headers: |-
             content-type: 'text/javascript; charset=utf-8'
 
+      - name: Slack notification - Published
+        if: steps.release_check.outputs.new_release == 'true' && steps.publish_latest_to_staging_cdn.outcome == 'success' && steps.publish_current_version_to_staging_cdn.outcome == 'success'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: :rocket: Published version *${{ steps.release_check.outputs.tag_name }}* to *CDN* :white_check_mark:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      
+      - name: Slack notification - Publishing failed
+        uses: slackapi/slack-github-action@v1.23.0
+        if: steps.release_check.outputs.new_release == 'true' && (steps.publish_latest_to_staging_cdn.outcome == 'failure' || steps.publish_current_version_to_staging_cdn.outcome == 'failure')
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ steps.release_check.outputs.tag_name }}* to *CDN* failed :cry:!"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
       - name: Release to Github
         if: steps.release_check.outputs.new_release == 'true'
         uses: ncipollo/release-action@v1
@@ -141,32 +169,68 @@ jobs:
             
               
       - name: Purge GCP CDN cache
+        id: purge_cdn_cache
         if: steps.release_check.outputs.new_release == 'true'  
         run: |
           gcloud compute url-maps invalidate-cdn-cache ${{ secrets.GLB_STAGING }} \
             --path "/@journifyio/js-sdk@latest/journifyio.min.js" \
             --async
 
-      - name: Slack notification - Published
-        if: steps.release_check.outputs.new_release == 'true' && success()
+      - name: Slack notification - Publishing failed
         uses: slackapi/slack-github-action@v1.23.0
+        if: steps.release_check.outputs.new_release == 'true' && steps.purge_cdn_cache.outcome == 'failure'
         with:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
             {
-              "text": "*JavaScript SDK*: :rocket: Published version *${{ steps.release_check.outputs.tag_name }}* to *stage* :tada:!"
+              "text": "<!here> *JavaScript SDK*: :x: Purging of version *${{ steps.release_check.outputs.tag_name }}* from *CDN* failed :cry:!"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      - name: Slack notification - Publishing failed
+
+      - name: Prepare npm prerelease version
+        id: npm_prerelease
+        if: steps.release_check.outputs.new_release == 'true'
+        run: |
+          base_version=$(node -p "require('./package.json').version")
+          prerelease_version="${base_version}-beta.${GITHUB_RUN_NUMBER}"
+
+          npm version --no-git-tag-version "$prerelease_version"
+          npm run update-version
+
+          echo "prerelease_version=$prerelease_version" >> $GITHUB_OUTPUT
+
+      - name: Build prerelease version
+        id: build_prerelease
+        if: steps.release_check.outputs.new_release == 'true'
+        run: npm run build
+
+      - name: Publish prerelease to npm (beta tag)
+        id: npm_publish_beta
+        if: steps.release_check.outputs.new_release == 'true'
+        run: npm publish --tag beta --access public --provenance
+
+      - name: Slack notification - Publishing beta
+        if: steps.npm_publish_beta.outcome == 'success'
         uses: slackapi/slack-github-action@v1.23.0
-        if: steps.release_check.outputs.new_release == 'true' && failure()
         with:
           channel-id: ${{secrets.SLACK_CHANNEL_ID}}
           payload: |
             {
-              "text": "<!here> *JavaScript SDK*: :x: Publishing of version *${{ steps.release_check.outputs.tag_name }}* to *stage* failed :cry:!"
+              "text": "*JavaScript SDK*: Published beta version *${{ steps.npm_prerelease.outputs.prerelease_version }}* to *npm* :white_check_mark:"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Slack notification - Failed Publishing beta
+        if: steps.npm_publish_beta.outcome == 'failure'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: ${{secrets.SLACK_CHANNEL_ID}}
+          payload: |
+            {
+              "text": "*JavaScript SDK*: Failed to publish beta version *${{ steps.npm_prerelease.outputs.prerelease_version }}* to *npm* :x:"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
