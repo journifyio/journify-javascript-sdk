@@ -54,8 +54,8 @@ export class OpenAIPixel implements Plugin {
   private readonly logger: Logger;
   private fieldsMapper!: FieldsMapper;
   private eventMapper!: EventMapper;
-  private consentGranted: boolean = true;
-  private pixelInitialized: boolean = false;
+  private consentGranted = true;
+  private pixelInitialized = false;
 
   public constructor(deps: PluginDependencies) {
     this.browser = deps.browser;
