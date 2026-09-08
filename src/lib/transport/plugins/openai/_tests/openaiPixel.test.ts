@@ -64,7 +64,7 @@ describe("OpenAIPixel plugin", () => {
     expect(injectScriptFunc).toHaveBeenCalledWith(OPENAI_SCRIPT_URL, {
       async: true,
     });
-    expect(oaiqFunc).toHaveBeenCalledTimes(1);
+    expect(oaiqFunc).toHaveBeenCalledTimes(2);
     expect(oaiqFunc).toHaveBeenCalledWith("init", { pixelId: generatedPixelId });
   });
 
@@ -124,7 +124,7 @@ describe("OpenAIPixel plugin", () => {
           "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
         country: "US",
         city: "San Francisco",
-        zip_code: "94107",
+        postal_code: "94107",
       },
     });
   });
@@ -204,7 +204,7 @@ describe("OpenAIPixel plugin", () => {
     expect(logger.log).nthCalledWith(
       2,
       "Will call window.oaiq with the following params in order:",
-      ["init", { pixelId: generatedPixelId }]
+      ["init", { pixelId: generatedPixelId, debug: true }]
     );
   });
 
@@ -311,7 +311,7 @@ describe("OpenAIPixel plugin", () => {
 
     const plugin = new OpenAIPixel(dependencies);
     expect(plugin).toBeDefined();
-    expect(oaiqFunc).toHaveBeenCalledTimes(1); // init only
+    expect(oaiqFunc).toHaveBeenCalledTimes(2); // consent and init
 
     oaiqFunc.mockClear();
     const ctx = new ContextFactoryImpl().newContext({
@@ -323,7 +323,7 @@ describe("OpenAIPixel plugin", () => {
     expect(oaiqFunc).toHaveBeenCalledTimes(0);
   });
 
-  it("should identify the user and call init on identify", () => {
+  it("should not re-init on identify when there is no user data", () => {
     const generatedPixelId = generatePixelId();
     const oaiqFunc = jest.fn();
 
@@ -364,7 +364,7 @@ describe("OpenAIPixel plugin", () => {
     };
 
     const plugin = new OpenAIPixel(dependencies);
-    expect(oaiqFunc).toHaveBeenCalledTimes(1); // init on construction
+    expect(oaiqFunc).toHaveBeenCalledTimes(2); // consent and init on construction
 
     oaiqFunc.mockClear();
     plugin.identify(
@@ -373,10 +373,7 @@ describe("OpenAIPixel plugin", () => {
         randomUUID()
       )
     );
-    // identify calls initPixel again (re-init with updated user data)
-    expect(oaiqFunc).toHaveBeenCalledWith("init", {
-      pixelId: generatedPixelId,
-    });
+    expect(oaiqFunc).toHaveBeenCalledTimes(0);
   });
 
   it("should re-init with first-party user data on identify", () => {
@@ -393,7 +390,7 @@ describe("OpenAIPixel plugin", () => {
           "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
         country: "US",
         city: "San Francisco",
-        zip_code: "94107",
+        postal_code: "94107",
       },
       {}
     );
@@ -444,7 +441,7 @@ describe("OpenAIPixel plugin", () => {
           "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
         country: "US",
         city: "San Francisco",
-        zip_code: "94107",
+        postal_code: "94107",
       },
     });
   });
@@ -475,7 +472,7 @@ describe("OpenAIPixel plugin", () => {
     );
   });
 
-  it("[Custom event] should omit custom_event_name when the destination key is the reserved 'custom'", () => {
+  it("[Custom event] should include custom_event_name when destination key is 'custom' and source event exists", () => {
     testLoggingEvent(
       TrackingEventType.TRACK_EVENT,
       "custom",
@@ -723,7 +720,7 @@ function testPageFiltering(matchFilter: boolean) {
 
   const plugin = new OpenAIPixel(dependencies);
   expect(plugin).toBeDefined();
-  expect(oaiqFunc).toHaveBeenCalledTimes(1); // init only
+  expect(oaiqFunc).toHaveBeenCalledTimes(2); // consent and init
 
   const ctx = new ContextFactoryImpl().newContext({
     type: JournifyEventType.PAGE,
@@ -834,7 +831,7 @@ function testLoggingEvent(
   if (expectInitCall) {
     expect(logger.log).nthCalledWith(1, logPrefix, [
       "init",
-      { pixelId: generatedPixelId },
+      { pixelId: generatedPixelId, debug: true },
     ]);
   }
 
@@ -845,17 +842,10 @@ function testLoggingEvent(
       { type: expectedType },
       {},
     ]);
-  } else if (!sourceEventName) {
-    expect(logger.log).nthCalledWith(
-      expectInitCall ? 2 : 1,
-      "OpenAI Pixel custom events require a valid custom_event_name."
-    );
   } else {
     // No field mappings are configured here, so custom_event_name falls back to
-    // the mapped destination event key (openaiEventName). The reserved "custom"
-    // keyword is never sent, so the option is omitted in that case.
-    const expectedOptions =
-      openaiEventName === "custom" ? {} : { custom_event_name: openaiEventName };
+    // the mapped destination event key.
+    const expectedOptions = { custom_event_name: openaiEventName };
     expect(logger.log).nthCalledWith(expectInitCall ? 2 : 1, logPrefix, [
       "measure",
       "custom",
