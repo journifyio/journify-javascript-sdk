@@ -694,6 +694,11 @@ function testLoggingEvent(
       { type: expectedType },
       {},
     ]);
+  } else if (!sourceEventName) {
+    expect(logger.log).nthCalledWith(
+      expectInitCall ? 2 : 1,
+      "OpenAI Pixel custom events require a valid custom_event_name."
+    );
   } else {
     expect(logger.log).nthCalledWith(expectInitCall ? 2 : 1, logPrefix, [
       "measure",

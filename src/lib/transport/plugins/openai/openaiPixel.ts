@@ -23,6 +23,7 @@ const STANDARD_EVENTS = new Set<string>([
   "appointment_scheduled",
   "subscription_created",
   "trial_started",
+  "custom",
 ]);
 
 const EVENT_TYPE_MAP: Record<string, string> = {
@@ -36,6 +37,7 @@ const EVENT_TYPE_MAP: Record<string, string> = {
   appointment_scheduled: "customer_action",
   subscription_created: "plan_enrollment",
   trial_started: "plan_enrollment",
+  custom: "custom",
 };
 
 const OPENAI_SCRIPT_URL = "https://bzrcdn.openai.com/sdk/oaiq.min.js";
@@ -93,27 +95,46 @@ export class OpenAIPixel implements Plugin {
     delete mappedProperties.event_id;
     const customEventName = mappedProperties.custom_event_name;
     delete mappedProperties.custom_event_name;
+    const optOut = mappedProperties.opt_out;
+    delete mappedProperties.opt_out;
 
     for (const mappedEvent of mappedEvents) {
       const eventName = mappedEvent.pixelEventName || event.event || "";
       const eventProperties = { ...mappedProperties };
 
-      if (isStandardEvent(eventName)) {
+      if (eventName === "custom") {
+        const resolvedCustomEventName = getCustomEventName(
+          customEventName,
+          event.event
+        );
+        if (!resolvedCustomEventName) {
+          this.logger.log(
+            "OpenAI Pixel custom events require a valid custom_event_name."
+          );
+          continue;
+        }
+
+        eventProperties.type = EVENT_TYPE_MAP[eventName];
+        const eventOptions: Record<string, any> = {
+          custom_event_name: resolvedCustomEventName,
+        };
+        if (eventId != null) {
+          eventOptions.event_id = eventId;
+        }
+        if (optOut === true) {
+          eventOptions.opt_out = true;
+        }
+        this.callPixelHelper("measure", eventName, eventProperties, eventOptions);
+      } else if (isStandardEvent(eventName)) {
         eventProperties.type = EVENT_TYPE_MAP[eventName];
         const eventOptions: Record<string, any> = {};
         if (eventId != null) {
           eventOptions.event_id = eventId;
         }
-        this.callPixelHelper("measure", eventName, eventProperties, eventOptions);
-      } else {
-        eventProperties.type = "custom";
-        const eventOptions: Record<string, any> = {
-          custom_event_name: getCustomEventName(customEventName, event.event),
-        };
-        if (eventId != null) {
-          eventOptions.event_id = eventId;
+        if (optOut === true) {
+          eventOptions.opt_out = true;
         }
-        this.callPixelHelper("measure", "custom", eventProperties, eventOptions);
+        this.callPixelHelper("measure", eventName, eventProperties, eventOptions);
       }
     }
 
@@ -146,7 +167,7 @@ export class OpenAIPixel implements Plugin {
     const stub = (...args: any[]) => {
       queue.push(args);
     };
-    (stub as any).queue = queue;
+    (stub as any).q = queue;
     localWindow.oaiq = stub;
 
     this.browser.injectScript(OPENAI_SCRIPT_URL, { async: true });
@@ -176,17 +197,22 @@ function isStandardEvent(eventName: string): boolean {
 function getCustomEventName(
   mappedCustomEventName: unknown,
   fallbackEventName?: string
-): string {
+): string | null {
+  const candidate =
+    typeof mappedCustomEventName === "string"
+      ? mappedCustomEventName
+      : fallbackEventName;
+
   if (
-    typeof mappedCustomEventName === "string" &&
-    mappedCustomEventName.trim().length > 0
+    typeof candidate !== "string" ||
+    !/^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?$/.test(candidate)
   ) {
-    return mappedCustomEventName;
+    return null;
   }
 
-  if (typeof fallbackEventName === "string" && fallbackEventName.trim().length > 0) {
-    return fallbackEventName;
+  if (STANDARD_EVENTS.has(candidate)) {
+    return null;
   }
 
-  return "custom";
+  return candidate;
 }
