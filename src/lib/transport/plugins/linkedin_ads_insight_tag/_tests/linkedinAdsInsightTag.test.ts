@@ -48,6 +48,7 @@ describe("Linkedin Insight Tag", () => {
         () => new FieldsMapperMock(() => ({}))
       ),
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -118,6 +119,7 @@ describe("Linkedin Insight Tag", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryImpl(),
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -203,6 +205,7 @@ describe("Linkedin Insight Tag", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryImpl(),
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };

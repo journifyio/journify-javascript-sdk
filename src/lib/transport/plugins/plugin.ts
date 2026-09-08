@@ -25,9 +25,10 @@ export interface PluginDependencies<T = undefined> {
   browser: Browser;
   testingWriteKey: boolean;
   logger: Logger;
+  additionalPIIKeys: string[];
+  sentry: SentryWrapper;
   enableHashing?: boolean | false;
   externalSDK?: T;
-  sentry: SentryWrapper;
 }
 
 export interface Logger {
@@ -36,8 +37,9 @@ export interface Logger {
 
 export type PluginSettings = SdkSettings | Sync;
 
-type SdkOptions = {
+export type SdkOptions = {
   enableHashing?: boolean | false;
+  additionalPIIKeys?: string[];
   sessionDurationMin?: number;
   cookie?: {
     domain?: string;
@@ -56,10 +58,16 @@ export interface SdkSettings {
   options?: SdkOptions;
 }
 
+export interface Booster {
+  name: string;
+  options?: Record<string, unknown>;
+}
+
 export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
+  boosters?: Booster[];
 }
 
 export interface Sync {

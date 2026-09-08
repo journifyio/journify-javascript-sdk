@@ -43,9 +43,7 @@ describe("EventMapper", () => {
                 type: JournifyEventType.TRACK,
                 event: "test_event",
             });
-            expect(mappedEvent).toEqual({
-                pixelEventName: "pixel_test_event",
-            });
+            expect(mappedEvent).toEqual([{ pixelEventName: "pixel_test_event" }]);
         });
 
         it("should return the correct mapping for a PAGE event", () => {
@@ -54,9 +52,7 @@ describe("EventMapper", () => {
                 type: JournifyEventType.PAGE,
                 event: "",
             });
-            expect(mappedEvent).toEqual({
-                pixelEventName: "pixel_page_event",
-            });
+            expect(mappedEvent).toEqual([{ pixelEventName: "pixel_page_event" }]);
         });
 
         it("should return the correct mapping for a GROUP event", () => {
@@ -64,9 +60,7 @@ describe("EventMapper", () => {
             const mappedEvent = eventMapper.applyEventMapping({
                 type: JournifyEventType.GROUP,
             });
-            expect(mappedEvent).toEqual({
-                pixelEventName: "pixel_group_event",
-            });
+            expect(mappedEvent).toEqual([{ pixelEventName: "pixel_group_event" }]);
         });
 
         it("should return the correct mapping for an IDENTIFY event", () => {
@@ -75,18 +69,16 @@ describe("EventMapper", () => {
                 type: JournifyEventType.IDENTIFY,
                 event: "",
             });
-            expect(mappedEvent).toEqual({
-                pixelEventName: "pixel_identify_event",
-            });
+            expect(mappedEvent).toEqual([{ pixelEventName: "pixel_identify_event" }]);
         });
 
-        it("should return null for an unsupported event type", () => {
+        it("should return an empty array for an unsupported event type", () => {
             const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
             const ctx = {
                 getEvent: () => ({ type: "UNSUPPORTED_EVENT_TYPE", event: "" }),
             } as unknown as Context;
             const mappedEvent = eventMapper.applyEventMapping(ctx.getEvent());
-            expect(mappedEvent).toBeNull();
+            expect(mappedEvent).toEqual([]);
         });
 
         it("should return the mapped event if all filters match", () => {
@@ -182,9 +174,7 @@ describe("EventMapper", () => {
                 },
             });
 
-            expect(mappedEvent).toEqual({
-                pixelEventName: "PURCHASE",
-            })
+            expect(mappedEvent).toEqual([{ pixelEventName: "PURCHASE" }]);
         });
 
         it("should return null if one of the filters doesn't match", () => {
@@ -233,7 +223,7 @@ describe("EventMapper", () => {
                 },
             });
 
-            expect(mappedEvent).toBeNull()
+            expect(mappedEvent).toEqual([]);
         });
 
         describe("matchFilter - type coercion", () => {
@@ -264,7 +254,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "hello",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ name: "hello" }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ name: "hello" }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: string filter does not match different string", () => {
@@ -273,7 +263,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "hello",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ name: "world" }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ name: "world" }))).toEqual([]);
             });
 
             it("EQUALS: string filter '42' matches number 42 via coercion", () => {
@@ -282,7 +272,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "42",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ count: 42 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ count: 42 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: string filter '42' does not match number 99", () => {
@@ -291,7 +281,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "42",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ count: 99 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ count: 99 }))).toEqual([]);
             });
 
             it("EQUALS: string filter 'true' matches boolean true via coercion", () => {
@@ -300,7 +290,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "true",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ active: true }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ active: true }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: string filter 'false' matches boolean false via coercion", () => {
@@ -309,7 +299,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "false",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ active: false }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ active: false }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: string filter 'true' does not match boolean false", () => {
@@ -318,7 +308,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "true",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ active: false }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ active: false }))).toEqual([]);
             });
 
             it("EQUALS: string filter '3.14' matches number 3.14", () => {
@@ -327,7 +317,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "3.14",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ rate: 3.14 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ rate: 3.14 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: non-numeric string filter stays string when event value is number", () => {
@@ -336,7 +326,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "abc",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ count: 42 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ count: 42 }))).toEqual([]);
             });
 
             // --- NOT_EQUALS with type coercion ---
@@ -346,7 +336,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.NOT_EQUALS,
                     value: "42",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ count: 42 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ count: 42 }))).toEqual([]);
             });
 
             it("NOT_EQUALS: string filter '42' matches number 99 (different after coercion)", () => {
@@ -355,7 +345,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.NOT_EQUALS,
                     value: "42",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ count: 99 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ count: 99 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("NOT_EQUALS: string filter 'true' does not match boolean true", () => {
@@ -364,7 +354,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.NOT_EQUALS,
                     value: "true",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ active: true }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ active: true }))).toEqual([]);
             });
 
             it("NOT_EQUALS: string filter 'true' matches boolean false", () => {
@@ -373,7 +363,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.NOT_EQUALS,
                     value: "true",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ active: false }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ active: false }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             // --- GREATER_THAN with type coercion ---
@@ -383,7 +373,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.GREATER_THAN,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 200 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ amount: 200 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("GREATER_THAN: number event value not > string filter coerced to number", () => {
@@ -392,7 +382,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.GREATER_THAN,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 50 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ amount: 50 }))).toEqual([]);
             });
 
             it("GREATER_THAN: equal values should not match", () => {
@@ -401,7 +391,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.GREATER_THAN,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toEqual([]);
             });
 
             // --- GREATER_THAN_OR_EQ with type coercion ---
@@ -411,7 +401,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.GREATER_THAN_OR_EQ,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("GREATER_THAN_OR_EQ: greater value should match", () => {
@@ -420,7 +410,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.GREATER_THAN_OR_EQ,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 101 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ amount: 101 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("GREATER_THAN_OR_EQ: lesser value should not match", () => {
@@ -429,7 +419,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.GREATER_THAN_OR_EQ,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 99 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ amount: 99 }))).toEqual([]);
             });
 
             // --- LESS_THAN with type coercion ---
@@ -439,7 +429,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.LESS_THAN,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 50 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ amount: 50 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("LESS_THAN: equal values should not match", () => {
@@ -448,7 +438,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.LESS_THAN,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toEqual([]);
             });
 
             it("LESS_THAN: greater value should not match", () => {
@@ -457,7 +447,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.LESS_THAN,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 200 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ amount: 200 }))).toEqual([]);
             });
 
             // --- LESS_THAN_OR_EQ with type coercion ---
@@ -467,7 +457,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.LESS_THAN_OR_EQ,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ amount: 100 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("LESS_THAN_OR_EQ: lesser value should match", () => {
@@ -476,7 +466,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.LESS_THAN_OR_EQ,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 50 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ amount: 50 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("LESS_THAN_OR_EQ: greater value should not match", () => {
@@ -485,7 +475,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.LESS_THAN_OR_EQ,
                     value: "100",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ amount: 200 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ amount: 200 }))).toEqual([]);
             });
 
             // --- LESS_THAN_OR_EQ with float coercion ---
@@ -495,8 +485,8 @@ describe("EventMapper", () => {
                     operator: FilterOperator.LESS_THAN_OR_EQ,
                     value: "9.99",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ price: 9.99 }))).toEqual({ pixelEventName: "DEST" });
-                expect(mapper.applyEventMapping(trackEvent({ price: 10 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ price: 9.99 }))).toEqual([{ pixelEventName: "DEST" }]);
+                expect(mapper.applyEventMapping(trackEvent({ price: 10 }))).toEqual([]);
             });
         });
 
@@ -528,7 +518,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.CONTAINS,
                     value: "world",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("CONTAINS: does not match when event value does not contain filter value", () => {
@@ -537,7 +527,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.CONTAINS,
                     value: "xyz",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toEqual([]);
             });
 
             // --- NOT_CONTAINS ---
@@ -547,7 +537,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.NOT_CONTAINS,
                     value: "xyz",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("NOT_CONTAINS: does not match when event value contains filter value", () => {
@@ -556,7 +546,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.NOT_CONTAINS,
                     value: "hello",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ name: "hello world" }))).toEqual([]);
             });
 
             // --- STARTS_WITH ---
@@ -566,7 +556,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.STARTS_WITH,
                     value: "https://",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ url: "https://example.com" }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ url: "https://example.com" }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("STARTS_WITH: does not match when event value does not start with filter value", () => {
@@ -575,7 +565,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.STARTS_WITH,
                     value: "https://",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ url: "http://example.com" }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ url: "http://example.com" }))).toEqual([]);
             });
 
             // --- ENDS_WITH ---
@@ -585,7 +575,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.ENDS_WITH,
                     value: "@example.com",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ email: "user@example.com" }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ email: "user@example.com" }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("ENDS_WITH: does not match when event value does not end with filter value", () => {
@@ -594,7 +584,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.ENDS_WITH,
                     value: "@example.com",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ email: "user@other.com" }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ email: "user@other.com" }))).toEqual([]);
             });
         });
 
@@ -625,7 +615,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "something",
                 });
-                expect(mapper.applyEventMapping(trackEvent({}))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({}))).toEqual([]);
             });
 
             it("NOT_EQUALS: undefined event value does match (undefined !== 'something')", () => {
@@ -634,7 +624,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.NOT_EQUALS,
                     value: "something",
                 });
-                expect(mapper.applyEventMapping(trackEvent({}))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({}))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: nested field access works", () => {
@@ -643,7 +633,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "found",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ nested: { deep: { value: "found" } } }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ nested: { deep: { value: "found" } } }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: nested field access returns null for missing nested path", () => {
@@ -652,7 +642,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "found",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ nested: {} }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ nested: {} }))).toEqual([]);
             });
 
             it("EQUALS: number 0 matches string filter '0'", () => {
@@ -661,7 +651,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "0",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ count: 0 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ count: 0 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("EQUALS: negative number matches string filter", () => {
@@ -670,7 +660,7 @@ describe("EventMapper", () => {
                     operator: FilterOperator.EQUALS,
                     value: "-5",
                 });
-                expect(mapper.applyEventMapping(trackEvent({ temp: -5 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ temp: -5 }))).toEqual([{ pixelEventName: "DEST" }]);
             });
 
             it("multiple filters act as AND - all must match", () => {
@@ -695,11 +685,11 @@ describe("EventMapper", () => {
                     },
                 ]);
                 // both match
-                expect(mapper.applyEventMapping(trackEvent({ active: true, count: 20 }))).toEqual({ pixelEventName: "DEST" });
+                expect(mapper.applyEventMapping(trackEvent({ active: true, count: 20 }))).toEqual([{ pixelEventName: "DEST" }]);
                 // first matches, second doesn't
-                expect(mapper.applyEventMapping(trackEvent({ active: true, count: 5 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ active: true, count: 5 }))).toEqual([]);
                 // first doesn't match
-                expect(mapper.applyEventMapping(trackEvent({ active: false, count: 20 }))).toBeNull();
+                expect(mapper.applyEventMapping(trackEvent({ active: false, count: 20 }))).toEqual([]);
             });
         });
 
@@ -767,9 +757,62 @@ describe("EventMapper", () => {
                 },
             });
 
-            expect(mappedEvent).toEqual({
-                pixelEventName: "PURCHASE_2",
-            })
+            expect(mappedEvent).toEqual([{ pixelEventName: "PURCHASE_2" }]);
+        });
+
+        it("should return all the destination events that match when the same source event is mapped to multiple destination events", () => {
+            const eventMappings: EventMapping[] = [
+                {
+                    enabled: true,
+                    event_type: TrackingEventType.TRACK_EVENT,
+                    event_name: "purchase",
+                    destination_event_key: "PURCHASE_1",
+                    filters: [],
+                },
+                {
+                    enabled: true,
+                    event_type: TrackingEventType.TRACK_EVENT,
+                    event_name: "purchase",
+                    destination_event_key: "PURCHASE_2",
+                    filters: [
+                        {
+                            field: "context.page.url",
+                            operator: FilterOperator.EQUALS,
+                            value: "https://www.example.com",
+                        },
+                    ],
+                },
+                {
+                    enabled: true,
+                    event_type: TrackingEventType.TRACK_EVENT,
+                    event_name: "purchase",
+                    destination_event_key: "PURCHASE_3",
+                    filters: [
+                        {
+                            field: "context.page.title",
+                            operator: FilterOperator.EQUALS,
+                            value: "Another title",
+                        },
+                    ],
+                },
+            ];
+            const eventMapper = eventMapperFactory.newEventMapper(eventMappings);
+
+            const mappedEvents = eventMapper.applyEventMapping({
+                type: JournifyEventType.TRACK,
+                context: {
+                    page: {
+                        url: "https://www.example.com",
+                        title: "Hello world",
+                    },
+                },
+                event: "purchase",
+            });
+
+            expect(mappedEvents).toEqual([
+                { pixelEventName: "PURCHASE_1" },
+                { pixelEventName: "PURCHASE_2" },
+            ]);
         });
     });
 });

@@ -112,7 +112,6 @@ export class TikTokPixel implements Plugin {
             ...args,
             pixelCode: this.settings.pixel_code,
         };
-        const ttqInstance = window.ttq.instance(event.pixelCode)
 
         switch (eventType) {
             case JournifyEventType.IDENTIFY:
@@ -123,7 +122,7 @@ export class TikTokPixel implements Plugin {
                     );
                 }
 
-                ttqInstance.identify({
+                window.ttq.instance(event.pixelCode).identify({
                     ...event,
                     event_id: eventId,
                 });
@@ -136,8 +135,8 @@ export class TikTokPixel implements Plugin {
                             {...event, event_id: eventId}
                         );
                     }
-                    ttqInstance.identify(traits);
-                    ttqInstance.page({
+                    window.ttq.instance(event.pixelCode).identify(traits);
+                    window.ttq.instance(event.pixelCode).page({
                         ...event,
                         event_id: eventId,
                     });
@@ -150,8 +149,8 @@ export class TikTokPixel implements Plugin {
                             {event_id: eventId}
                         );
                     }
-                    ttqInstance.identify(traits);
-                    ttqInstance.track(args.event, event, {event_id: eventId});
+                    window.ttq.instance(event.pixelCode).identify(traits);
+                    window.ttq.instance(event.pixelCode).track(args.event, event, {event_id: eventId});
                 }
                 break;
             default:
@@ -163,16 +162,16 @@ export class TikTokPixel implements Plugin {
                         {event_id: eventId}
                     );
                 }
-                ttqInstance.identify(traits);
-                ttqInstance.track(args.event, event, {event_id: eventId});
+                window.ttq.instance(event.pixelCode).identify(traits);
+                window.ttq.instance(event.pixelCode).track(args.event, event, {event_id: eventId});
                 break;
         }
     }
 
     private trackPixelEvent(ctx: Context): Context {
         const event = ctx.getEvent();
-        const mappedEvent = this.eventMapper.applyEventMapping(event);
-        if (!mappedEvent) {
+        const mappedEvents = this.eventMapper.applyEventMapping(event);
+        if (mappedEvents.length === 0) {
             return ctx;
         }
         const mappedProperties = this.fieldsMapper.mapEvent(event);
@@ -180,16 +179,18 @@ export class TikTokPixel implements Plugin {
         delete mappedProperties.event_id;
 
         const traits = this.mapUserData(event);
-        const eventName = mappedEvent?.pixelEventName || event.event;
-        this.callPixelHelper(
-            event.type,
-            {
-                ...mappedProperties,
-                event: eventName,
-            },
-            eventId,
-            traits
-        );
+        for (const mappedEvent of mappedEvents) {
+            const eventName = mappedEvent.pixelEventName || event.event;
+            this.callPixelHelper(
+                event.type,
+                {
+                    ...mappedProperties,
+                    event: eventName,
+                },
+                eventId,
+                traits
+            );
+        }
 
         return ctx;
     }

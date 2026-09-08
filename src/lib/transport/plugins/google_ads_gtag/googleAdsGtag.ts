@@ -77,13 +77,10 @@ export class GoogleAdsGtag implements Plugin {
 
   private trackGtagEvent(ctx: Context): Promise<Context> | Context {
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
-    const { conversionID, conversionType } = this.parseMappedEventName(
-        mappedEvent.pixelEventName
-    );
     const mappedProperties = this.fieldsMapper.mapEvent(event);
     delete mappedProperties.conversionAction;
     const properties = this.removeUserInitData(mappedProperties);
@@ -102,17 +99,25 @@ export class GoogleAdsGtag implements Plugin {
       this.setUserData(identifyEvent);
     }
 
-    switch (conversionType) {
-      case "UPLOAD_CALLS":
-        this.gtag("config", conversionID, properties);
-        break;
-      default:
-        delete properties.phone_conversion_number;
-        this.gtag("event", "conversion", {
-          send_to: conversionID,
-          ...properties,
-        });
-        break;
+    for (const mappedEvent of mappedEvents) {
+      const { conversionID, conversionType } = this.parseMappedEventName(
+        mappedEvent.pixelEventName
+      );
+
+      switch (conversionType) {
+        case "UPLOAD_CALLS":
+          this.gtag("config", conversionID, { ...properties });
+          break;
+        default: {
+          const conversionProperties = { ...properties };
+          delete conversionProperties.phone_conversion_number;
+          this.gtag("event", "conversion", {
+            send_to: conversionID,
+            ...conversionProperties,
+          });
+          break;
+        }
+      }
     }
 
     return ctx;

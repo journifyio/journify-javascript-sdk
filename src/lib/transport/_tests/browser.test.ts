@@ -110,5 +110,61 @@ describe("BrowserImpl", () => {
       expect(stores.get("utm_campaign")).toEqual("test");
       expect(stores.get("utm_source")).toEqual("source");
     });
+
+    it("should return the jrnf campaign parameters if they are found", () => {
+      const queryString =
+        "jrnf_source=meta&jrnf_campaign_id=120210987654321&jrnf_ad_group_id=120210987654322&jrnf_ad_id=120210987654323&jrnf_creative_id=238512345678901&jrnf_placement=instagram_stories";
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+
+      const result = browser.utmCampaign(queryString, stores);
+
+      expect(result).toEqual({
+        sourceId: "meta",
+        campaignId: "120210987654321",
+        adGroupId: "120210987654322",
+        adId: "120210987654323",
+        creativeId: "238512345678901",
+        placement: "instagram_stories",
+      });
+    });
+
+    it("should return both utm and jrnf campaign parameters when both are present", () => {
+      const queryString =
+        "utm_source=google&utm_medium=cpc&jrnf_campaign_id=120210987654321&jrnf_ad_id=120210987654323";
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+
+      const result = browser.utmCampaign(queryString, stores);
+
+      expect(result).toEqual({
+        source: "google",
+        medium: "cpc",
+        campaignId: "120210987654321",
+        adId: "120210987654323",
+      });
+    });
+
+    it("should store the jrnf campaign parameters in the stores", () => {
+      const queryString = "jrnf_campaign_id=120210987654321";
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+
+      browser.utmCampaign(queryString, stores);
+
+      expect(stores.get("jrnf_campaign_id")).toEqual("120210987654321");
+    });
   });
 });

@@ -2,10 +2,12 @@ import JsCookie from "js-cookie";
 
 import { Store } from "./store";
 
+type CookieAttributes = NonNullable<Parameters<typeof JsCookie.set>[2]>;
+
 const ONE_YEAR = 365;
 
 export class CookiesStore implements Store {
-  private attributes: JsCookie.CookieAttributes;
+  private attributes: CookieAttributes;
   private readonly domain?: string;
 
   public constructor(domain?: string) {
@@ -70,7 +72,7 @@ export class CookiesStore implements Store {
     return JsCookie.remove(key, this.getAttributes());
   }
 
-  private getAttributes(): JsCookie.CookieAttributes {
+  private getAttributes(): CookieAttributes {
     if (!this.attributes) {
       this.setAttributes();
     }

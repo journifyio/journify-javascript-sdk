@@ -13,11 +13,13 @@ export class CleverTapPlugin implements Plugin {
   private readonly sdk: CleverTapWrapper;
   private readonly user: User;
   private readonly enableHashing: boolean;
+  private readonly additionalPIIKeys: string[];
 
   public constructor(deps: PluginDependencies<CleverTapWrapper>) {
     this.user = deps.user;
     this.sdk = deps.externalSDK;
     this.enableHashing = deps.enableHashing;
+    this.additionalPIIKeys = deps.additionalPIIKeys;
     this.init(deps.sync);
   }
 
@@ -31,7 +33,7 @@ export class CleverTapPlugin implements Plugin {
     }
 
     if (this.enableHashing) {
-      traits = await hashPII(traits);
+      traits = await hashPII(traits, this.additionalPIIKeys);
     }
 
     const siteData: SiteData = {

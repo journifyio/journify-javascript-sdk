@@ -22,6 +22,7 @@ export class BingAdsTag implements Plugin {
   private readonly user: User;
   private readonly testingMode: boolean;
   private readonly enableHashing: boolean;
+  private readonly additionalPIIKeys: string[];
   private browser: Browser;
   private readonly fieldsMapper: FieldsMapper;
   private readonly eventMapper: EventMapper;
@@ -33,6 +34,7 @@ export class BingAdsTag implements Plugin {
     this.user = deps.user;
     this.testingMode = deps.testingWriteKey;
     this.enableHashing = deps.enableHashing;
+    this.additionalPIIKeys = deps.additionalPIIKeys;
     this.fieldsMapper = deps.fieldMapperFactory.newFieldMapper(
       deps.sync.field_mappings
     );
@@ -62,7 +64,7 @@ export class BingAdsTag implements Plugin {
     };
 
     if (this.enableHashing) {
-      event.traits = await hashPII(event.traits);
+      event.traits = await hashPII(event.traits, this.additionalPIIKeys);
     }
 
     // keep only pid.em and pid.ph
@@ -88,8 +90,8 @@ export class BingAdsTag implements Plugin {
       return ctx;
     }
     const event = ctx.getEvent();
-    const mappedEvent = this.eventMapper.applyEventMapping(event);
-    if (!mappedEvent) {
+    const mappedEvents = this.eventMapper.applyEventMapping(event);
+    if (mappedEvents.length === 0) {
       return ctx;
     }
 
@@ -102,9 +104,11 @@ export class BingAdsTag implements Plugin {
       }
     }
 
-    this.browser
-      .window()
-      .uetq.push("event", mappedEvent.pixelEventName, mappedFields);
+    for (const mappedEvent of mappedEvents) {
+      this.browser
+        .window()
+        .uetq.push("event", mappedEvent.pixelEventName, mappedFields);
+    }
     return ctx;
   }
 

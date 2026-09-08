@@ -21,7 +21,7 @@ import { SESSION_ID_PERSISTENCE_KEY, Store, StoresGroup } from "../store/store";
 import { BrowserStore } from "../store/browserStore";
 import { FacebookPixel } from "../transport/plugins/facebook/facebookPixel";
 import { SnapchatPixel } from "../transport/plugins/snapchat/snapchatPixel";
-import { BrowserImpl, UTM_KEYS } from "../transport/browser";
+import { BrowserImpl, CAMPAIGN_KEYS } from "../transport/browser";
 import { GA4Pixel } from "../transport/plugins/ga4_pixel/ga4Pixel";
 import { TikTokPixel } from "../transport/plugins/tiktok/tiktokPixel";
 import { CleverTapPlugin } from "../transport/plugins/cleverTap/cleverTapPlugin";
@@ -41,6 +41,8 @@ import {OpenAIPixel} from "../transport/plugins/openai/openaiPixel";
 import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
+import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
+import {applyBoosters} from "./boosters";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -51,6 +53,7 @@ const INTEGRATION_PLUGINS = {
   linkedin_ads_insight_tag: LinkedinAdsInsightTag,
   openai_pixel: OpenAIPixel,
   pinterest_tag: PinterestTag,
+  reddit_pixel: RedditPixel,
   snapchat_pixel: SnapchatPixel,
   tiktok_pixel: TikTokPixel,
   x_pixel: XPixel,
@@ -78,7 +81,11 @@ export class Loader {
       sdkConfig: SdkSettings,
       writeKeySettings: WriteKeySettings
   ): Promise<Sdk> {
-    this.sdkSettings = sdkConfig;
+    // Dashboard boosters override local enableHashing / autoCapturePII when present.
+    this.sdkSettings = {
+      ...sdkConfig,
+      options: applyBoosters(sdkConfig.options, writeKeySettings.boosters),
+    };
     this.writeKeySettings = writeKeySettings;
     this.startNewSession();
 
@@ -212,13 +219,13 @@ export class Loader {
         const newSessionId = new Date().getTime();
         this.stores.set(SESSION_ID_PERSISTENCE_KEY, newSessionId);
 
-        this.resetUtmCampaign();
+        this.resetCampaignParams();
       }, sessionDurationMin * 60 * 1000);
     }
   }
 
-  private resetUtmCampaign() {
-    UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
+  private resetCampaignParams() {
+    CAMPAIGN_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 
   public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {
@@ -244,6 +251,7 @@ export class Loader {
       testingWriteKey: deps.testingMode,
       externalSDK: deps.pluginExternalSDKs[sync.destination_app],
       enableHashing: this.sdkSettings?.options?.enableHashing,
+      additionalPIIKeys: this.sdkSettings?.options?.additionalPIIKeys ?? [],
       logger: deps.logger,
       sentry: this.sentryWrapper,
     };
@@ -293,6 +301,11 @@ export class Loader {
 
 const WRITE_KEY_TEST_PREFIX = "wk_test_";
 const WRITE_KEY_PROD_PREFIX = "wk_";
+
+export function isValidWriteKey(writeKey: string): boolean {
+  return /^(?:wk_|wk_test_)[a-zA-Z0-9]{27}$/.test(writeKey);
+}
+
 function isTestingWriteKey(writeKey: string): boolean {
   return writeKey?.startsWith(WRITE_KEY_TEST_PREFIX);
 }

@@ -5,6 +5,7 @@ import {applyTransformations, Transformation} from "./tranformations";
 import {Liquid, Template} from "liquidjs";
 import * as uuid from "uuid";
 import {ARRAY_PATH_SEPARATOR, isArrayPath, getValue, setValue} from "./value";
+import {newLiquidEngine} from "./liquid";
 
 const CURRENT_DATE_VAR_NAME = "CURRENT_DATE";
 const CURRENT_TIME_VAR_NAME = "CURRENT_TIME";
@@ -41,7 +42,7 @@ class FieldsMapperImpl implements FieldsMapper {
     constructor(fieldMappings: FieldMapping[], now: () => Date) {
         this.fieldMappings = fieldMappings;
         this.now = now;
-        this.liquidEngine = new Liquid();
+        this.liquidEngine = newLiquidEngine();
 
         this.templateCache = {};
         for (const mapping of this.fieldMappings) {

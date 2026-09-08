@@ -68,6 +68,7 @@ describe("Google Ads Gtag", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -152,6 +153,7 @@ describe("Google Ads Gtag", () => {
       eventMapperFactory: new EventMapperFactoryImpl(),
       fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
       browser: browser,
+      additionalPIIKeys: [],
       testingWriteKey: false,
       logger: console,
     };
@@ -294,6 +296,7 @@ function testSendingEvent(
     eventMapperFactory: new EventMapperFactoryImpl(),
     fieldMapperFactory: fieldMapperFactory,
     browser: browser,
+    additionalPIIKeys: [],
     testingWriteKey: false,
     logger: console,
   };

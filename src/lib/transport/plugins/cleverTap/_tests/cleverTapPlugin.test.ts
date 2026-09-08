@@ -313,5 +313,6 @@ function newBasicDependencies(
     testingWriteKey: false,
     logger: null,
     externalSDK: sdk,
+    additionalPIIKeys: [],
   };
 }
