@@ -191,13 +191,7 @@ private formatPhoneE164(newTraits: Traits) {
     return;
   }
 
-  const phone = this.phoneCountryCode
-    ? `+${this.traits.phone}`
-    : newTraits.phone.startsWith("+")
-      ? newTraits.phone
-      : undefined;
-
-  const phoneE164 = phone && formatPhoneE164(phone);
+  const phoneE164 = formatPhoneE164(newTraits.phone, this.phoneCountryCode);
 
   if (phoneE164) {
     this.traits.phone_e164 = phoneE164;
