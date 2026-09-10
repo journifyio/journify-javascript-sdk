@@ -31,6 +31,42 @@ export function normalizePhone(
   return cleanedPhone;
 }
 
+export function formatPhoneE164(
+  phone: string,
+  countryCode?: string
+): string | undefined {
+  if (!phone) {
+    return undefined;
+  }
+
+  let digitsOnly = phone.replace(/\D/g, "");
+  const hasPlus = phone.trim().startsWith("+");
+
+  // Without a "+" we can't tell it's already in international format,
+  // so a country code is required to safely derive E.164.
+  if (!hasPlus && !countryCode) {
+    return undefined;
+  }
+
+  // Only fall back to the configured country code for local numbers,
+  // never override a number that already carries its own "+<code>".
+  if (!hasPlus && countryCode) {
+    if (digitsOnly.startsWith("0")) {
+      digitsOnly = digitsOnly.substring(1);
+    }
+    if (digitsOnly.length <= 10 || !digitsOnly.startsWith(countryCode)) {
+      digitsOnly = `${countryCode}${digitsOnly}`;
+    }
+  }
+
+  // E.164 allows up to 15 digits (excluding the leading '+')
+  if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+    return undefined;
+  }
+
+  return `+${digitsOnly}`;
+}
+
 // Cleans the traits object by keeping only non-empty strings and valid finite numbers
 export function cleanTraits(obj: unknown): Record<string, unknown> {
   // Handle null, undefined, or non-object inputs

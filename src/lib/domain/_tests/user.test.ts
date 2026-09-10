@@ -88,9 +88,66 @@ describe("User interface", () => {
       const expectedTraits = {
         ...newTraits,
         phone: "966551234567",
+        phone_e164: "+966551234567",
       };
       assertValueOnStores(testStores, "journifyio_user_traits", expectedTraits);
     });
+
+    it("Should clear previous traits when identifying a different user", async () => {
+      const user = newUser();
+
+      await user.identify("first-user", { email: "first@example.com" });
+      await user.identify("second-user", { email: "second@example.com" });
+
+      expect(user.getUserId()).toBe("second-user");
+      expect(user.getTraits()).toEqual({ email: "second@example.com" });
+    });
+
+    it("Should derive phone_e164 from a valid international phone", async () => {
+      const user = newUser();
+
+      await user.identify(null, { phone: "+14155552671" });
+
+      expect(user.getTraits()).toEqual({
+        phone: "+14155552671",
+        phone_e164: "+14155552671",
+      });
+    });
+
+    it("Should not derive phone_e164 from a local phone without a country code", async () => {
+      const user = newUser();
+
+      await user.identify(null, { phone: "0551234567" });
+
+      expect(user.getTraits()).toEqual({ phone: "0551234567" });
+    });
+
+    it("Should preserve an explicitly supplied phone_e164", async () => {
+      const user = newUser();
+
+      await user.identify(null, {
+        phone: "+14155552671",
+        phone_e164: "+15555555555",
+      });
+
+      expect(user.getTraits()).toEqual({
+        phone: "+14155552671",
+        phone_e164: "+15555555555",
+      });
+    });
+
+    it("Should refresh a generated phone_e164 when the phone changes", async () => {
+      const user = newUser();
+
+      await user.identify(null, { phone: "+14155552671" });
+      await user.identify(null, { phone: "+442071838750" });
+
+      expect(user.getTraits()).toEqual({
+        phone: "+442071838750",
+        phone_e164: "+442071838750",
+      });
+    });
+
     it("Should merge the previous traits with the new ones on the stores", async () => {
       const testStores = createStoresForTest();
       const stores = new StoresGroup(
@@ -173,6 +230,22 @@ describe("User interface", () => {
     });
   });
 });
+
+function newUser(phoneCountryCode?: string): UserImpl {
+  const testStores = createStoresForTest();
+  const stores = new StoresGroup(
+    testStores.local,
+    testStores.cookies,
+    testStores.memory
+  );
+  const sentryMock = {
+    setTag: jest.fn(),
+    setResponse: jest.fn(),
+    captureException: jest.fn(),
+    captureMessage: jest.fn(),
+  };
+  return new UserImpl(stores, sentryMock, null, phoneCountryCode);
+}
 
 async function testFetchUserDataFromStore(storeKey: keyof TestStores) {
   const testStores = createStoresForTest();
