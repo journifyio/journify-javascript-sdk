@@ -226,12 +226,10 @@ describe("OpenAIPixel plugin", () => {
     );
   });
 
-  it("should prefer a mapped custom_event_name over the destination event key", () => {
-    // Destination key is "add_to_wishlist" but the field mapper supplies an
-    // explicit custom_event_name ("wishlist_added") which must win.
+  it("should prefer a mapped custom_event_name for custom events", () => {
     testSendingEvent(
       TrackingEventType.TRACK_EVENT,
-      "add_to_wishlist",
+      "custom",
       "custom",
       "wishlist_added"
     );
@@ -466,7 +464,7 @@ describe("OpenAIPixel plugin", () => {
   it("[Custom event] should log the track event in testing mode", () => {
     testLoggingEvent(
       TrackingEventType.TRACK_EVENT,
-      "add_to_wishlist",
+      "custom",
       "custom",
       "custom_track"
     );
@@ -486,7 +484,122 @@ describe("OpenAIPixel plugin", () => {
   });
 
   it("[Custom event] should log the page event in testing mode", () => {
-    testLoggingEvent(TrackingEventType.PAGE_EVENT, "add_to_wishlist", "custom");
+    testLoggingEvent(TrackingEventType.PAGE_EVENT, "custom", "custom");
+  });
+
+  it("should no-op when a custom event does not include custom_event_name", () => {
+    const generatedPixelId = generatePixelId();
+    const logger = { log: jest.fn() };
+    const fieldsMapper = new FieldsMapperMock(() => ({ value: 1000 }));
+    const fieldMapperFactory = new FieldsMapperFactoryMock(() => fieldsMapper);
+    const browser = new BrowserMock();
+    const win = { ...window };
+    const oaiqFunc = jest.fn();
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [
+          {
+            enabled: true,
+            destination_event_key: "custom",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "custom_track",
+          },
+        ],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory,
+      browser,
+      additionalPIIKeys: [],
+      testingWriteKey: false,
+      logger,
+    });
+
+    oaiqFunc.mockClear();
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "custom_track",
+        properties: { value: 1000 },
+      })
+    );
+
+    expect(oaiqFunc).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      "OpenAI Pixel custom events require properties.custom_event_name when destination_event_key is custom. Must be 1-64 chars, alphanumeric with dashes/underscores, and not match standard events."
+    );
+  });
+
+  it("should no-op when custom_event_name is not a valid string", () => {
+    const generatedPixelId = generatePixelId();
+    const logger = { log: jest.fn() };
+    const fieldsMapper = new FieldsMapperMock(() => ({
+      value: 1000,
+      custom_event_name: 123,
+    }));
+    const fieldMapperFactory = new FieldsMapperFactoryMock(() => fieldsMapper);
+    const browser = new BrowserMock();
+    const win = { ...window };
+    const oaiqFunc = jest.fn();
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [
+          {
+            enabled: true,
+            destination_event_key: "custom",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "custom_track",
+          },
+        ],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory,
+      browser,
+      additionalPIIKeys: [],
+      testingWriteKey: false,
+      logger,
+    });
+
+    oaiqFunc.mockClear();
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "custom_track",
+        properties: { value: 1000, custom_event_name: 123 },
+      })
+    );
+
+    expect(oaiqFunc).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      "OpenAI Pixel custom events require properties.custom_event_name when destination_event_key is custom. Must be 1-64 chars, alphanumeric with dashes/underscores, and not match standard events."
+    );
   });
 
   it("should omit null event_id from event options", () => {
@@ -604,10 +717,16 @@ function testSendingEvent(
   expect(plugin).toBeDefined();
 
   const eventDeduplicationId = randomUUID();
+  const customEventName = sourceEventName || "custom_event_name";
   const ctx = new ContextFactoryImpl().newContext({
     type: eventType.toString() as JournifyEventType,
     event: sourceEventName,
-    properties: { value: 1000 },
+    properties: {
+      value: 1000,
+      ...(expectedType === "custom" && {
+        custom_event_name: customEventName,
+      }),
+    },
   });
 
   const mapEventFunc = jest.fn((eventParam: JournifyEvent) => {
@@ -616,7 +735,7 @@ function testSendingEvent(
       return {
         value: 1000,
         event_id: eventDeduplicationId,
-        custom_event_name: sourceEventName || "custom_event_name",
+        custom_event_name: customEventName,
       };
     }
 
@@ -641,7 +760,7 @@ function testSendingEvent(
         expect(arg1).toBe("custom");
         expect(arg2).toEqual({ value: 1000, type: "custom" });
         expect(arg3).toEqual({
-          custom_event_name: sourceEventName || "custom_event_name",
+          custom_event_name: customEventName,
           event_id: eventDeduplicationId,
         });
       }
@@ -788,12 +907,19 @@ function testLoggingEvent(
   });
   expect(plugin).toBeDefined();
   logger.log.mockClear();
+  const customEventName = sourceEventName || "custom_event_name";
+  const customProperties =
+    expectedType === "custom" ? { custom_event_name: customEventName } : {};
 
   switch (eventType) {
     case TrackingEventType.TRACK_EVENT:
       plugin.track(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.TRACK, event: sourceEventName },
+          {
+            type: JournifyEventType.TRACK,
+            event: sourceEventName,
+            properties: customProperties,
+          },
           randomUUID()
         )
       );
@@ -801,7 +927,7 @@ function testLoggingEvent(
     case TrackingEventType.PAGE_EVENT:
       plugin.page(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.PAGE },
+          { type: JournifyEventType.PAGE, properties: customProperties },
           randomUUID()
         )
       );
@@ -809,7 +935,7 @@ function testLoggingEvent(
     case TrackingEventType.IDENTIFY_EVENT:
       plugin.identify(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.IDENTIFY },
+          { type: JournifyEventType.IDENTIFY, properties: customProperties },
           randomUUID()
         )
       );
@@ -817,7 +943,7 @@ function testLoggingEvent(
     case TrackingEventType.GROUP_EVENT:
       plugin.group(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.GROUP },
+          { type: JournifyEventType.GROUP, properties: customProperties },
           randomUUID()
         )
       );
@@ -843,14 +969,11 @@ function testLoggingEvent(
       {},
     ]);
   } else {
-    // No field mappings are configured here, so custom_event_name falls back to
-    // the mapped destination event key.
-    const expectedOptions = { custom_event_name: openaiEventName };
     expect(logger.log).nthCalledWith(expectInitCall ? 2 : 1, logPrefix, [
       "measure",
       "custom",
       { type: "custom" },
-      expectedOptions,
+      { custom_event_name: customEventName },
     ]);
   }
 }

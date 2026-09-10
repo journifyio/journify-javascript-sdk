@@ -112,44 +112,45 @@ export class OpenAIPixel implements Plugin {
       return ctx;
     }
 
+    const mappedProperties = this.fieldsMapper.mapEvent(event);
+    const eventId = mappedProperties.event_id;
+    const customEventName = mappedProperties.custom_event_name;
+    const optOut = mappedProperties.opt_out;
+    delete mappedProperties.event_id;
+    delete mappedProperties.custom_event_name;
+    delete mappedProperties.opt_out;
+
     for (const mappedEvent of mappedEvents) {
-      const eventName = mappedEvent.pixelEventName || event.event || "custom";
-      const mappedProperties = this.fieldsMapper.mapEvent(event);
+      const eventName = mappedEvent.pixelEventName || event.event || "";
+      const eventProperties = { ...mappedProperties };
 
-      // Extract special fields
-      const eventId = mappedProperties.event_id;
-      const customEventName = mappedProperties.custom_event_name;
-      const optOut = mappedProperties.opt_out;
-      delete mappedProperties.event_id;
-      delete mappedProperties.custom_event_name;
-      delete mappedProperties.opt_out;
-
-      // Determine event type and name
       if (STANDARD_EVENTS.has(eventName)) {
-        // Standard event
-        mappedProperties.type = EVENT_TYPE_MAP[eventName];
-        this.callPixelHelper("measure", eventName, mappedProperties, {
+        eventProperties.type = EVENT_TYPE_MAP[eventName];
+        this.callPixelHelper("measure", eventName, eventProperties, {
           ...(eventId != null && { event_id: eventId }),
           ...(optOut === true && { opt_out: true }),
         });
-      } else {
-        // Custom event
-        mappedProperties.type = "custom";
-        const customName = customEventName || eventName;
-
-        if (!isValidCustomEventName(customName)) {
-          this.logger.log(
-            `OpenAI Pixel custom event name "${customName}" is invalid. Must be 1-64 chars, alphanumeric with dashes/underscores, and not match standard events.`
-          );
-          continue;
-        }
-
-        this.callPixelHelper("measure", "custom", mappedProperties, {
-          custom_event_name: customName,
-          ...(eventId != null && { event_id: eventId }),
-          ...(optOut === true && { opt_out: true }),
-        });
+        continue;
       }
+
+      if (eventName !== "custom") {
+        continue;
+      }
+
+      const customName = getValidCustomEventName(customEventName);
+      if (!customName) {
+        this.logger.log(
+          "OpenAI Pixel custom events require properties.custom_event_name when destination_event_key is custom. Must be 1-64 chars, alphanumeric with dashes/underscores, and not match standard events."
+        );
+        continue;
+      }
+
+      eventProperties.type = "custom";
+      this.callPixelHelper("measure", "custom", eventProperties, {
+        custom_event_name: customName,
+        ...(eventId != null && { event_id: eventId }),
+        ...(optOut === true && { opt_out: true }),
+      });
     }
 
     return ctx;
@@ -302,9 +303,20 @@ export class OpenAIPixel implements Plugin {
   }
 }
 
-function isValidCustomEventName(eventName: string): boolean {
-  return (
-    /^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?$/.test(eventName) &&
-    !STANDARD_EVENTS.has(eventName)
-  );
+function getValidCustomEventName(customEventName: unknown): string {
+  if (typeof customEventName !== "string") {
+    return "";
+  }
+
+  const trimmedCustomEventName = customEventName.trim();
+  if (
+    /^[A-Za-z0-9](?:[A-Za-z0-9_-]{0,62}[A-Za-z0-9])?$/.test(
+      trimmedCustomEventName
+    ) &&
+    !STANDARD_EVENTS.has(trimmedCustomEventName)
+  ) {
+    return trimmedCustomEventName;
+  }
+
+  return "";
 }
