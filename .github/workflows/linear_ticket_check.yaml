@@ -1,0 +1,9 @@
+name: Linear Ticket Check
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+
+jobs:
+  linear-ticket-check:
+    uses: journifyio/journify-automation/.github/workflows/linear-ticket-checker.yaml@main
