@@ -3,7 +3,6 @@ import { Traits, USER_TRAITS_PERSISTENCE_KEY } from "./traits";
 import { StoresGroup } from "../store/store";
 import { ExternalIds } from "./externalId";
 import {
-  formatPhoneE164,
   normalizePhone,
   parseNumberToString,
 } from "../lib/utils";
@@ -153,6 +152,7 @@ export class UserImpl implements User {
   }
 
   private async initTraits(): Promise<void> {
+    console.log("Initializing traits with phoneCountryCode:", this.phoneCountryCode);
     const traits = this.stores.get(USER_TRAITS_PERSISTENCE_KEY);
     await this.setTraits(traits as Traits);
   }
@@ -164,11 +164,12 @@ export class UserImpl implements User {
     };
 
     this.formatPhone();
-    this.formatPhoneE164(newTraits);
     this.stores.set(USER_TRAITS_PERSISTENCE_KEY, this.traits);
   }
 
+   
   private formatPhone() {
+    console.log("PhonecountryCode", this.phoneCountryCode);
     if (this.phoneCountryCode?.length > 0 && this.traits.phone?.length > 0) {
       this.traits.phone = normalizePhone(
         this.traits.phone,
@@ -176,29 +177,6 @@ export class UserImpl implements User {
       );
     }
   }
-
-private formatPhoneE164(newTraits: Traits) {
-  if (!newTraits || !Object.prototype.hasOwnProperty.call(newTraits, "phone")) {
-    return;
-  }
-
-  if (newTraits.phone_e164) {
-    return;
-  }
-
-  if (!newTraits.phone) {
-    delete this.traits.phone_e164;
-    return;
-  }
-
-  const phoneE164 = formatPhoneE164(newTraits.phone, this.phoneCountryCode);
-
-  if (phoneE164) {
-    this.traits.phone_e164 = phoneE164;
-  } else {
-    delete this.traits.phone_e164;
-  }
-}
 
   private async setUserId(userId: string) {
     this.userId = parseNumberToString(userId);
