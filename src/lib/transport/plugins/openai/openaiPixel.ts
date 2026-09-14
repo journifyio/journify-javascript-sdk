@@ -229,8 +229,8 @@ export class OpenAIPixel implements Plugin {
       pixelId: this.settings.pixel_id,
     };
 
-    // Add debug if configured
-    if (this.settings.debug === "true" || this.testingMode) {
+    // Add debug if configured for testing mode
+    if (this.testingMode) {
       payload.debug = true;
     }
 
