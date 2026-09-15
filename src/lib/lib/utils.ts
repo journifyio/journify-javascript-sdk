@@ -16,6 +16,15 @@ export function normalizePhone(
 
   // Remove all non-numeric characters
   let cleanedPhone = phoneNumber.replace(/[^0-9]/g, "");
+  const cleanedCountryCode = countryCode.replace(/[^0-9]/g, "");
+
+  if (cleanedPhone.startsWith("00")) {
+    cleanedPhone = cleanedPhone.substring(2);
+  }
+
+  if (cleanedPhone.startsWith(cleanedCountryCode.repeat(2))) {
+    cleanedPhone = cleanedPhone.substring(cleanedCountryCode.length);
+  }
 
   // Check if the number starts with a leading zero, remove it
   if (cleanedPhone.startsWith("0")) {
@@ -23,8 +32,12 @@ export function normalizePhone(
   }
 
   // Check if the cleaned phone number does not already include the country code
-  if (cleanedPhone.length <= 10 || !cleanedPhone.startsWith(countryCode)) {
-    cleanedPhone = `${countryCode}${cleanedPhone}`;
+  if (cleanedPhone.length <= 10 || !cleanedPhone.startsWith(cleanedCountryCode)) {
+    cleanedPhone = `${cleanedCountryCode}${cleanedPhone}`;
+  }
+
+  if (!cleanedPhone.startsWith("+")) {
+    cleanedPhone = `+${cleanedPhone}`;
   }
   
   // Return the number in E.164 format

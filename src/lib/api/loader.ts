@@ -106,12 +106,16 @@ export class Loader {
           this.cookiesStore
       );
     }
-    this.user = new UserImpl(
-        this.stores,
-        this.sentryWrapper,
-        cookieService,
-        this.sdkSettings?.options?.phoneCountryCode
-    );
+    if (!this.user) {
+      this.user = new UserImpl(
+          this.stores,
+          this.sentryWrapper,
+          cookieService,
+          this.sdkSettings?.options?.phoneCountryCode
+      );
+    } else if (this.user instanceof UserImpl) {
+      this.user.setPhoneCountryCode(this.sdkSettings?.options?.phoneCountryCode);
+    }
     await this.user.load();
 
     if (!this.sdk) {

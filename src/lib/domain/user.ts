@@ -33,7 +33,7 @@ export class UserImpl implements User {
   private userId: string;
   private externalIds: ExternalIds;
   private traits: Traits = {};
-  private readonly phoneCountryCode?: string;
+  private phoneCountryCode?: string;
   private readonly cookieService: HttpCookieService;
   private readonly sentry: SentryWrapper;
 
@@ -46,6 +46,10 @@ export class UserImpl implements User {
     this.stores = stores;
     this.sentry = sentry;
     this.cookieService = cookiesService;
+    this.phoneCountryCode = phoneCountryCode;
+  }
+
+  public setPhoneCountryCode(phoneCountryCode?: string): void {
     this.phoneCountryCode = phoneCountryCode;
   }
 
@@ -166,16 +170,16 @@ export class UserImpl implements User {
     this.formatPhone();
     this.stores.set(USER_TRAITS_PERSISTENCE_KEY, this.traits);
   }
-
+  
    
   private formatPhone() {
-    console.log("PhonecountryCode", this.phoneCountryCode);
     if (this.phoneCountryCode?.length > 0 && this.traits.phone?.length > 0) {
       this.traits.phone = normalizePhone(
         this.traits.phone,
         this.phoneCountryCode
       );
     }
+    console.log("Formatted phone number:", this.traits.phone);
   }
 
   private async setUserId(userId: string) {
