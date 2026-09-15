@@ -156,7 +156,6 @@ export class UserImpl implements User {
   }
 
   private async initTraits(): Promise<void> {
-    console.log("Initializing traits with phoneCountryCode:", this.phoneCountryCode);
     const traits = this.stores.get(USER_TRAITS_PERSISTENCE_KEY);
     await this.setTraits(traits as Traits);
   }
@@ -178,8 +177,8 @@ export class UserImpl implements User {
         this.traits.phone,
         this.phoneCountryCode
       );
+      this.traits.phone_e164 = `+${this.traits.phone}`;
     }
-    console.log("Formatted phone number:", this.traits.phone);
   }
 
   private async setUserId(userId: string) {

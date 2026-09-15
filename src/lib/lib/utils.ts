@@ -35,10 +35,6 @@ export function normalizePhone(
   if (cleanedPhone.length <= 10 || !cleanedPhone.startsWith(cleanedCountryCode)) {
     cleanedPhone = `${cleanedCountryCode}${cleanedPhone}`;
   }
-
-  if (!cleanedPhone.startsWith("+")) {
-    cleanedPhone = `+${cleanedPhone}`;
-  }
   
   // Return the number in E.164 format
   return cleanedPhone;
