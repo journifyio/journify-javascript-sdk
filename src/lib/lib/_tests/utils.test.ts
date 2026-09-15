@@ -43,11 +43,11 @@ describe("normalizePhone", () => {
   });
 
   it("should convert an international dialing prefix", () => {
-    expect(normalizePhone("00212612345678", "212")).toBe("+212612345678");
+    expect(normalizePhone("00212612345678", "212")).toBe("212612345678");
   });
 
   it("should avoid duplicating a plus-prefixed country code", () => {
-    expect(normalizePhone("+212212612345678", "+212")).toBe("+212612345678");
+    expect(normalizePhone("+212212612345678", "+212")).toBe("212612345678");
   });
 
   it("should format a number with dots as separators", () => {

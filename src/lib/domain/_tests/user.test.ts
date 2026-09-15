@@ -88,6 +88,7 @@ describe("User interface", () => {
       const expectedTraits = {
         ...newTraits,
         phone: "966551234567",
+        phone_e164: "+966551234567",
       };
       assertValueOnStores(testStores, "journifyio_user_traits", expectedTraits);
     });
