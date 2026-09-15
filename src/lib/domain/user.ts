@@ -33,7 +33,7 @@ export class UserImpl implements User {
   private userId: string;
   private externalIds: ExternalIds;
   private traits: Traits = {};
-  private phoneCountryCode?: string;
+  private readonly phoneCountryCode?: string;
   private readonly cookieService: HttpCookieService;
   private readonly sentry: SentryWrapper;
 
@@ -46,10 +46,6 @@ export class UserImpl implements User {
     this.stores = stores;
     this.sentry = sentry;
     this.cookieService = cookiesService;
-    this.phoneCountryCode = phoneCountryCode;
-  }
-
-  public setPhoneCountryCode(phoneCountryCode?: string): void {
     this.phoneCountryCode = phoneCountryCode;
   }
 
