@@ -88,7 +88,6 @@ describe("User interface", () => {
       const expectedTraits = {
         ...newTraits,
         phone: "966551234567",
-        phone_e164: "+966551234567",
       };
       assertValueOnStores(testStores, "journifyio_user_traits", expectedTraits);
     });
@@ -110,7 +109,6 @@ describe("User interface", () => {
 
       expect(user.getTraits()).toEqual({
         phone: "+14155552671",
-        phone_e164: "+14155552671",
       });
     });
 
@@ -144,7 +142,6 @@ describe("User interface", () => {
 
       expect(user.getTraits()).toEqual({
         phone: "+442071838750",
-        phone_e164: "+442071838750",
       });
     });
 
