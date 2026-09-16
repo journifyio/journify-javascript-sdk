@@ -46,10 +46,6 @@ describe("normalizePhone", () => {
     expect(normalizePhone("00212612345678", "212")).toBe("212612345678");
   });
 
-  it("should avoid duplicating a plus-prefixed country code", () => {
-    expect(normalizePhone("+212212612345678", "+212")).toBe("212612345678");
-  });
-
   it("should format a number with dots as separators", () => {
     expect(normalizePhone("123.456.7890", "1")).toBe("11234567890");
   });

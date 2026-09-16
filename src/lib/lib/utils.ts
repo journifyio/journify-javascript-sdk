@@ -8,7 +8,7 @@ export const parseNumberToString = (value: number | string): string => {
 export function normalizePhone(
   phoneNumber: string,
   countryCode: string,
-  addPlusSign: boolean = false,
+  addPlusSign = false,
 ): string {
   // handle empty and sha256 values
   if (!phoneNumber || phoneNumber?.length == 64) {
