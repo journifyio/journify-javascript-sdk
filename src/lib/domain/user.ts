@@ -171,9 +171,14 @@ export class UserImpl implements User {
     if (this.phoneCountryCode?.length > 0 && this.traits.phone?.length > 0) {
       this.traits.phone = normalizePhone(
         this.traits.phone,
-        this.phoneCountryCode
+        this.phoneCountryCode,
+        false
       );
-      this.traits.phone_e164 = `+${this.traits.phone}`;
+      this.traits.phone_e164 = normalizePhone(
+        this.traits.phone,
+        this.phoneCountryCode,
+        true
+      );
     }
   }
 
