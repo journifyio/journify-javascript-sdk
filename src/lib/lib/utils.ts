@@ -8,7 +8,7 @@ export const parseNumberToString = (value: number | string): string => {
 export function normalizePhone(
   phoneNumber: string,
   countryCode: string,
-  prefix?: boolean,
+  addPlusSign: boolean,
 ): string {
   // handle empty and sha256 values
   if (!phoneNumber || phoneNumber?.length == 64) {
@@ -23,10 +23,6 @@ export function normalizePhone(
     cleanedPhone = cleanedPhone.substring(2);
   }
 
-  if (cleanedPhone.startsWith(cleanedCountryCode.repeat(2))) {
-    cleanedPhone = cleanedPhone.substring(cleanedCountryCode.length);
-  }
-
   // Check if the number starts with a leading zero, remove it
   if (cleanedPhone.startsWith("0")) {
     cleanedPhone = cleanedPhone.substring(1); // Remove leading zero
@@ -38,7 +34,7 @@ export function normalizePhone(
   }
   
   // Return the number in E.164 format if requested
-  if (prefix) {
+  if (addPlusSign) {
     return `+${cleanedPhone}`;
   }
   return cleanedPhone;
