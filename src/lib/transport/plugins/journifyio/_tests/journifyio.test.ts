@@ -13,7 +13,7 @@ describe("Journifyio plugin", () => {
     jest.clearAllMocks();
   });
 
-  it("should send track event with plain PII to the tracking api", async () => {
+  it("should send track event with plain PII and phone_e164 to the tracking api", async () => {
     const trackEvent: JournifyEvent = {
       messageId: randomUUID(),
       type: JournifyEventType.TRACK,
@@ -30,6 +30,7 @@ describe("Journifyio plugin", () => {
       traits: {
         email: "user@example.com",
         phone: "+1234567890",
+        phone_e164: "+14155552671",
         firstname: "John",
         lastname: "Doe",
       },

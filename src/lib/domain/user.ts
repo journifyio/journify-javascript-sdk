@@ -2,7 +2,10 @@ import { v4 as uuid } from "uuid";
 import { Traits, USER_TRAITS_PERSISTENCE_KEY } from "./traits";
 import { StoresGroup } from "../store/store";
 import { ExternalIds } from "./externalId";
-import { normalizePhone, parseNumberToString } from "../lib/utils";
+import {
+  normalizePhone,
+  parseNumberToString,
+} from "../lib/utils";
 import { HttpCookieService } from "../lib/httpCookieService";
 import { SentryWrapper } from "../lib/sentry";
 
@@ -109,7 +112,7 @@ export class UserImpl implements User {
     this.anonymousId = null;
     this.userId = null;
     this.externalIds = null;
-    this.traits = null;
+    this.traits = {};
     this.stores.remove(ANONYMOUS_ID_PERSISTENCE_KEY);
     this.stores.remove(USER_ID_PERSISTENCE_KEY);
     this.stores.remove(EXTERNAL_IDs_PERSISTENCE_KEY);
@@ -162,12 +165,19 @@ export class UserImpl implements User {
     this.formatPhone();
     this.stores.set(USER_TRAITS_PERSISTENCE_KEY, this.traits);
   }
-
+  
+   
   private formatPhone() {
     if (this.phoneCountryCode?.length > 0 && this.traits.phone?.length > 0) {
       this.traits.phone = normalizePhone(
         this.traits.phone,
-        this.phoneCountryCode
+        this.phoneCountryCode,
+        false
+      );
+      this.traits.phone_e164 = normalizePhone(
+        this.traits.phone,
+        this.phoneCountryCode,
+        true
       );
     }
   }

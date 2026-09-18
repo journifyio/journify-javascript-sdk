@@ -31,6 +31,7 @@ export type Traits = object & {
   language?: string;
   name?: string;
   phone?: string;
+  phone_e164?: string;
   postal_code?: string;
   state?: string;
   state_code?: string;

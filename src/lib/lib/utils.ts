@@ -8,6 +8,7 @@ export const parseNumberToString = (value: number | string): string => {
 export function normalizePhone(
   phoneNumber: string,
   countryCode: string,
+  addPlusSign = false,
 ): string {
   // handle empty and sha256 values
   if (!phoneNumber || phoneNumber?.length == 64) {
@@ -16,6 +17,11 @@ export function normalizePhone(
 
   // Remove all non-numeric characters
   let cleanedPhone = phoneNumber.replace(/[^0-9]/g, "");
+  const cleanedCountryCode = countryCode.replace(/[^0-9]/g, "");
+
+  if (cleanedPhone.startsWith("00")) {
+    cleanedPhone = cleanedPhone.substring(2);
+  }
 
   // Check if the number starts with a leading zero, remove it
   if (cleanedPhone.startsWith("0")) {
@@ -23,13 +29,17 @@ export function normalizePhone(
   }
 
   // Check if the cleaned phone number does not already include the country code
-  if (cleanedPhone.length <= 10 || !cleanedPhone.startsWith(countryCode)) {
-    cleanedPhone = `${countryCode}${cleanedPhone}`;
+  if (cleanedPhone.length <= 10 || !cleanedPhone.startsWith(cleanedCountryCode)) {
+    cleanedPhone = `${cleanedCountryCode}${cleanedPhone}`;
   }
-
-  // Return the number in E.164 format
+  
+  // Return the number in E.164 format if requested
+  if (addPlusSign) {
+    return `+${cleanedPhone}`;
+  }
   return cleanedPhone;
 }
+
 
 // Cleans the traits object by keeping only non-empty strings and valid finite numbers
 export function cleanTraits(obj: unknown): Record<string, unknown> {
