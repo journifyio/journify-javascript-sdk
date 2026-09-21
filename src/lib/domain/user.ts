@@ -175,7 +175,7 @@ export class UserImpl implements User {
         false
       );
       this.traits.phone_e164 = normalizePhone(
-        this.traits.phone,
+        this.traits.phone_e164 ?? this.traits.phone,
         this.phoneCountryCode,
         true
       );
