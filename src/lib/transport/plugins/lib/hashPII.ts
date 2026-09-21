@@ -43,6 +43,7 @@ function isSHA256Hash(input: string): boolean {
 const PII_DEFAULT_KEYS = [
   "email",
   "phone",
+  "phone_e164",
   "name",
   "firstname",
   "lastname",
