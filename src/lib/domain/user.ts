@@ -165,18 +165,22 @@ export class UserImpl implements User {
     this.formatPhone();
     this.stores.set(USER_TRAITS_PERSISTENCE_KEY, this.traits);
   }
-  
-   
+
   private formatPhone() {
-    if (this.phoneCountryCode?.length > 0 && this.traits.phone?.length > 0) {
+    const phoneCountryCode = String(
+      this.traits.phone_country_code ?? this.phoneCountryCode ?? ""
+    );
+    delete this.traits.phone_country_code;
+
+    if (phoneCountryCode.length > 0 && this.traits.phone?.length > 0) {
       this.traits.phone = normalizePhone(
         this.traits.phone,
-        this.phoneCountryCode,
+        phoneCountryCode,
         false
       );
       this.traits.phone_e164 = normalizePhone(
         this.traits.phone_e164 ?? this.traits.phone,
-        this.phoneCountryCode,
+        phoneCountryCode,
         true
       );
     }
