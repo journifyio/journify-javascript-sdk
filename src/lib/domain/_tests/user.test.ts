@@ -143,11 +143,12 @@ describe("User interface", () => {
 
     it("Should normalize phone when phone_country_code is numeric at runtime", async () => {
       const user = newUser();
-
-      await user.identify("user_12345", {
+      const traits = {
         phone: "0612345679",
         phone_country_code: 212,
-      } as any);
+      } as unknown as Parameters<typeof user.identify>[1];
+
+      await user.identify("user_12345", traits);
 
       expect(user.getTraits()).toEqual({
         phone: "212612345679",
