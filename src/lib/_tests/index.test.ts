@@ -35,12 +35,32 @@ describe("write key settings", () => {
     await Journify.load({
       writeKey: "wk_3HRNlvW2C30FEcfkcCwyRqYJF1w",
       cdnHost: "https://cdn.example.com",
-      apiHost: "https://api.example.com",
     });
 
     expect(fetch).toHaveBeenCalledWith(
       "https://cdn.example.com/write_keys/wk_3HRNlvW2C30FEcfkcCwyRqYJF1w.json",
       {}
+    );
+  });
+
+  it("loads settings from the API with credentials for a custom api host", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers(),
+      json: jest.fn().mockResolvedValue({ syncs: [] }),
+    });
+
+    await Journify.load({
+      writeKey: "wk_3HRNlvW2C30FEcfkcCwyRqYJF1w",
+      cdnHost: "https://cdn.example.com",
+      apiHost: "https://api.example.com",
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.example.com/v1/px/wk_3HRNlvW2C30FEcfkcCwyRqYJF1w.json",
+      {
+        credentials: "include",
+      }
     );
   });
 
@@ -65,6 +85,26 @@ describe("write key settings", () => {
       {
         credentials: "include",
       }
+    );
+  });
+
+  it("passes x-jrnf-aid to the loader", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      status: 200,
+      headers: new Headers({
+        "x-jrnf-aid": "server-anonymous-id",
+      }),
+      json: jest.fn().mockResolvedValue({ syncs: [] }),
+    });
+
+    await Journify.load({
+      writeKey: "wk_3HRNlvW2C30FEcfkcCwyRqYJF1w",
+      apiHost: "https://api.example.com",
+    });
+
+    expect(mockLoaderLoad).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ anonymous_id: "server-anonymous-id" })
     );
   });
 

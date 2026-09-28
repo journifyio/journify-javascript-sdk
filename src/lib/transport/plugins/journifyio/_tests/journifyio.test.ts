@@ -175,7 +175,7 @@ async function testJournifyPlugin(
   }`;
   expect(fetchMock).toHaveBeenCalledWith(expectedEndpoint, {
     method: "POST",
-    ...(options.enableCookieKeeper && {credentials: "include"}),
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },

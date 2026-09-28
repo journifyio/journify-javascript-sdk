@@ -110,7 +110,8 @@ export class Loader {
         this.stores,
         this.sentryWrapper,
         cookieService,
-        this.sdkSettings?.options?.phoneCountryCode
+        this.sdkSettings?.options?.phoneCountryCode,
+        writeKeySettings.anonymous_id
     );
     await this.user.load();
 

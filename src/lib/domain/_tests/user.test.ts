@@ -196,6 +196,34 @@ describe("User interface", () => {
   });
 
   describe("getAnonymousId method", () => {
+    it("Should use server anonymous id before stored anonymous id", async () => {
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      const sentryMock = {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      };
+      testStores.local.set("journifyio_anonymous_id", "stored-anonymous-id");
+
+      const user = new UserImpl(
+        stores,
+        sentryMock,
+        null,
+        undefined,
+        "server-anonymous-id"
+      );
+      await user.load();
+
+      expect(user.getAnonymousId()).toBe("server-anonymous-id");
+      assertValueOnStores(testStores, "journifyio_anonymous_id", "server-anonymous-id");
+    });
+
     it("Should not return null for anonymous id", async () => {
       const { local, cookies, memory } = createStoresForTest();
       const stores = new StoresGroup(local, cookies, memory);

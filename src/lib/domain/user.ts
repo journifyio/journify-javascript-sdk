@@ -34,6 +34,7 @@ export class UserImpl implements User {
   private externalIds: ExternalIds;
   private traits: Traits = {};
   private readonly phoneCountryCode?: string;
+  private readonly serverAnonymousId?: string;
   private readonly cookieService: HttpCookieService;
   private readonly sentry: SentryWrapper;
 
@@ -41,12 +42,14 @@ export class UserImpl implements User {
     stores: StoresGroup,
     sentry: SentryWrapper,
     cookiesService?: HttpCookieService,
-    phoneCountryCode?: string
+    phoneCountryCode?: string,
+    serverAnonymousId?: string
   ) {
     this.stores = stores;
     this.sentry = sentry;
     this.cookieService = cookiesService;
     this.phoneCountryCode = phoneCountryCode;
+    this.serverAnonymousId = serverAnonymousId;
   }
 
   public async load() {
@@ -127,7 +130,7 @@ export class UserImpl implements User {
   }
 
   private async initAnonymousId() {
-    this.anonymousId = this.stores.get(ANONYMOUS_ID_PERSISTENCE_KEY);
+    this.anonymousId = this.serverAnonymousId || this.stores.get(ANONYMOUS_ID_PERSISTENCE_KEY);
     let newlyGenerated = false;
     if (!this.anonymousId) {
       this.anonymousId = uuid();

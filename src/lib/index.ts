@@ -61,12 +61,15 @@ async function fetchWriteKeySettings(
   const productionWriteKey = getProductionWriteKey(sdkSettings?.writeKey);
   const enableCookieKeeper =
     sdkSettings.options?.enableCookieKeeper ?? false;
+  const apiHost = sdkSettings.apiHost || DEFAULT_API_HOST;
+  const useTrackingAPISettings = enableCookieKeeper || isCustomAPIHost(apiHost);
   let settings = await fetchRemoteWriteKeySettings(
     productionWriteKey,
-    enableCookieKeeper
-      ? `${sdkSettings.apiHost || DEFAULT_API_HOST}/v1/px/${productionWriteKey}.json`
+    useTrackingAPISettings
+      ? `${apiHost}/v1/px/${productionWriteKey}.json`
       : `${sdkSettings.cdnHost || DEFAULT_CDN_HOST}/write_keys/${productionWriteKey}.json`,
-    enableCookieKeeper
+    enableCookieKeeper,
+    useTrackingAPISettings
   );
 
   if (!settings) {
@@ -81,21 +84,25 @@ async function fetchWriteKeySettings(
 async function fetchRemoteWriteKeySettings(
   writeKey: string,
   settingsUrl: string,
-  enableCookieKeeper: boolean
+  enableCookieKeeper: boolean,
+  includeCredentials: boolean
 ): Promise<WriteKeySettings> {
   const maxRetries = 2;
   const countryHeader = "X-Client-Country";
+  const externalIDsHeader = "X-Jrnf-Eids";
+  const anonymousIDHeader = "X-Jrnf-Aid";
 
   for (let i = 0; i < maxRetries; i++) {
     try {
       sentryWrapper.setTag("settingsURL", settingsUrl);
       const response = await fetch(settingsUrl, {
-        ...(enableCookieKeeper && {credentials: "include"}),
+        ...(includeCredentials && {credentials: "include"}),
       });
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
         settings.country_code = response.headers.get(countryHeader);
-        const cookieHeader = response.headers.get("x-jrnf-eids");
+        settings.anonymous_id = response.headers.get(anonymousIDHeader);
+        const cookieHeader = response.headers.get(externalIDsHeader);
         if (enableCookieKeeper && cookieHeader) {
           setMissingCookies(cookieHeader, new CookiesStore());
         }
@@ -128,6 +135,10 @@ async function fetchRemoteWriteKeySettings(
   }
 
   return null;
+}
+
+function isCustomAPIHost(apiHost: string): boolean {
+  return apiHost.replace(/\/+$/, "") !== DEFAULT_API_HOST;
 }
 
 function setMissingCookies(

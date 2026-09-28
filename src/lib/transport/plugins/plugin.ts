@@ -68,6 +68,7 @@ export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
+  anonymous_id?: string;
   boosters?: Booster[];
 }
 
