@@ -9,7 +9,7 @@ import {
 import { HttpCookieService } from "../lib/httpCookieService";
 import { SentryWrapper } from "../lib/sentry";
 
-const ANONYMOUS_ID_PERSISTENCE_KEY = "journifyio_anonymous_id";
+export const ANONYMOUS_ID_PERSISTENCE_KEY = "journifyio_anonymous_id";
 const USER_ID_PERSISTENCE_KEY = "journifyio_user_id";
 const EXTERNAL_IDs_PERSISTENCE_KEY = "journifyio_external_ids";
 
@@ -34,7 +34,6 @@ export class UserImpl implements User {
   private externalIds: ExternalIds;
   private traits: Traits = {};
   private readonly phoneCountryCode?: string;
-  private readonly serverAnonymousId?: string;
   private readonly cookieService: HttpCookieService;
   private readonly sentry: SentryWrapper;
 
@@ -42,14 +41,12 @@ export class UserImpl implements User {
     stores: StoresGroup,
     sentry: SentryWrapper,
     cookiesService?: HttpCookieService,
-    phoneCountryCode?: string,
-    serverAnonymousId?: string
+    phoneCountryCode?: string
   ) {
     this.stores = stores;
     this.sentry = sentry;
     this.cookieService = cookiesService;
     this.phoneCountryCode = phoneCountryCode;
-    this.serverAnonymousId = serverAnonymousId;
   }
 
   public async load() {
@@ -130,7 +127,7 @@ export class UserImpl implements User {
   }
 
   private async initAnonymousId() {
-    this.anonymousId = this.serverAnonymousId || this.stores.get(ANONYMOUS_ID_PERSISTENCE_KEY);
+    this.anonymousId = this.stores.get(ANONYMOUS_ID_PERSISTENCE_KEY);
     let newlyGenerated = false;
     if (!this.anonymousId) {
       this.anonymousId = uuid();

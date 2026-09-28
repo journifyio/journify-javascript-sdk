@@ -9,6 +9,7 @@ import {cleanTraits} from "./lib/utils";
 import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/consent";
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
 import {CookiesStore} from "./store/cookiesStore";
+import {ANONYMOUS_ID_PERSISTENCE_KEY} from "./domain/user";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
 const DEFAULT_API_HOST = "https://t.journify.io";
@@ -91,6 +92,7 @@ async function fetchRemoteWriteKeySettings(
   const countryHeader = "X-Client-Country";
   const externalIDsHeader = "X-Jrnf-Eids";
   const anonymousIDHeader = "X-Jrnf-Aid";
+  const cookieStore = new CookiesStore();
 
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -101,10 +103,15 @@ async function fetchRemoteWriteKeySettings(
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
         settings.country_code = response.headers.get(countryHeader);
-        settings.anonymous_id = response.headers.get(anonymousIDHeader);
-        const cookieHeader = response.headers.get(externalIDsHeader);
-        if (enableCookieKeeper && cookieHeader) {
-          setMissingCookies(cookieHeader, new CookiesStore());
+
+        const eidHeader = response.headers.get(externalIDsHeader);
+        if (enableCookieKeeper && eidHeader) {
+          setMissingExternalIDsCookies(eidHeader, cookieStore);
+        }
+
+        const aidHeader = response.headers.get(anonymousIDHeader);
+        if (aidHeader) {
+          cookieStore.set(ANONYMOUS_ID_PERSISTENCE_KEY, aidHeader);
         }
         return settings;
       } else if (500 <= response.status && response.status <= 599) {
@@ -145,7 +152,7 @@ function isCustomAPIHost(apiHost: string): boolean {
    }
 }
 
-function setMissingCookies(
+function setMissingExternalIDsCookies(
   cookieHeader: string,
   cookiesStore: CookiesStore
 ): void {

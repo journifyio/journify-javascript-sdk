@@ -88,7 +88,8 @@ describe("write key settings", () => {
     );
   });
 
-  it("passes x-jrnf-aid to the loader", async () => {
+  it("sets x-jrnf-aid as the anonymous id", async () => {
+    cookiesStore.set("journifyio_anonymous_id", "existing");
     global.fetch = jest.fn().mockResolvedValue({
       status: 200,
       headers: new Headers({
@@ -102,10 +103,7 @@ describe("write key settings", () => {
       apiHost: "https://api.example.com",
     });
 
-    expect(mockLoaderLoad).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ anonymous_id: "server-anonymous-id" })
-    );
+    expect(cookiesStore.get("journifyio_anonymous_id")).toBe("server-anonymous-id");
   });
 
   it("sets x-jrnf-eids values as cookies without overwriting existing values", async () => {
