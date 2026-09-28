@@ -42,6 +42,10 @@ describe("normalizePhone", () => {
     expect(normalizePhone("911234567890", "91")).toBe("911234567890");
   });
 
+  it("should convert an international dialing prefix", () => {
+    expect(normalizePhone("00212612345678", "212")).toBe("212612345678");
+  });
+
   it("should format a number with dots as separators", () => {
     expect(normalizePhone("123.456.7890", "1")).toBe("11234567890");
   });

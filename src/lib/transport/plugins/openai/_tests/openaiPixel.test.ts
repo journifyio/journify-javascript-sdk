@@ -64,8 +64,69 @@ describe("OpenAIPixel plugin", () => {
     expect(injectScriptFunc).toHaveBeenCalledWith(OPENAI_SCRIPT_URL, {
       async: true,
     });
-    expect(oaiqFunc).toHaveBeenCalledTimes(1);
+    expect(oaiqFunc).toHaveBeenCalledTimes(2);
     expect(oaiqFunc).toHaveBeenCalledWith("init", { pixelId: generatedPixelId });
+  });
+
+  it("should include first-party user data in init when traits are available", () => {
+    const browser = new BrowserMock();
+    const oaiqFunc = jest.fn();
+    const win = { ...window };
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const generatedPixelId = generatePixelId();
+    const fieldMapper = new FieldsMapperMock(() => ({}));
+    const user = new UserMock(
+      randomUUID(),
+      randomUUID(),
+      {
+        hashed_email:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country_code: "US",
+        city: "San Francisco",
+        postal_code: "94107",
+      },
+      {}
+    );
+
+    new OpenAIPixel({
+      sync: {
+        id: "sync_id",
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [],
+      },
+      user,
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
+      browser,
+      testingWriteKey: false,
+      logger: console,
+      additionalPIIKeys: [],
+    });
+
+    expect(oaiqFunc).toHaveBeenCalledWith("init", {
+      pixelId: generatedPixelId,
+      user: {
+        email_sha256:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country: "US",
+        city: "San Francisco",
+        postal_code: "94107",
+      },
+    });
   });
 
   it("should not re-inject script if oaiq already exists on window", () => {
@@ -143,7 +204,7 @@ describe("OpenAIPixel plugin", () => {
     expect(logger.log).nthCalledWith(
       2,
       "Will call window.oaiq with the following params in order:",
-      ["init", { pixelId: generatedPixelId }]
+      ["init", { pixelId: generatedPixelId, debug: true }]
     );
   });
 
@@ -162,6 +223,15 @@ describe("OpenAIPixel plugin", () => {
       "custom",
       "custom",
       "custom_track"
+    );
+  });
+
+  it("should prefer a mapped custom_event_name for custom events", () => {
+    testSendingEvent(
+      TrackingEventType.TRACK_EVENT,
+      "custom",
+      "custom",
+      "wishlist_added"
     );
   });
 
@@ -239,7 +309,7 @@ describe("OpenAIPixel plugin", () => {
 
     const plugin = new OpenAIPixel(dependencies);
     expect(plugin).toBeDefined();
-    expect(oaiqFunc).toHaveBeenCalledTimes(1); // init only
+    expect(oaiqFunc).toHaveBeenCalledTimes(2); // consent and init
 
     oaiqFunc.mockClear();
     const ctx = new ContextFactoryImpl().newContext({
@@ -251,7 +321,7 @@ describe("OpenAIPixel plugin", () => {
     expect(oaiqFunc).toHaveBeenCalledTimes(0);
   });
 
-  it("should identify the user and call init on identify", () => {
+  it("should not re-init on identify when there is no user data", () => {
     const generatedPixelId = generatePixelId();
     const oaiqFunc = jest.fn();
 
@@ -292,7 +362,7 @@ describe("OpenAIPixel plugin", () => {
     };
 
     const plugin = new OpenAIPixel(dependencies);
-    expect(oaiqFunc).toHaveBeenCalledTimes(1); // init on construction
+    expect(oaiqFunc).toHaveBeenCalledTimes(2); // consent and init on construction
 
     oaiqFunc.mockClear();
     plugin.identify(
@@ -301,9 +371,76 @@ describe("OpenAIPixel plugin", () => {
         randomUUID()
       )
     );
-    // identify calls initPixel again (re-init with updated user data)
+    expect(oaiqFunc).toHaveBeenCalledTimes(0);
+  });
+
+  it("should re-init with first-party user data on identify", () => {
+    const generatedPixelId = generatePixelId();
+    const oaiqFunc = jest.fn();
+
+    const user = new UserMock(
+      randomUUID(),
+      randomUUID(),
+      {
+        email_sha256:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country: "US",
+        city: "San Francisco",
+        postal_code: "94107",
+      },
+      {}
+    );
+
+    const browser = new BrowserMock();
+    const win = { ...window };
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const fieldMapper = new FieldsMapperMock(() => ({}));
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [],
+      },
+      user,
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory: new FieldsMapperFactoryMock(() => fieldMapper),
+      browser,
+      testingWriteKey: false,
+      logger: console,
+      additionalPIIKeys: [],
+    });
+
+    oaiqFunc.mockClear();
+    plugin.identify(
+      new ContextFactoryImpl().newContext(
+        { type: JournifyEventType.IDENTIFY },
+        randomUUID()
+      )
+    );
+
     expect(oaiqFunc).toHaveBeenCalledWith("init", {
       pixelId: generatedPixelId,
+      user: {
+        email_sha256:
+          "b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514",
+        external_id_sha256:
+          "73d83a078369bb4f0971b317aa7797a91cf5c0df1b62161c2e47d75c33ab5b6e",
+        country: "US",
+        city: "San Francisco",
+        postal_code: "94107",
+      },
     });
   });
 
@@ -333,12 +470,136 @@ describe("OpenAIPixel plugin", () => {
     );
   });
 
+  it("[Custom event] should include custom_event_name when destination key is 'custom' and source event exists", () => {
+    testLoggingEvent(
+      TrackingEventType.TRACK_EVENT,
+      "custom",
+      "custom",
+      "custom_track"
+    );
+  });
+
   it("[Standard event] should log the page event in testing mode", () => {
     testLoggingEvent(TrackingEventType.PAGE_EVENT, "page_viewed", "contents");
   });
 
   it("[Custom event] should log the page event in testing mode", () => {
     testLoggingEvent(TrackingEventType.PAGE_EVENT, "custom", "custom");
+  });
+
+  it("should no-op when a custom event does not include custom_event_name", () => {
+    const generatedPixelId = generatePixelId();
+    const logger = { log: jest.fn() };
+    const fieldsMapper = new FieldsMapperMock(() => ({ value: 1000 }));
+    const fieldMapperFactory = new FieldsMapperFactoryMock(() => fieldsMapper);
+    const browser = new BrowserMock();
+    const win = { ...window };
+    const oaiqFunc = jest.fn();
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [
+          {
+            enabled: true,
+            destination_event_key: "custom",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "custom_track",
+          },
+        ],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory,
+      browser,
+      additionalPIIKeys: [],
+      testingWriteKey: false,
+      logger,
+    });
+
+    oaiqFunc.mockClear();
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "custom_track",
+        properties: { value: 1000 },
+      })
+    );
+
+    expect(oaiqFunc).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      "OpenAI Pixel custom events require properties.custom_event_name when destination_event_key is custom. Must be 1-64 chars, alphanumeric with dashes/underscores, and not match standard events."
+    );
+  });
+
+  it("should no-op when custom_event_name is not a valid string", () => {
+    const generatedPixelId = generatePixelId();
+    const logger = { log: jest.fn() };
+    const fieldsMapper = new FieldsMapperMock(() => ({
+      value: 1000,
+      custom_event_name: 123,
+    }));
+    const fieldMapperFactory = new FieldsMapperFactoryMock(() => fieldsMapper);
+    const browser = new BrowserMock();
+    const win = { ...window };
+    const oaiqFunc = jest.fn();
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [
+          {
+            enabled: true,
+            destination_event_key: "custom",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "custom_track",
+          },
+        ],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory,
+      browser,
+      additionalPIIKeys: [],
+      testingWriteKey: false,
+      logger,
+    });
+
+    oaiqFunc.mockClear();
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "custom_track",
+        properties: { value: 1000, custom_event_name: 123 },
+      })
+    );
+
+    expect(oaiqFunc).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      "OpenAI Pixel custom events require properties.custom_event_name when destination_event_key is custom. Must be 1-64 chars, alphanumeric with dashes/underscores, and not match standard events."
+    );
   });
 
   it("should omit null event_id from event options", () => {
@@ -456,10 +717,16 @@ function testSendingEvent(
   expect(plugin).toBeDefined();
 
   const eventDeduplicationId = randomUUID();
+  const customEventName = sourceEventName || "custom_event_name";
   const ctx = new ContextFactoryImpl().newContext({
     type: eventType.toString() as JournifyEventType,
     event: sourceEventName,
-    properties: { value: 1000 },
+    properties: {
+      value: 1000,
+      ...(expectedType === "custom" && {
+        custom_event_name: customEventName,
+      }),
+    },
   });
 
   const mapEventFunc = jest.fn((eventParam: JournifyEvent) => {
@@ -468,7 +735,7 @@ function testSendingEvent(
       return {
         value: 1000,
         event_id: eventDeduplicationId,
-        custom_event_name: sourceEventName || "custom_event_name",
+        custom_event_name: customEventName,
       };
     }
 
@@ -493,7 +760,7 @@ function testSendingEvent(
         expect(arg1).toBe("custom");
         expect(arg2).toEqual({ value: 1000, type: "custom" });
         expect(arg3).toEqual({
-          custom_event_name: sourceEventName || "custom_event_name",
+          custom_event_name: customEventName,
           event_id: eventDeduplicationId,
         });
       }
@@ -572,7 +839,7 @@ function testPageFiltering(matchFilter: boolean) {
 
   const plugin = new OpenAIPixel(dependencies);
   expect(plugin).toBeDefined();
-  expect(oaiqFunc).toHaveBeenCalledTimes(1); // init only
+  expect(oaiqFunc).toHaveBeenCalledTimes(2); // consent and init
 
   const ctx = new ContextFactoryImpl().newContext({
     type: JournifyEventType.PAGE,
@@ -640,12 +907,19 @@ function testLoggingEvent(
   });
   expect(plugin).toBeDefined();
   logger.log.mockClear();
+  const customEventName = sourceEventName || "custom_event_name";
+  const customProperties =
+    expectedType === "custom" ? { custom_event_name: customEventName } : {};
 
   switch (eventType) {
     case TrackingEventType.TRACK_EVENT:
       plugin.track(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.TRACK, event: sourceEventName },
+          {
+            type: JournifyEventType.TRACK,
+            event: sourceEventName,
+            properties: customProperties,
+          },
           randomUUID()
         )
       );
@@ -653,7 +927,7 @@ function testLoggingEvent(
     case TrackingEventType.PAGE_EVENT:
       plugin.page(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.PAGE },
+          { type: JournifyEventType.PAGE, properties: customProperties },
           randomUUID()
         )
       );
@@ -661,7 +935,7 @@ function testLoggingEvent(
     case TrackingEventType.IDENTIFY_EVENT:
       plugin.identify(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.IDENTIFY },
+          { type: JournifyEventType.IDENTIFY, properties: customProperties },
           randomUUID()
         )
       );
@@ -669,7 +943,7 @@ function testLoggingEvent(
     case TrackingEventType.GROUP_EVENT:
       plugin.group(
         new ContextFactoryImpl().newContext(
-          { type: JournifyEventType.GROUP },
+          { type: JournifyEventType.GROUP, properties: customProperties },
           randomUUID()
         )
       );
@@ -683,7 +957,7 @@ function testLoggingEvent(
   if (expectInitCall) {
     expect(logger.log).nthCalledWith(1, logPrefix, [
       "init",
-      { pixelId: generatedPixelId },
+      { pixelId: generatedPixelId, debug: true },
     ]);
   }
 
@@ -699,7 +973,7 @@ function testLoggingEvent(
       "measure",
       "custom",
       { type: "custom" },
-      { custom_event_name: sourceEventName || "custom" },
+      { custom_event_name: customEventName },
     ]);
   }
 }

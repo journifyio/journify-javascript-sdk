@@ -37,7 +37,7 @@ export interface Logger {
 
 export type PluginSettings = SdkSettings | Sync;
 
-type SdkOptions = {
+export type SdkOptions = {
   enableHashing?: boolean | false;
   enableCookieKeeper?: boolean | false;
   additionalPIIKeys?: string[];
@@ -59,10 +59,16 @@ export interface SdkSettings {
   options?: SdkOptions;
 }
 
+export interface Booster {
+  name: string;
+  options?: Record<string, unknown>;
+}
+
 export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
+  boosters?: Booster[];
 }
 
 export interface Sync {

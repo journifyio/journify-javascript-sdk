@@ -21,7 +21,7 @@ import { SESSION_ID_PERSISTENCE_KEY, Store, StoresGroup } from "../store/store";
 import { BrowserStore } from "../store/browserStore";
 import { FacebookPixel } from "../transport/plugins/facebook/facebookPixel";
 import { SnapchatPixel } from "../transport/plugins/snapchat/snapchatPixel";
-import { BrowserImpl, UTM_KEYS } from "../transport/browser";
+import { BrowserImpl, CAMPAIGN_KEYS } from "../transport/browser";
 import { GA4Pixel } from "../transport/plugins/ga4_pixel/ga4Pixel";
 import { TikTokPixel } from "../transport/plugins/tiktok/tiktokPixel";
 import { CleverTapPlugin } from "../transport/plugins/cleverTap/cleverTapPlugin";
@@ -42,6 +42,7 @@ import {FieldsMapperFactoryImpl} from "../transport/plugins/lib/fieldMapping";
 import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
 import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
+import {applyBoosters} from "./boosters";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -80,7 +81,11 @@ export class Loader {
       sdkConfig: SdkSettings,
       writeKeySettings: WriteKeySettings
   ): Promise<Sdk> {
-    this.sdkSettings = sdkConfig;
+    // Dashboard boosters override local enableHashing / autoCapturePII when present.
+    this.sdkSettings = {
+      ...sdkConfig,
+      options: applyBoosters(sdkConfig.options, writeKeySettings.boosters),
+    };
     this.writeKeySettings = writeKeySettings;
     this.startNewSession();
 
@@ -214,13 +219,13 @@ export class Loader {
         const newSessionId = new Date().getTime();
         this.stores.set(SESSION_ID_PERSISTENCE_KEY, newSessionId);
 
-        this.resetUtmCampaign();
+        this.resetCampaignParams();
       }, sessionDurationMin * 60 * 1000);
     }
   }
 
-  private resetUtmCampaign() {
-    UTM_KEYS.forEach((key) => this.stores.remove(key[0]));
+  private resetCampaignParams() {
+    CAMPAIGN_KEYS.forEach((key) => this.stores.remove(key[0]));
   }
 
   public updateConsent(categoryPreferences: ConsentCategoryPreferences): void {

@@ -95,7 +95,7 @@ export class BrowserImpl implements Browser {
     const sParams = new URLSearchParams(queryString);
     let campaignFound = false;
 
-    UTM_KEYS.forEach((k) => {
+    CAMPAIGN_KEYS.forEach((k) => {
       const paramName = k[0];
       const param = this.getUtmParam(paramName, sParams, store);
       if (param) {
@@ -131,11 +131,18 @@ export class BrowserImpl implements Browser {
   }
 }
 
-export const UTM_KEYS: [string, keyof UtmCampaign][] = [
+export const CAMPAIGN_KEYS: [string, keyof UtmCampaign][] = [
   ["utm_id", "id"],
   ["utm_campaign", "name"],
   ["utm_source", "source"],
   ["utm_medium", "medium"],
   ["utm_term", "term"],
   ["utm_content", "content"],
+
+  ["jrnf_source", "sourceId"],
+  ["jrnf_campaign_id", "campaignId"],
+  ["jrnf_ad_group_id", "adGroupId"],
+  ["jrnf_ad_id", "adId"],
+  ["jrnf_creative_id", "creativeId"],
+  ["jrnf_placement", "placement"],
 ];
