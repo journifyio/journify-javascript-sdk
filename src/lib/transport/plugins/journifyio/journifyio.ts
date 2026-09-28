@@ -27,8 +27,7 @@ export class JournifyioPlugin implements Plugin {
   public group = this.post;
   private async post(ctx: Context): Promise<Context> {
     const apiHost = this.sdkSettings.apiHost ?? DEFAULT_API_HOST;
-    const includeCredentials =
-      this.sdkSettings.options?.enableCookieKeeper || isCustomAPIHost(apiHost);
+    const isCustomDomain = isCustomAPIHost(apiHost);
     const event = ctx.getEvent();
 
     if (this.sdkSettings?.options?.enableHashing === true) {
@@ -66,7 +65,7 @@ export class JournifyioPlugin implements Plugin {
     this.sentry.setTag("writeKey", requestBody.writeKey);
     const response = await fetch(eventUrl, {
       method: "POST",
-      ...(includeCredentials && {
+      ...(isCustomDomain && {
         credentials: "include",
       }),
       headers: {
@@ -96,5 +95,9 @@ export class JournifyioPlugin implements Plugin {
 }
 
 function isCustomAPIHost(apiHost: string): boolean {
-  return apiHost.replace(/\/+$/, "") !== DEFAULT_API_HOST;
+   try {
+     return new URL(apiHost).origin !== new URL(DEFAULT_API_HOST).origin;
+   } catch {
+     return false;
+   }
 }
