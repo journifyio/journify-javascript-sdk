@@ -62,7 +62,7 @@ async function fetchWriteKeySettings(
   const enableCookieKeeper =
     sdkSettings.options?.enableCookieKeeper ?? false;
   const apiHost = sdkSettings.apiHost || DEFAULT_API_HOST;
-  const useTrackingAPISettings = enableCookieKeeper || !apiHost.includes(DEFAULT_API_HOST);
+  const useTrackingAPISettings = enableCookieKeeper || isCustomAPIHost(apiHost);
   let settings = await fetchRemoteWriteKeySettings(
     productionWriteKey,
     useTrackingAPISettings
@@ -136,7 +136,14 @@ async function fetchRemoteWriteKeySettings(
 
   return null;
 }
- 
+
+function isCustomAPIHost(apiHost: string): boolean {
+   try {
+     return new URL(apiHost).origin !== new URL(DEFAULT_API_HOST).origin;
+   } catch {
+     return false;
+   }
+}
 
 function setMissingCookies(
   cookieHeader: string,
