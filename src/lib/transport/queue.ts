@@ -122,7 +122,7 @@ export class EventQueueImpl extends EmitterImpl implements EventQueue {
 
   private async attempt(plugin: Plugin, ctxToDeliver: Context) {
     try {
-      const deliveredCtx = await this.runPlugin(ctxToDeliver, plugin);
+      const deliveredCtx = (await this.runPlugin(ctxToDeliver, plugin)) ?? ctxToDeliver;
       this.emit(FLUSH_EVENT_NAME, deliveredCtx, true);
     } catch (err: unknown) {
       this.handleFlushError(ctxToDeliver, plugin, err);
