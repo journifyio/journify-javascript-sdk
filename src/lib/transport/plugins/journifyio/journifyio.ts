@@ -27,6 +27,7 @@ export class JournifyioPlugin implements Plugin {
   public group = this.post;
   private async post(ctx: Context): Promise<Context> {
     const apiHost = this.sdkSettings.apiHost ?? DEFAULT_API_HOST;
+    const isCustomDomain = isCustomAPIHost(apiHost);
     const event = ctx.getEvent();
 
     if (this.sdkSettings?.options?.enableHashing === true) {
@@ -44,7 +45,9 @@ export class JournifyioPlugin implements Plugin {
       delete event.traits.hashed_phone;
     }
 
-    const eventUrl = `${apiHost}/v1/${event.type?.charAt(0)}`;
+    const eventUrl = `${apiHost}/v1/${event.type?.charAt(0)}${
+      this.sdkSettings.options?.enableCookieKeeper ? "?ck=1" : ""
+    }`;
     const requestBody = {
       ...event,
       writeKey: this.sdkSettings.writeKey,
@@ -62,6 +65,9 @@ export class JournifyioPlugin implements Plugin {
     this.sentry.setTag("writeKey", requestBody.writeKey);
     const response = await fetch(eventUrl, {
       method: "POST",
+      ...(isCustomDomain && {
+        credentials: "include",
+      }),
       headers: {
         "Content-Type": "application/json",
       },
@@ -86,4 +92,12 @@ export class JournifyioPlugin implements Plugin {
 
     return ctx;
   }
+}
+
+function isCustomAPIHost(apiHost: string): boolean {
+   try {
+     return new URL(apiHost).origin !== new URL(DEFAULT_API_HOST).origin;
+   } catch {
+     return false;
+   }
 }

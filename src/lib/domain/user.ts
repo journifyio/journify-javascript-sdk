@@ -9,7 +9,7 @@ import {
 import { HttpCookieService } from "../lib/httpCookieService";
 import { SentryWrapper } from "../lib/sentry";
 
-const ANONYMOUS_ID_PERSISTENCE_KEY = "journifyio_anonymous_id";
+export const ANONYMOUS_ID_PERSISTENCE_KEY = "journifyio_anonymous_id";
 const USER_ID_PERSISTENCE_KEY = "journifyio_user_id";
 const EXTERNAL_IDs_PERSISTENCE_KEY = "journifyio_external_ids";
 

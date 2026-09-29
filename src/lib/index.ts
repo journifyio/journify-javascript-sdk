@@ -8,8 +8,26 @@ import {SentryWrapperImpl} from "./lib/sentry";
 import {cleanTraits} from "./lib/utils";
 import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/consent";
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
+import {CookiesStore} from "./store/cookiesStore";
+import {ANONYMOUS_ID_PERSISTENCE_KEY} from "./domain/user";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
+const DEFAULT_API_HOST = "https://t.journify.io";
+const EXTERNAL_ID_COOKIE_NAMES: Record<string, string> = {
+  facebook_click_id: "_fbc",
+  pinterest_click_id: "_epik",
+  tiktok_click_id: "ttclid",
+  snapchat_click_id: "_scclid",
+  facebook_browser_id: "_fbp",
+  snapchat_scid: "_scid",
+  tiktok_ttp: "_ttp",
+  microsoft_click_id: "_uetmsclkid",
+  linkedin_click_id: "li_fat_id",
+  openai_click_id: "__oppref",
+  google_ga: "_ga",
+  google_click_id: "_gcl_aw",
+  twitter_click_id: "_twclid"
+};
 const INVALID_WRITE_KEY_MESSAGE = "[Journify] Invalid write key. Event was not sent.";
 
 const callsBeforeLoad = [];
@@ -42,9 +60,17 @@ async function fetchWriteKeySettings(
   sdkSettings: SdkSettings
 ): Promise<WriteKeySettings> {
   const productionWriteKey = getProductionWriteKey(sdkSettings?.writeKey);
+  const enableCookieKeeper =
+    sdkSettings.options?.enableCookieKeeper ?? false;
+  const apiHost = sdkSettings.apiHost || DEFAULT_API_HOST;
+  const isCustomDomain = isCustomAPIHost(apiHost);
   let settings = await fetchRemoteWriteKeySettings(
     productionWriteKey,
-    sdkSettings.cdnHost || DEFAULT_CDN_HOST
+    isCustomDomain
+      ? `${apiHost}/v1/px/${productionWriteKey}.json`
+      : `${sdkSettings.cdnHost || DEFAULT_CDN_HOST}/write_keys/${productionWriteKey}.json`,
+    enableCookieKeeper,
+    isCustomDomain
   );
 
   if (!settings) {
@@ -58,19 +84,35 @@ async function fetchWriteKeySettings(
 
 async function fetchRemoteWriteKeySettings(
   writeKey: string,
-  cdnHost: string
+  settingsUrl: string,
+  enableCookieKeeper: boolean,
+  includeCredentials: boolean
 ): Promise<WriteKeySettings> {
   const maxRetries = 2;
-  const settingsUrl = `${cdnHost}/write_keys/${writeKey}.json`;
   const countryHeader = "X-Client-Country";
+  const externalIDsHeader = "X-Jrnf-Eids";
+  const anonymousIDHeader = "X-Jrnf-Aid";
+  const cookieStore = new CookiesStore();
 
   for (let i = 0; i < maxRetries; i++) {
     try {
       sentryWrapper.setTag("settingsURL", settingsUrl);
-      const response = await fetch(settingsUrl);
+      const response = await fetch(settingsUrl, {
+        ...(includeCredentials && {credentials: "include"}),
+      });
       if (200 <= response.status && response.status <= 299) {
         const settings = await response.json();
         settings.country_code = response.headers.get(countryHeader);
+
+        const eidHeader = response.headers.get(externalIDsHeader);
+        if (enableCookieKeeper && eidHeader) {
+          setMissingExternalIDsCookies(eidHeader, cookieStore);
+        }
+
+        const aidHeader = response.headers.get(anonymousIDHeader);
+        if (aidHeader) {
+          cookieStore.set(ANONYMOUS_ID_PERSISTENCE_KEY, aidHeader);
+        }
         return settings;
       } else if (500 <= response.status && response.status <= 599) {
         if (i < maxRetries - 1) {
@@ -100,6 +142,27 @@ async function fetchRemoteWriteKeySettings(
   }
 
   return null;
+}
+
+function isCustomAPIHost(apiHost: string): boolean {
+   try {
+     return new URL(apiHost).origin !== new URL(DEFAULT_API_HOST).origin;
+   } catch {
+     return false;
+   }
+}
+
+function setMissingExternalIDsCookies(
+  cookieHeader: string,
+  cookiesStore: CookiesStore
+): void {
+  const cookies = JSON.parse(decodeURIComponent(cookieHeader));
+  Object.entries(cookies).forEach(([key, value]: [string, string]) => {
+    const cookieName = EXTERNAL_ID_COOKIE_NAMES[key];
+    if (cookieName && cookiesStore.get(cookieName) === null) {
+      cookiesStore.set(cookieName, value);
+    }
+  });
 }
 
 function sleep(ms: number) {
