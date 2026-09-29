@@ -58,7 +58,7 @@ export class JournifyioPlugin implements Plugin {
       console.warn(
         `Journify: Your event is ignored because the request body exceeds ${MAX_REQUEST_BODY_SIZE_KB}Kb limit.`
       );
-      return;
+      return ctx;
     }
 
     this.sentry.setTag("eventUrl", eventUrl);
