@@ -121,6 +121,41 @@ describe("User interface", () => {
       expect(user.getTraits()).toEqual({ phone: "0551234567" });
     });
 
+    it("Should normalize phone with a phone_country_code trait", async () => {
+      const user = newUser();
+
+      await user.identify("user_12345", {
+        email: "jane.doe@example.com",
+        phone: "0612345679",
+        phone_country_code: "212",
+        firstname: "Jane",
+        lastname: "Doe",
+      });
+
+      expect(user.getTraits()).toEqual({
+        email: "jane.doe@example.com",
+        phone: "212612345679",
+        phone_e164: "+212612345679",
+        firstname: "Jane",
+        lastname: "Doe",
+      });
+    });
+
+    it("Should normalize phone when phone_country_code is numeric at runtime", async () => {
+      const user = newUser();
+      const traits = {
+        phone: "0612345679",
+        phone_country_code: 212,
+      } as unknown as Parameters<typeof user.identify>[1];
+
+      await user.identify("user_12345", traits);
+
+      expect(user.getTraits()).toEqual({
+        phone: "212612345679",
+        phone_e164: "+212612345679",
+      });
+    });
+
     it("Should preserve an explicitly supplied phone_e164", async () => {
       const user = newUser();
 

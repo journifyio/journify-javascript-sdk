@@ -32,7 +32,7 @@ export function normalizePhone(
   if (cleanedPhone.length <= 10 || !cleanedPhone.startsWith(cleanedCountryCode)) {
     cleanedPhone = `${cleanedCountryCode}${cleanedPhone}`;
   }
-  
+
   // Return the number in E.164 format if requested
   if (addPlusSign) {
     return `+${cleanedPhone}`;
