@@ -660,6 +660,185 @@ describe("OpenAIPixel plugin", () => {
       {}
     );
   });
+
+  it("should send amount fields as numeric minor units", () => {
+    const generatedPixelId = generatePixelId();
+    const fieldsMapper = new FieldsMapperMock(() => ({}));
+    const fieldMapperFactory = new FieldsMapperFactoryMock(() => fieldsMapper);
+    const browser = new BrowserMock();
+    const win = { ...window };
+    const oaiqFunc = jest.fn();
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [
+          {
+            enabled: true,
+            destination_event_key: "order_created",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "purchase",
+          },
+        ],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory,
+      browser,
+      additionalPIIKeys: [],
+      testingWriteKey: false,
+      logger: console,
+    });
+
+    fieldsMapper.setMapEventFunc(() => ({
+      amount: 19.99,
+      currency: "USD",
+      contents: [
+        {
+          id: "sku_1",
+          amount: "7.875",
+          currency: "KWD",
+        },
+        {
+          id: "sku_2",
+          amount: 7.875,
+        },
+      ],
+    }));
+    oaiqFunc.mockClear();
+
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "purchase",
+        properties: {
+          value: 19.99,
+          currency: "USD",
+        },
+      })
+    );
+
+    expect(oaiqFunc).toHaveBeenCalledWith(
+      "measure",
+      "order_created",
+      {
+        amount: 1999,
+        currency: "USD",
+        contents: [
+          {
+            id: "sku_1",
+            amount: 7875,
+            currency: "KWD",
+          },
+          {
+            id: "sku_2",
+            amount: 788,
+          },
+        ],
+        type: "contents",
+      },
+      {}
+    );
+  });
+
+  it("should not normalize shared content objects more than once across matched events", () => {
+    const generatedPixelId = generatePixelId();
+    const fieldsMapper = new FieldsMapperMock(() => ({}));
+    const fieldMapperFactory = new FieldsMapperFactoryMock(() => fieldsMapper);
+    const browser = new BrowserMock();
+    const win = { ...window };
+    const oaiqFunc = jest.fn();
+    win.oaiq = oaiqFunc;
+    browser.setWindow(win);
+
+    const plugin = new OpenAIPixel({
+      sync: {
+        id: randomUUID(),
+        destination_app: "openai_pixel",
+        settings: [{ key: "pixel_id", value: generatedPixelId }],
+        field_mappings: [],
+        event_mappings: [
+          {
+            enabled: true,
+            destination_event_key: "order_created",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "purchase",
+          },
+          {
+            enabled: true,
+            destination_event_key: "items_added",
+            event_type: TrackingEventType.TRACK_EVENT,
+            event_name: "purchase",
+          },
+        ],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory,
+      browser,
+      additionalPIIKeys: [],
+      testingWriteKey: false,
+      logger: console,
+    });
+
+    const mappedContent = {
+      id: "sku_1",
+      amount: 7.875,
+    };
+    fieldsMapper.setMapEventFunc(() => ({
+      currency: "KWD",
+      contents: [mappedContent],
+    }));
+    oaiqFunc.mockClear();
+
+    plugin.track(
+      new ContextFactoryImpl().newContext({
+        type: JournifyEventType.TRACK,
+        event: "purchase",
+      })
+    );
+
+    expect(oaiqFunc).toHaveBeenNthCalledWith(
+      1,
+      "measure",
+      "order_created",
+      {
+        currency: "KWD",
+        contents: [{ id: "sku_1", amount: 7875 }],
+        type: "contents",
+      },
+      {}
+    );
+    expect(oaiqFunc).toHaveBeenNthCalledWith(
+      2,
+      "measure",
+      "items_added",
+      {
+        currency: "KWD",
+        contents: [{ id: "sku_1", amount: 7875 }],
+        type: "contents",
+      },
+      {}
+    );
+    expect(mappedContent.amount).toBe(7.875);
+  });
 });
 
 function generatePixelId(): string {

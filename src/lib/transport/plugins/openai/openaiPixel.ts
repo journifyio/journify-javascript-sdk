@@ -8,6 +8,7 @@ import { toSettingsObject } from "../lib/settings";
 import { User } from "../../../domain/user";
 import { getStoredIdentify } from "../lib/identify";
 import { JournifyEvent, JournifyEventType } from "../../../domain/event";
+import { toMinorUnits } from "./utils";
 
 declare global {
   interface Window {
@@ -126,6 +127,7 @@ export class OpenAIPixel implements Plugin {
 
       if (STANDARD_EVENTS.has(eventName)) {
         eventProperties.type = EVENT_TYPE_MAP[eventName];
+        normalizeAmountsToMinorUnits(eventProperties);
         this.callPixelHelper("measure", eventName, eventProperties, {
           ...(eventId != null && { event_id: eventId }),
           ...(optOut === true && { opt_out: true }),
@@ -146,6 +148,7 @@ export class OpenAIPixel implements Plugin {
       }
 
       eventProperties.type = "custom";
+      normalizeAmountsToMinorUnits(eventProperties);
       this.callPixelHelper("measure", "custom", eventProperties, {
         custom_event_name: customName,
         ...(eventId != null && { event_id: eventId }),
@@ -319,4 +322,27 @@ function getValidCustomEventName(customEventName: unknown): string {
   }
 
   return "";
+}
+
+function normalizeAmountsToMinorUnits(eventProperties: Record<string, any>) {
+  const eventCurrency = eventProperties.currency;
+  eventProperties.amount = toMinorUnits(eventProperties.amount, eventCurrency);
+
+  if (!Array.isArray(eventProperties.contents)) {
+    return;
+  }
+
+  eventProperties.contents = eventProperties.contents.map((content: unknown) => {
+    if (!content || typeof content !== "object" || Array.isArray(content)) {
+      return content;
+    }
+
+    const contentProperties = { ...(content as Record<string, any>) };
+    contentProperties.amount = toMinorUnits(
+      contentProperties.amount,
+      contentProperties.currency || eventCurrency
+    );
+
+    return contentProperties;
+  });
 }
