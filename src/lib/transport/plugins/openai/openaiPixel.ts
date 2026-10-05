@@ -358,16 +358,19 @@ function normalizeAmountsToMinorUnits(eventProperties: Record<string, any>) {
     return;
   }
 
-  for (const content of eventProperties.contents) {
+  eventProperties.contents = eventProperties.contents.map((content: unknown) => {
     if (!content || typeof content !== "object" || Array.isArray(content)) {
-      continue;
+      return content;
     }
 
-    content.amount = toMinorUnits(
-      content.amount,
-      content.currency || eventCurrency
+    const contentProperties = { ...(content as Record<string, any>) };
+    contentProperties.amount = toMinorUnits(
+      contentProperties.amount,
+      contentProperties.currency || eventCurrency
     );
-  }
+
+    return contentProperties;
+  });
 }
 
 function toMinorUnits(value: unknown, currency: unknown): unknown {
