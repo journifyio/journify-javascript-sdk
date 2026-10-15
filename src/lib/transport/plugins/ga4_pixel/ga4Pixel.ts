@@ -141,7 +141,7 @@ export class GA4Pixel implements Plugin {
     };
 
     // Setting up the config object
-    const config: Record<string, any> = {};
+    const config: Record<string, any> & { data_layer?: string } = {};
     if (this.settings?.cookie_domain) {
       config.cookie_domain = this.settings.cookie_domain;
     }
