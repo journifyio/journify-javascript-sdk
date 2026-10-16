@@ -64,6 +64,11 @@ export function App() {
         (sync: { destination_app: string }) => sync.destination_app
       );
       log("info", `Syncs in write-key settings: journifyio (always) + ${apps.length}`, apps);
+      const region = writeKeySettings.data_processing_region;
+      log(
+        "info",
+        `Data processing region: ${region ?? "not set (SDK falls back to us)"}`
+      );
     } catch (e) {
       log("error", "Could not read write-key settings for sync list", String(e));
     }
