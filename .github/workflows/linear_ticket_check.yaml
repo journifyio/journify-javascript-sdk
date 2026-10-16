@@ -1,9 +1,84 @@
-name: Linear Ticket Check
+name: Linear Ticket Checker
 
 on:
+  # Reusable entrypoint for other repositories.
+  workflow_call:
+
+  # Optional direct usage in this repository.
   pull_request:
     types: [opened, reopened, edited, synchronize]
 
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
 jobs:
-  linear-ticket-check:
-    uses: journifyio/journify-automation/.github/workflows/linear-ticket-checker.yaml@v0.0.1
+  check-linear-ticket:
+    runs-on: ubuntu-latest
+    env:
+      LINEAR_APP_SLUG_REGEX: '^linear$'
+      LINEAR_BOT_LOGIN_REGEX: '^linear(\[bot\])?$'
+      LINEAR_TICKET_REGEX: 'https://linear\.app/[a-z0-9-]+/issue/'
+      FAILURE_MESSAGE: 'No Linear ticket URL was found in the PR body nor Linear Bot PR comments with ticket.'
+    steps:
+      - name: Validate Linear ticket is present
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pullRequest = context.payload.pull_request;
+
+            if (!pullRequest) {
+              core.setFailed('This workflow only supports pull_request events or workflow_call invocations that pass pull_request context.');
+              return;
+            }
+
+            // Shared across all repositories using this reusable workflow.
+            const linearAppSlugRegex = new RegExp(process.env.LINEAR_APP_SLUG_REGEX, 'i');
+            const linearBotLoginRegex = new RegExp(process.env.LINEAR_BOT_LOGIN_REGEX, 'i');
+            const linearTicketRegex = new RegExp(process.env.LINEAR_TICKET_REGEX, 'g');
+
+            const prBody = pullRequest.body || '';
+            const hasLinearUrlInPrBody = linearTicketRegex.test(prBody);
+            linearTicketRegex.lastIndex = 0;
+
+            if (hasLinearUrlInPrBody) {
+              const bodyLinks = prBody.match(linearTicketRegex) || [];
+              const uniqueBodyLinks = [...new Set(bodyLinks)];
+              core.info(`Linear ticket URL detected in PR body (${uniqueBodyLinks.length} unique link(s)).`);
+              return;
+            }
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest.number,
+              per_page: 100,
+            });
+
+            const matchingComments = comments.filter((comment) => {
+              const appSlug = comment.performed_via_github_app?.slug || '';
+              const appName = comment.performed_via_github_app?.name || '';
+              const login = comment.user?.login || '';
+              const body = comment.body || '';
+              const hasLinearUrl = linearTicketRegex.test(body);
+              linearTicketRegex.lastIndex = 0;
+
+              const isLinearActor = (
+                linearAppSlugRegex.test(appSlug) ||
+                linearAppSlugRegex.test(appName) ||
+                linearBotLoginRegex.test(login)
+              );
+
+              return isLinearActor && hasLinearUrl;
+            });
+
+            if (matchingComments.length > 0) {
+              const matchedLinks = matchingComments
+                .flatMap((comment) => comment.body?.match(linearTicketRegex) || []);
+              const uniqueLinks = [...new Set(matchedLinks)];
+              core.info(`Linear ticket URL detected in PR comments).`);
+              return;
+            }
+
+            core.setFailed(process.env.FAILURE_MESSAGE);
