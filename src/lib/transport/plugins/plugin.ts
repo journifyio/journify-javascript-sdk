@@ -64,11 +64,14 @@ export interface Booster {
   options?: Record<string, unknown>;
 }
 
+export type DataProcessingRegion = "us" | "eu" | "ksa";
+
 export interface WriteKeySettings {
   syncs: Sync[];
   consent_mode?: ConsentMode;
   country_code?: string;
   boosters?: Booster[];
+  data_processing_region?: DataProcessingRegion;
 }
 
 export interface Sync {
