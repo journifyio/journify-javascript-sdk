@@ -10,9 +10,9 @@ import {Consent, ConsentCategoryPreferences, ConsentPreference} from "./domain/c
 import {fromGoogleConsentV2, GoogleConsentV2} from "./api/consentWrappers/googleConsentV2";
 import {CookiesStore} from "./store/cookiesStore";
 import {ANONYMOUS_ID_PERSISTENCE_KEY} from "./domain/user";
+import {DEFAULT_API_HOST, isJournifyAPIHost} from "./api/region";
 
 const DEFAULT_CDN_HOST = "https://static.journify.io";
-const DEFAULT_API_HOST = "https://t.journify.io";
 const EXTERNAL_ID_COOKIE_NAMES: Record<string, string> = {
   facebook_click_id: "_fbc",
   pinterest_click_id: "_epik",
@@ -63,7 +63,7 @@ async function fetchWriteKeySettings(
   const enableCookieKeeper =
     sdkSettings.options?.enableCookieKeeper ?? false;
   const apiHost = sdkSettings.apiHost || DEFAULT_API_HOST;
-  const isCustomDomain = isCustomAPIHost(apiHost);
+  const isCustomDomain = !isJournifyAPIHost(apiHost);
   let settings = await fetchRemoteWriteKeySettings(
     productionWriteKey,
     isCustomDomain
@@ -142,14 +142,6 @@ async function fetchRemoteWriteKeySettings(
   }
 
   return null;
-}
-
-function isCustomAPIHost(apiHost: string): boolean {
-   try {
-     return new URL(apiHost).origin !== new URL(DEFAULT_API_HOST).origin;
-   } catch {
-     return false;
-   }
 }
 
 function setMissingExternalIDsCookies(
