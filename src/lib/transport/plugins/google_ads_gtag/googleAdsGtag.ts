@@ -150,7 +150,7 @@ export class GoogleAdsGtag implements Plugin {
   private loadGtagScript() {
     const localWindow = this.browser.window();
     localWindow.dataLayer = localWindow.dataLayer || [];
-    localWindow.gtag = function () {
+    localWindow.gtag  = localWindow.gtag || function () {
       /* eslint-disable prefer-rest-params */
       localWindow.dataLayer.push(arguments);
     };
@@ -168,10 +168,33 @@ export class GoogleAdsGtag implements Plugin {
   }
 
   private setUserData(identifyEvent: JournifyEvent) {
-    const userData = this.mapUserData(identifyEvent);
+  const userData = this.sanitizeUserData(
+      this.mapUserData(identifyEvent) as Record<string, any>
+    );
     if (Object.keys(userData).length > 0) {
       this.gtag("set", "user_data", userData);
     }
+  }
+
+  private sanitizeUserData(
+    userData: Record<string, any>
+  ): Record<string, any> {
+    const output: Record<string, any> = {};
+    for (const key in userData) {
+      const value = userData[key];
+      if (value === null || value === undefined || value === "") {
+        continue;
+      }
+      if (typeof value === "object" && !Array.isArray(value)) {
+        const nested = this.sanitizeUserData(value as Record<string, any>);
+        if (Object.keys(nested).length > 0) {
+          output[key] = nested;
+        }
+        continue;
+      }
+      output[key] = value;
+    }
+    return output;
   }
 
   private mapUserData(event: JournifyEvent): object {
@@ -183,18 +206,30 @@ export class GoogleAdsGtag implements Plugin {
     };
     return this.fieldsMapper.mapEvent(event, transformationsMap);
   }
-
+  
   private gtag(...args: any[]) {
-    if (this.testingMode) {
-      this.logger.log(
-        "Will call window.gtag with the following params in order:",
-        args
-      );
-      return;
-    }
-
-    this.browser.window().gtag(...args);
+  if (this.testingMode) {
+    this.logger.log(
+      "Will call window.gtag with the following params in order:",
+      args
+    );
+    return;
   }
+  const win = this.browser.window();
+  if (typeof win.gtag !== "function") {
+    this.logger.log(
+      "window.gtag is not available, skipping gtag call",
+       args
+      );
+    return;
+  }
+
+  try {
+    win.gtag(...args)
+  } catch (error) {
+    this.logger.log("window.gtag threw while processing a command", error);
+  }
+}
 
   // remove the fields that should only be sent on gtag("set") call from properties
   private removeUserInitData(properties: object): Record<string, any> {
