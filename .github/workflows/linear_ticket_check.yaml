@@ -6,4 +6,4 @@ on:
 
 jobs:
   linear-ticket-check:
-    uses: journifyio/journify-automation/.github/workflows/linear-ticket-checker.yaml@main
+    uses: journifyio/journify-automation/.github/workflows/linear-ticket-checker.yaml@v0.0.1
