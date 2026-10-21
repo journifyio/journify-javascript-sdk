@@ -205,8 +205,14 @@ export class Loader {
   public startNewSession() {
     this.initStores();
 
-    const currentEpoch = new Date().getTime();
-    this.stores.set(SESSION_ID_PERSISTENCE_KEY, currentEpoch);
+    const currentSessionID = this.stores.get(SESSION_ID_PERSISTENCE_KEY);
+    if (!currentSessionID) {
+      // set current session ID on all stores (it might be available only on one of them)
+      this.stores.set(SESSION_ID_PERSISTENCE_KEY, currentSessionID);
+    }else{
+      const currentEpoch = new Date().getTime();
+      this.stores.set(SESSION_ID_PERSISTENCE_KEY, currentEpoch);
+    }
 
     if (this.sessionIntervalId) {
       clearInterval(this.sessionIntervalId);
