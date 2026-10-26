@@ -131,13 +131,14 @@ export class GA4Pixel implements Plugin {
   private loadScript(measurementID: string) {
     const localWindow = this.browser.window();
 
-    localWindow.JDataLayer = localWindow.JDataLayer || [];
+    const dataLayerName = this.settings?.data_layer || "JDataLayer";
+    localWindow[dataLayerName] = localWindow[dataLayerName] || [];
 
     // Using a custom gtag to push to JDatalayer to avoid conflicts with any existing gtags.
     // Docs: https://developers.google.com/tag-platform/tag-manager/datalayer?hl=en#rename_the_data_layer
     this.pushToGtag = function () {
       // eslint-disable-next-line prefer-rest-params
-      localWindow.JDataLayer.push(arguments);
+      localWindow[dataLayerName].push(arguments);
     };
 
     // Setting up the config object
@@ -157,7 +158,7 @@ export class GA4Pixel implements Plugin {
 
     // Load the gtag script with l paramater to set the new data layer name
     this.browser.injectScript(
-      `https://www.googletagmanager.com/gtag/js?id=${measurementID}&l=JDataLayer`,
+      `https://www.googletagmanager.com/gtag/js?id=${measurementID}&l=${encodeURIComponent(dataLayerName)}`,
       { async: true }
     );
   }
