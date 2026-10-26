@@ -131,17 +131,18 @@ export class GA4Pixel implements Plugin {
   private loadScript(measurementID: string) {
     const localWindow = this.browser.window();
 
-    localWindow.JDataLayer = localWindow.JDataLayer || [];
+    const dataLayerName = this.settings?.data_layer || "JDataLayer";
+    localWindow[dataLayerName] = localWindow[dataLayerName] || [];
 
     // Using a custom gtag to push to JDatalayer to avoid conflicts with any existing gtags.
     // Docs: https://developers.google.com/tag-platform/tag-manager/datalayer?hl=en#rename_the_data_layer
     this.pushToGtag = function () {
       // eslint-disable-next-line prefer-rest-params
-      localWindow[config.data_layer || "JDataLayer"].push(arguments);
+      localWindow[dataLayerName].push(arguments);
     };
 
     // Setting up the config object
-    const config: Record<string, any> & { data_layer?: string } = {};
+    const config: Record<string, any> = {};
     if (this.settings?.cookie_domain) {
       config.cookie_domain = this.settings.cookie_domain;
     }
@@ -151,17 +152,13 @@ export class GA4Pixel implements Plugin {
     if (this.settings?.cookie_expires) {
       config.cookie_expires = this.settings.cookie_expires;
     }
-    if (this.settings?.data_layer) {
-      config.data_layer = this.settings.data_layer;
-      localWindow[config.data_layer] = localWindow[config.data_layer] || [];
-    }
 
      this.pushToGtag("js", new Date());
      this.pushToGtag("config", measurementID, config);
 
     // Load the gtag script with l paramater to set the new data layer name
     this.browser.injectScript(
-      `https://www.googletagmanager.com/gtag/js?id=${measurementID}&l=${encodeURIComponent(config.data_layer || "JDataLayer")}`,
+      `https://www.googletagmanager.com/gtag/js?id=${measurementID}&l=${encodeURIComponent(dataLayerName)}`,
       { async: true }
     );
   }
