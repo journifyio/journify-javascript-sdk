@@ -693,4 +693,55 @@ describe("EventFactoryImpl class", () => {
       });
     });
   });
+
+  describe("twitter_click_id external id", () => {
+    async function getTwitterClickId(cookieValue: unknown) {
+      const browser = new BrowserMock();
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({ ...global.location, search: "" });
+      browser.setWindow({ ...window });
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      testStores.cookies.set("_twclid", cookieValue);
+
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        new ExternalIdsSessionCacheImpl(browser, new SessionStore(browser)),
+        new ConsentServiceMock()
+      );
+      eventFactory.setUser(new UserMock("user-id", uuid.v4(), {}, {}, {}));
+
+      const event = await eventFactory.newTrackEvent("test_event");
+      return event.externalIds?.twitter_click_id;
+    }
+
+    it("Should read twclid from an already parsed cookie object", async function () {
+      const twclid = await getTwitterClickId({ twclid: "twclid-123" });
+      expect(twclid).toEqual("twclid-123");
+    });
+
+    it("Should read twclid from an encoded JSON cookie string", async function () {
+      const twclid = await getTwitterClickId(
+        encodeURI(JSON.stringify({ twclid: "twclid-456" }))
+      );
+      expect(twclid).toEqual("twclid-456");
+    });
+
+    it("Should return the raw cookie when it is a plain string", async function () {
+      const twclid = await getTwitterClickId("twclid-raw-789");
+      expect(twclid).toEqual("twclid-raw-789");
+    });
+
+    it("Should not return [object Object] when the parsed cookie has no twclid", async function () {
+      const twclid = await getTwitterClickId({ other: "value" });
+      expect(twclid).toBeUndefined();
+    });
+  });
 });
