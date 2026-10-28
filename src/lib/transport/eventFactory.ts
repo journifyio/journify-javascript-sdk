@@ -317,10 +317,17 @@ export class EventFactoryImpl implements EventFactory {
     return cookieValue.substring(startIndex + 2, endIndex);
   }
 
-  private getTwitterClickId(): string {
-    let cookie: string = this.cookiesStore.get("_twclid");
+  private getTwitterClickId(): string | null {
+    let cookie = this.cookiesStore.get<string | { twclid?: string }>(
+      "_twclid",
+    );
     if (!cookie) {
-      return cookie;
+      return null;
+    }
+
+    // The cookies store may have already JSON-parsed the value.
+    if (typeof cookie === "object") {
+      return cookie.twclid ?? null;
     }
 
     try {
