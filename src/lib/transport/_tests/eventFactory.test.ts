@@ -5,7 +5,8 @@ import {User, UserImpl} from "../../domain/user";
 import {Traits} from "../../domain/traits";
 import {JournifyEvent, JournifyEventType, UtmCampaign,} from "../../domain/event";
 import {LIB_VERSION} from "../../generated/libVersion";
-import {StoresGroup} from "../../store/store";
+import {SESSION_ID_PERSISTENCE_KEY, StoresGroup} from "../../store/store";
+import * as cookiesStoreModule from "../../store/cookiesStore";
 import {createStoresForTest} from "../../../test/helpers/stores";
 import {BrowserMock} from "../../../test/mocks/browser";
 import {ExternalIds, ExternalIdsSessionCacheImpl,} from "../../domain/externalId";
@@ -742,6 +743,140 @@ describe("EventFactoryImpl class", () => {
     it("Should not return [object Object] when the parsed cookie has no twclid", async function () {
       const twclid = await getTwitterClickId({ other: "value" });
       expect(twclid).toBeUndefined();
+    });
+  });
+
+  describe("facebook_click_id external id", () => {
+    const SESSION_ID = 1700000000000;
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function newEventFactory(
+      search: string,
+      cookies: Record<string, string> = {},
+      hostname = "www.example.com"
+    ) {
+      const browser = new BrowserMock();
+      browser.setNavigator({ ...global.navigator });
+      browser.setDocument({ ...global.document });
+      browser.setLocation({
+        ...global.location,
+        search,
+        hostname,
+        href: `https://${hostname}/${search}`,
+      });
+      browser.setWindow({ ...window });
+      const testStores = createStoresForTest();
+      const stores = new StoresGroup(
+        testStores.local,
+        testStores.cookies,
+        testStores.memory
+      );
+      stores.set(SESSION_ID_PERSISTENCE_KEY, SESSION_ID);
+      Object.entries(cookies).forEach(([key, value]) =>
+        testStores.cookies.set(key, value)
+      );
+
+      const eventFactory = new EventFactoryImpl(
+        stores,
+        testStores.cookies,
+        browser,
+        new ExternalIdsSessionCacheImpl(browser, new SessionStore(browser)),
+        new ConsentServiceMock()
+      );
+      eventFactory.setUser(new UserMock("user-id", uuid.v4(), {}, {}, {}));
+
+      return { eventFactory, testStores };
+    }
+
+    async function getFacebookClickId(eventFactory: EventFactoryImpl) {
+      const event = await eventFactory.newPageEvent("page");
+      return event.externalIds?.facebook_click_id;
+    }
+
+    it("Should return the _fbc cookie when there is no fbclid in the url", async function () {
+      const { eventFactory } = newEventFactory("", { _fbc: "fb.1.111.old" });
+      expect(await getFacebookClickId(eventFactory)).toEqual("fb.1.111.old");
+    });
+
+    it("Should not build a value when there is neither fbclid nor _fbc", async function () {
+      const { eventFactory } = newEventFactory("");
+      expect(await getFacebookClickId(eventFactory)).toBeUndefined();
+    });
+
+    it("Should return the _fbc cookie as is when the url has a fbclid", async function () {
+      const { eventFactory } = newEventFactory("?fbclid=abc", {
+        _fbc: "fb.1.111.abc.AQ",
+      });
+      expect(await getFacebookClickId(eventFactory)).toEqual(
+        "fb.1.111.abc.AQ"
+      );
+    });
+
+    it("Should return the _fbc cookie as is even when it is from another click", async function () {
+      const findRootCookieDomain = jest.spyOn(cookiesStoreModule, "findRootCookieDomain");
+      const { eventFactory } = newEventFactory("?fbclid=new", {
+        _fbc: "fb.1.111.old",
+      });
+      expect(await getFacebookClickId(eventFactory)).toEqual("fb.1.111.old");
+      expect(findRootCookieDomain).not.toHaveBeenCalled();
+    });
+
+    it("Should build _fbc from fbclid when the pixel has not stored it yet", async function () {
+      jest.spyOn(cookiesStoreModule, "findRootCookieDomain").mockReturnValue("example.com");
+      const { eventFactory } = newEventFactory("?fbclid=abc");
+      expect(await getFacebookClickId(eventFactory)).toEqual(
+        `fb.1.${SESSION_ID}.abc`
+      );
+    });
+
+    it("Should build the same _fbc value for every event of the session", async function () {
+      jest.spyOn(cookiesStoreModule, "findRootCookieDomain").mockReturnValue("example.com");
+      const { eventFactory } = newEventFactory("?fbclid=abc");
+      const first = await getFacebookClickId(eventFactory);
+      const second = await getFacebookClickId(eventFactory);
+      expect(second).toEqual(first);
+    });
+
+    it("Should use the subdomain index of the root domain", async function () {
+      jest.spyOn(cookiesStoreModule, "findRootCookieDomain").mockReturnValue("example.co.uk");
+      const { eventFactory } = newEventFactory(
+        "?fbclid=abc",
+        {},
+        "shop.example.co.uk"
+      );
+      expect(await getFacebookClickId(eventFactory)).toEqual(
+        `fb.2.${SESSION_ID}.abc`
+      );
+    });
+
+    it("Should reuse the subdomain index of the _fbp cookie", async function () {
+      const findRootCookieDomain = jest.spyOn(cookiesStoreModule, "findRootCookieDomain");
+      const { eventFactory } = newEventFactory("?fbclid=abc", {
+        _fbp: "fb.2.1600000000000.123456789",
+      });
+      expect(await getFacebookClickId(eventFactory)).toEqual(
+        `fb.2.${SESSION_ID}.abc`
+      );
+      expect(findRootCookieDomain).not.toHaveBeenCalled();
+    });
+
+    it("Should fall back to the hostname when no root domain is found", async function () {
+      jest.spyOn(cookiesStoreModule, "findRootCookieDomain").mockReturnValue(undefined);
+      const { eventFactory } = newEventFactory("?fbclid=abc", {}, "localhost");
+      expect(await getFacebookClickId(eventFactory)).toEqual(
+        `fb.0.${SESSION_ID}.abc`
+      );
+    });
+
+    it("Should encode dots of the fbclid like the pixel does", async function () {
+      jest.spyOn(cookiesStoreModule, "findRootCookieDomain").mockReturnValue("example.com");
+      const { eventFactory } = newEventFactory("?fbclid=a.b");
+      expect(await getFacebookClickId(eventFactory)).toEqual(
+        `fb.1.${SESSION_ID}.a__DOT__b`
+      );
     });
   });
 });

@@ -9,6 +9,7 @@ import {Browser} from "./browser";
 import {Traits} from "../domain/traits";
 import {SessionStore} from "../store/sessionStore";
 import {ConsentService} from "../domain/consent";
+import {findRootCookieDomain} from "../store/cookiesStore";
 
 export interface EventFactory {
   setUser(user: User): void;
@@ -36,6 +37,7 @@ export class EventFactoryImpl implements EventFactory {
   private readonly cookiesStore: Store;
   private readonly externalIdsSessionCache: ExternalIdsSessionCache;
   private readonly consentService: ConsentService;
+  private facebookSubdomainIndex: number | null = null;
 
   public constructor(
     stores: StoresGroup,
@@ -230,7 +232,7 @@ export class EventFactoryImpl implements EventFactory {
   }
   private getExternalIDs(): ExternalIds {
     const potentialExternalIds = {
-      facebook_click_id: this.cookiesStore.get("_fbc"),
+      facebook_click_id: this.getFacebookClickId(),
       pinterest_click_id: this.cookiesStore.get("_epik"),
       tiktok_click_id: this.cookiesStore.get("ttclid"),
       snapchat_click_id: this.cookiesStore.get("_scclid"),
@@ -340,5 +342,49 @@ export class EventFactoryImpl implements EventFactory {
     } catch (e) {
       return cookie;
     }
+  }
+
+  private getFacebookClickId(): string | null {
+    const cookie = this.cookiesStore.get<string>("_fbc");
+    if (cookie) {
+      return cookie;
+    }
+
+    const fbclid = new URLSearchParams(this.browser.location().search).get(
+      "fbclid",
+    );
+    if (!fbclid) {
+      return null;
+    }
+
+    // The pixel hasn't stored _fbc yet. Use the session start as the
+    // creation time so every event in the session builds the same value.
+    const creationTime =
+      this.stores.get<number>(SESSION_ID_PERSISTENCE_KEY) || Date.now();
+    const payload = fbclid.replace(/\./g, "__DOT__");
+    return `fb.${this.getFacebookSubdomainIndex()}.${creationTime}.${payload}`;
+  }
+
+  // Same rule as the pixel: the number of labels of the widest domain a cookie
+  // can be set on, minus one ("example.com" = 1, "example.co.uk" = 2).
+  private getFacebookSubdomainIndex(): number {
+    if (this.facebookSubdomainIndex !== null) {
+      return this.facebookSubdomainIndex;
+    }
+
+    const fbpIndex = parseInt(
+      String(this.cookiesStore.get("_fbp") ?? "").split(".")[1],
+      10,
+    );
+    if (!isNaN(fbpIndex)) {
+      this.facebookSubdomainIndex = fbpIndex;
+      return fbpIndex;
+    }
+
+    const location = this.browser.location();
+    const rootDomain =
+      findRootCookieDomain(location.href) ?? location.hostname;
+    this.facebookSubdomainIndex = rootDomain.split(".").length - 1;
+    return this.facebookSubdomainIndex;
   }
 }
