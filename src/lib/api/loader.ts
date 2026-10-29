@@ -43,6 +43,7 @@ import {EventMapperFactoryImpl} from "../transport/plugins/lib/eventMapping";
 import {ConsentServiceImpl, ConsentService, ConsentCategoryPreferences, resolveConsentMode} from "../domain/consent";
 import {RedditPixel} from "../transport/plugins/reddit/redditPixel";
 import {applyBoosters} from "./boosters";
+import {resolveApiHost} from "./region";
 
 const INTEGRATION_PLUGINS = {
   bing_ads_tag: BingAdsTag,
@@ -84,6 +85,7 @@ export class Loader {
     // Dashboard boosters override local enableHashing / autoCapturePII when present.
     this.sdkSettings = {
       ...sdkConfig,
+      apiHost: resolveApiHost(sdkConfig.apiHost, writeKeySettings.data_processing_region),
       options: applyBoosters(sdkConfig.options, writeKeySettings.boosters),
     };
     this.writeKeySettings = writeKeySettings;
