@@ -94,26 +94,32 @@ export class CookiesStore implements Store {
       return this.domain;
     }
 
-    const parsedUrl = parseUrl(location?.href);
-    if (!parsedUrl) return;
-    const levels = getUrlLevels(parsedUrl);
+    return findRootCookieDomain(location?.href);
+  }
+}
 
-    // Lookup the real top level one.
-    for (let i = 0; i < levels.length; ++i) {
-      const cname = "__tld__";
-      const domain = levels[i];
-      const opts = { domain: "." + domain };
+// Returns the widest domain the browser accepts a cookie on (e.g. "example.com"
+// for "www.example.com", "example.co.uk" for "shop.example.co.uk").
+export function findRootCookieDomain(href: string): string | undefined {
+  const parsedUrl = parseUrl(href);
+  if (!parsedUrl) return;
+  const levels = getUrlLevels(parsedUrl);
 
-      try {
-        // cookie access throw an error if the library is run inside a sandboxed environment (e.g. sandboxed iframe)
-        JsCookie.set(cname, "1", opts);
-        if (JsCookie.get(cname)) {
-          JsCookie.remove(cname, opts);
-          return domain;
-        }
-      } catch (_) {
-        return;
+  // Lookup the real top level one.
+  for (let i = 0; i < levels.length; ++i) {
+    const cname = "__tld__";
+    const domain = levels[i];
+    const opts = { domain: "." + domain };
+
+    try {
+      // cookie access throw an error if the library is run inside a sandboxed environment (e.g. sandboxed iframe)
+      JsCookie.set(cname, "1", opts);
+      if (JsCookie.get(cname)) {
+        JsCookie.remove(cname, opts);
+        return domain;
       }
+    } catch (_) {
+      return;
     }
   }
 }
