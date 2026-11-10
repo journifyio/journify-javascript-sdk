@@ -7,6 +7,7 @@ import { getStoredIdentify } from "../lib/identify";
 import { toSettingsObject } from "../lib/settings";
 import { Sync, Plugin, PluginDependencies, Logger } from "../plugin";
 import { hashPII } from "../lib/hashPII";
+import { googleTagScriptURL } from "../lib/googleTag";
 
 declare global {
   interface Window {
@@ -157,7 +158,11 @@ export class GA4Pixel implements Plugin {
 
     // Load the gtag script with l paramater to set the new data layer name
     this.browser.injectScript(
-      `https://www.googletagmanager.com/gtag/js?id=${measurementID}&l=JDataLayer`,
+      googleTagScriptURL({
+        tagID: measurementID,
+        gatewayPath: this.settings?.tag_gateway_path,
+        dataLayerName: "JDataLayer",
+      }),
       { async: true }
     );
   }

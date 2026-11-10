@@ -93,6 +93,51 @@ describe("GA4 Pixel", () => {
     });
   });
 
+  it.each([
+    [
+      "Google's domain when tag_gateway_path is not set",
+      [],
+      `https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX&l=JDataLayer`,
+    ],
+    [
+      "the gateway path when tag_gateway_path is set",
+      [{ key: "tag_gateway_path", value: "/metrics" }],
+      "/metrics/?l=JDataLayer",
+    ],
+  ])("should load the GA4 script from %s", (_, extraSettings, expectedURL) => {
+    const injectScriptFn = jest.fn();
+    browser.setInjectScriptFn(injectScriptFn);
+    const deps: PluginDependencies = {
+      sync: {
+        id: "sync_id",
+        destination_app: "ga4_pixel",
+        settings: [{ key: "mesurement_id", value: mesurementId }, ...extraSettings],
+        field_mappings: [],
+        event_mappings: [],
+      },
+      user,
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      fieldMapperFactory: new FieldsMapperFactoryMock(
+        () => new FieldsMapperMock(() => ({}))
+      ),
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      testingWriteKey: false,
+      browser: browser,
+      additionalPIIKeys: [],
+      logger: console,
+    };
+
+    new GA4Pixel(deps);
+
+    expect(injectScriptFn).toHaveBeenCalledTimes(1);
+    expect(injectScriptFn).toHaveBeenCalledWith(expectedURL, { async: true });
+  });
+
   it("should add to cart event", () => {
     const fieldMapper = new FieldsMapperMock(() => {
       return {};
