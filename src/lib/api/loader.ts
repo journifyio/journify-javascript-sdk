@@ -57,6 +57,15 @@ const INTEGRATION_PLUGINS = {
   snapchat_pixel: SnapchatPixel,
   tiktok_pixel: TikTokPixel,
   x_pixel: XPixel,
+
+  // TODO: temporary "<slug>_legacy" aliases, remove once destinations are migrated.
+  facebook_pixel_legacy: FacebookPixel,
+  ga4_pixel_legacy: GA4Pixel,
+  openai_pixel_legacy: OpenAIPixel,
+  pinterest_tag_legacy: PinterestTag,
+  reddit_pixel_legacy: RedditPixel,
+  snapchat_pixel_legacy: SnapchatPixel,
+  tiktok_pixel_legacy: TikTokPixel,
 };
 
 const JOURNIFY_PREFIX = "[Journify]";
