@@ -187,6 +187,75 @@ describe("Google Ads Gtag", () => {
     ]);
   });
 
+  describe("Google tag gateway", () => {
+    const newGatewayDependencies = (
+      browser: BrowserMock,
+      gtagId: string
+    ): PluginDependencies => ({
+      sync: {
+        id: "sync_id",
+        destination_app: "google_ads_gtag",
+        settings: [
+          { key: "google_ads_gtag_id", value: gtagId },
+          { key: "tag_gateway_path", value: "/metrics" },
+        ],
+        field_mappings: [],
+        event_mappings: [],
+      },
+      user: new UserMock(randomUUID(), randomUUID(), {}, {}),
+      sentry: {
+        setTag: jest.fn(),
+        setResponse: jest.fn(),
+        captureException: jest.fn(),
+        captureMessage: jest.fn(),
+      },
+      eventMapperFactory: new EventMapperFactoryImpl(),
+      fieldMapperFactory: new FieldsMapperFactoryMock(
+        () => new FieldsMapperMock(() => ({}))
+      ),
+      browser,
+      additionalPIIKeys: [],
+      testingWriteKey: false,
+      logger: console,
+    });
+
+    it("should load gtag from the gateway path when tag_gateway_path is set", () => {
+      const browser = new BrowserMock();
+      browser.setWindow({ ...window });
+      const injectScriptFunc = jest.fn();
+      browser.setInjectScriptFn(injectScriptFunc);
+      const scriptAlreadyInPage = jest.fn(() => false);
+      browser.setScriptAlreadyInPageFn(scriptAlreadyInPage);
+      const gtagId = generateGtagId();
+
+      new GoogleAdsGtag(newGatewayDependencies(browser, gtagId));
+
+      expect(scriptAlreadyInPage).toHaveBeenCalledWith("/metrics/");
+      expect(scriptAlreadyInPage).toHaveBeenCalledWith(
+        `https://www.googletagmanager.com/gtag/js?id=${gtagId}`
+      );
+      expect(injectScriptFunc).toHaveBeenCalledTimes(1);
+      expect(injectScriptFunc).toHaveBeenCalledWith("/metrics/", {
+        async: true,
+      });
+    });
+
+    it("should not load gtag from the gateway path if the page already loads it from Google's domain", () => {
+      const browser = new BrowserMock();
+      browser.setWindow({ ...window });
+      const injectScriptFunc = jest.fn();
+      browser.setInjectScriptFn(injectScriptFunc);
+      const gtagId = generateGtagId();
+      browser.setScriptAlreadyInPageFn(
+        (url) => url === `https://www.googletagmanager.com/gtag/js?id=${gtagId}`
+      );
+
+      new GoogleAdsGtag(newGatewayDependencies(browser, gtagId));
+
+      expect(injectScriptFunc).not.toHaveBeenCalled();
+    });
+  });
+
   it("should send a WEBPAGE conversion event to google", () => {
     const sourceEventName = "add_to_cart";
     const conversionLabel = "zqdUPATg1rgZENSkdsklv4o";

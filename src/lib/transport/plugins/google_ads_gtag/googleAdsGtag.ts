@@ -5,6 +5,7 @@ import { Browser } from "../../browser";
 import { EventMapper } from "../lib/eventMapping";
 import { FieldsMapper } from "../lib/fieldMapping";
 import { toSettingsObject } from "../lib/settings";
+import { googleTagScriptURL } from "../lib/googleTag";
 import { getStoredIdentify } from "../lib/identify";
 import { JournifyEvent, JournifyEventType } from "../../../domain/event";
 import { toLowerCase, trim } from "../lib/tranformations";
@@ -155,8 +156,17 @@ export class GoogleAdsGtag implements Plugin {
       localWindow.dataLayer.push(arguments);
     };
 
-    const scriptURL = `https://www.googletagmanager.com/gtag/js?id=${this.settings.google_ads_gtag_id}`;
-    if (!this.browser.scriptAlreadyInPage(scriptURL)) {
+    const tagID = this.settings.google_ads_gtag_id;
+    const scriptURL = googleTagScriptURL({
+      tagID,
+      gatewayPath: this.settings.tag_gateway_path,
+    });
+    // The site may already load this tag, from Google's domain or from the gateway path.
+    const defaultScriptURL = googleTagScriptURL({ tagID });
+    if (
+      !this.browser.scriptAlreadyInPage(scriptURL) &&
+      !this.browser.scriptAlreadyInPage(defaultScriptURL)
+    ) {
       this.browser.injectScript(scriptURL, { async: true });
     }
   }
