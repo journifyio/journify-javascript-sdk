@@ -2,8 +2,8 @@ import { Plugin, SdkSettings } from "../plugin";
 import { Context } from "../../context";
 import { hashPII } from "../lib/hashPII";
 import { SentryWrapper } from "../../../lib/sentry";
+import { DEFAULT_API_HOST, isJournifyAPIHost } from "../../../api/region";
 
-const DEFAULT_API_HOST = "https://t.journify.io";
 // this is used to limit the size of the request body to prevent issues with large payloads
 const MAX_REQUEST_BODY_SIZE_KB = 16; // 16KB
 
@@ -27,7 +27,7 @@ export class JournifyioPlugin implements Plugin {
   public group = this.post;
   private async post(ctx: Context): Promise<Context> {
     const apiHost = this.sdkSettings.apiHost ?? DEFAULT_API_HOST;
-    const isCustomDomain = isCustomAPIHost(apiHost);
+    const isCustomDomain = !isJournifyAPIHost(apiHost);
     const event = ctx.getEvent();
 
     if (this.sdkSettings?.options?.enableHashing === true) {
@@ -92,12 +92,4 @@ export class JournifyioPlugin implements Plugin {
 
     return ctx;
   }
-}
-
-function isCustomAPIHost(apiHost: string): boolean {
-   try {
-     return new URL(apiHost).origin !== new URL(DEFAULT_API_HOST).origin;
-   } catch {
-     return false;
-   }
 }
